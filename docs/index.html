@@ -8,36 +8,50 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<style>
+  .boot-msg { text-align:center; padding:64px 16px; color:#6b7790; font-size:16px; }
+  .boot-msg b { color:#1f2a44; }
+</style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Linh Thú Của Bạn</h1>
-  <p class="sub">Mỗi linh thú là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
-  <!-- hồ sơ -->
-  <div class="profile" id="profile"></div>
+  <!-- Trạng thái khởi động (chỉ hiện ở chế độ firebase, biến mất sau khi tải config xong) -->
+  <div id="appLoading" class="boot-msg">Đang tải sự kiện…</div>
+  <div id="noEvent"    class="boot-msg" hidden><b>Hiện chưa có sự kiện nào đang mở.</b><br>Vui lòng quay lại sau.</div>
+  <div id="appError"   class="boot-msg" hidden></div>
 
-  <!-- banner đội của bạn -->
-  <div id="bannerWrap"></div>
+  <!-- Nội dung chính — bị ẩn cho đến khi boot() nạp xong config -->
+  <div id="appContent" hidden>
+    <h1>Linh Thú Của Bạn</h1>
+    <p class="sub">Mỗi linh thú là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
-  <!-- đội còn chỗ -->
-  <div class="section-h">
-    <h2>Đội còn chỗ</h2>
-    <span class="count" id="freeCount"></span>
-    <span class="hr"></span>
+    <!-- hồ sơ -->
+    <div class="profile" id="profile"></div>
+
+    <!-- banner đội của bạn -->
+    <div id="bannerWrap"></div>
+
+    <!-- đội còn chỗ -->
+    <div class="section-h">
+      <h2>Đội còn chỗ</h2>
+      <span class="count" id="freeCount"></span>
+      <span class="hr"></span>
+    </div>
+    <div id="freeHint"></div>
+    <div class="grid" id="grid"></div>
+    <div id="freeEmpty"></div>
+
+    <!-- đội đã đủ -->
+    <div class="section-h">
+      <h2>Đội đã đủ</h2>
+      <span class="count" id="takenCount"></span>
+      <span class="hr"></span>
+    </div>
+    <div class="taken-grid" id="taken"></div>
+    <div id="takenEmpty"></div>
   </div>
-  <div id="freeHint"></div>
-  <div class="grid" id="grid"></div>
-  <div id="freeEmpty"></div>
 
-  <!-- đội đã đủ -->
-  <div class="section-h">
-    <h2>Đội đã đủ</h2>
-    <span class="count" id="takenCount"></span>
-    <span class="hr"></span>
-  </div>
-  <div class="taken-grid" id="taken"></div>
-  <div id="takenEmpty"></div>
 </div>
 
 <div id="toast" class="toast"></div>

@@ -5,17 +5,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ⚠️ PHẢI KHỚP với CAPACITY trong docs/js/config.js. Đổi sĩ số thì sửa cả 2 nơi.
-    function cap() { return 10; }
+    // ── Admin check: dùng cho config write, meta write, signups read ─────────
+    // Thêm nhiều UID bằng cách liệt kê trong mảng: ["uid1", "uid2", ...].
+    // Để nguyên placeholder thì CHƯA ai có quyền admin (an toàn mặc định).
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2"];
+    }
+
+    // ── Bảng hiệu: sự kiện đang mở ──────────────────────────────────────────
+    // config/active = { eventId: "..." }  — đọc công khai để client biết sự kiện nào đang mở.
+    match /config/{doc} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
 
     // Mỗi sự kiện = 1 không gian riêng. Đổi EVENT_ID ở client là sang sự kiện mới.
     match /events/{eventId} {
 
+      // ── Cấu hình sự kiện — KHÔNG chứa PII, đọc công khai ─────────────────
+      // events/{eventId}/meta/config = { title, subtitle, fields, icons, capacity, dedupField, blockDup, ... }
+      match /meta/{doc} {
+        allow read:  if true;
+        allow write: if isAdmin();
+      }
+
+      // Cap động: đọc từ meta/config thay vì hằng số cứng.
+      // ⚠️ Nếu doc meta/config chưa tồn tại, cap() lỗi → update bị deny (hành vi an toàn).
+      function cfg() {
+        return get(/databases/$(database)/documents/events/$(eventId)/meta/config).data;
+      }
+      function cap() { return cfg().capacity; }
+
       // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa PII. ──
       // count chỉ được tăng đúng 1 mỗi lần, không bao giờ vượt cap(), và độ dài names luôn = count.
+      // create chỉ cho phép khi meta/config tồn tại → không ai tạo đội cho sự kiện chưa cấu hình.
       match /teams/{icon} {
         allow read: if true;
-        allow create: if request.resource.data.icon is string
+        allow create: if exists(/databases/$(database)/documents/events/$(eventId)/meta/config)
+                      && request.resource.data.icon is string
                       && request.resource.data.count == 1
                       && request.resource.data.names.size() == 1;
         allow update: if request.resource.data.icon == resource.data.icon
@@ -42,14 +70,11 @@ service cloud.firestore {
       }
 
       // ── Hồ sơ đầy đủ (tên/MSNV…) — chứa PII. Khách CHỈ GHI, KHÔNG đọc được. ──
-      // CHỈ admin đã đăng nhập (Firebase Auth) & UID nằm trong danh sách mới đọc/liệt kê được.
-      //   → dùng cho trang docs/admin.html. Dán UID admin vào mảng dưới (có thể nhiều admin).
-      //   → để nguyên placeholder thì CHƯA ai đọc được (an toàn mặc định).
-      // Lấy UID: Firebase Console → Authentication → tài khoản admin → cột "User UID".
+      // CHỈ admin đã đăng nhập (Firebase Auth) & UID nằm trong isAdmin() mới đọc/liệt kê được.
+      //   → dùng cho trang docs/admin.html. Để nguyên placeholder trong isAdmin() thì CHƯA ai đọc được.
       match /signups/{pid} {
-        allow read: if request.auth != null
-                    && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2"];
-        allow create: if true;
+        allow read:          if isAdmin();
+        allow create:        if true;
         allow update, delete: if false;
       }
     }

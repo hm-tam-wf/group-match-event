@@ -5,27 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin — Linh Thú</title>
 <style>
-  :root { --bg:#f4f7fb; --card:#fff; --line:#e4e9f2; --ink:#1f2a44; --mut:#6b7790; --pri:#3b6cff; --bad:#d92d4b; }
+  :root { --bg:#f4f7fb; --card:#fff; --line:#e4e9f2; --ink:#1f2a44; --mut:#6b7790; --pri:#3b6cff; --bad:#d92d4b; --ok:#16a34a; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 "Segoe UI",system-ui,sans-serif; }
   .wrap { max-width:1040px; margin:0 auto; padding:24px 16px 64px; }
   h1 { font-size:22px; margin:0 0 16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 1px 3px rgba(20,40,90,.05); }
-  /* đăng nhập */
+  h2 { font-size:17px; margin:0 0 14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 1px 3px rgba(20,40,90,.05); margin-bottom:16px; }
+  /* login */
   #loginView { max-width:380px; margin:48px auto; }
   #loginView input { width:100%; padding:11px 12px; margin:8px 0; border:1px solid var(--line); border-radius:10px; font-size:15px; }
   button { cursor:pointer; border:0; border-radius:10px; padding:10px 16px; font-size:15px; font-weight:600; }
-  .btn-pri { background:var(--pri); color:#fff; }
-  .btn-pri:hover { filter:brightness(.95); }
+  .btn-pri  { background:var(--pri); color:#fff; }
+  .btn-pri:hover  { filter:brightness(.92); }
   .btn-ghost { background:#eef2fb; color:var(--ink); }
   .btn-ghost:hover { background:#e4eaf7; }
-  .err { color:var(--bad); min-height:20px; margin:6px 0 0; font-size:14px; }
-  /* bảng điều khiển */
+  .btn-ok   { background:#dcfce7; color:#15803d; }
+  .btn-ok:hover   { background:#bbf7d0; }
+  .btn-del  { background:#fee2e2; color:#b91c1c; padding:6px 10px; font-size:13px; }
+  .btn-del:hover  { background:#fecaca; }
+  .btn-sm   { padding:6px 12px; font-size:13px; }
+  button:disabled { opacity:.55; cursor:not-allowed; }
+  .err    { color:var(--bad); min-height:20px; margin:6px 0 0; font-size:14px; }
+  .ok-msg { color:var(--ok); min-height:20px; margin:6px 0 0; font-size:14px; }
+  /* top bar */
   .bar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
   .bar .who { color:var(--mut); font-size:14px; }
-  .row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px; }
-  .row label { font-weight:600; }
-  .row input { padding:9px 11px; border:1px solid var(--line); border-radius:10px; font-size:15px; min-width:240px; }
+  /* tabs */
+  .tabs { display:flex; border-bottom:2px solid var(--line); margin-bottom:20px; }
+  .tab { background:none; border:0; border-bottom:2px solid transparent; margin-bottom:-2px; padding:10px 20px; font-size:15px; font-weight:600; color:var(--mut); cursor:pointer; border-radius:0; }
+  .tab.active { color:var(--pri); border-bottom-color:var(--pri); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+  /* event list */
+  .ev-list { display:flex; flex-direction:column; gap:10px; }
+  .ev-row { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; flex-wrap:wrap; }
+  .ev-row.is-active { border-color:var(--pri); background:#f0f4ff; }
+  .ev-info { flex:1; min-width:180px; }
+  .ev-title { font-weight:600; }
+  .ev-meta  { font-size:13px; color:var(--mut); }
+  .ev-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .badge { display:inline-block; background:var(--pri); color:#fff; border-radius:999px; padding:2px 9px; font-size:12px; font-weight:700; vertical-align:middle; }
+  /* create form */
+  .form-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; align-items:flex-start; }
+  .form-row > label { font-weight:600; font-size:14px; min-width:130px; padding-top:10px; }
+  .form-col { display:flex; flex-direction:column; gap:4px; flex:1; min-width:180px; }
+  input[type=text],input[type=number],select,textarea {
+    padding:9px 11px; border:1px solid var(--line); border-radius:10px; font-size:15px; width:100%; font-family:inherit;
+  }
+  input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus { outline:none; border-color:var(--pri); }
+  .hint { font-size:12px; color:var(--mut); }
+  /* dynamic rows */
+  .dyn-list { display:flex; flex-direction:column; gap:8px; }
+  .dyn-row { display:flex; gap:8px; align-items:center; padding:10px; background:#fafbfe; border:1px solid var(--line); border-radius:10px; flex-wrap:wrap; }
+  .inp-key   { max-width:120px; font-family:monospace; }
+  .inp-emoji { max-width:58px; text-align:center; font-size:20px; }
+  .inp-color { width:42px; height:36px; padding:2px 4px; cursor:pointer; border:1px solid var(--line); border-radius:8px; }
+  .cb-wrap   { display:flex; align-items:center; gap:5px; cursor:pointer; font-size:13px; white-space:nowrap; }
+  .cb-wrap input { width:auto; padding:0; }
+  /* signups */
+  .row-sig { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px; }
+  .row-sig label { font-weight:600; }
+  .row-sig select { min-width:260px; }
   .summary { color:var(--mut); margin:0 0 14px; }
   .summary b { color:var(--ink); }
   .chips { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
@@ -41,7 +82,7 @@
 <body>
 <div class="wrap">
 
-  <!-- ── A) CHƯA ĐĂNG NHẬP ───────────────────────────────────────────── -->
+  <!-- A) CHƯA ĐĂNG NHẬP -->
   <div id="loginView" hidden>
     <div class="card">
       <h1>Trang quản trị</h1>
@@ -54,85 +95,209 @@
     </div>
   </div>
 
-  <!-- ── B) ĐÃ ĐĂNG NHẬP ─────────────────────────────────────────────── -->
+  <!-- B) ĐÃ ĐĂNG NHẬP -->
   <div id="adminView" hidden>
     <div class="bar">
-      <h1 style="margin:0;">Danh sách đăng ký</h1>
+      <h1 style="margin:0;">Quản trị Linh Thú</h1>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="who" id="who"></span>
         <button id="btnLogout" class="btn-ghost">Đăng xuất</button>
       </div>
     </div>
 
-    <div class="card">
-      <div class="row">
-        <label for="eventId">Sự kiện (EVENT_ID):</label>
-        <input id="eventId" spellcheck="false" />
-        <button id="btnLoad" class="btn-ghost">Tải dữ liệu</button>
-        <button id="btnExcel" class="btn-pri">⬇ Tải Excel</button>
-      </div>
-      <p id="loadErr" class="err"></p>
-      <p id="summary" class="summary"></p>
-      <div id="chips" class="chips"></div>
-      <div style="overflow:auto;max-height:64vh;margin-top:12px;">
-        <table id="tbl">
-          <thead id="thead"></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="tabEvents">Quản lý sự kiện</button>
+      <button class="tab" data-tab="tabSignups">Xem đăng ký</button>
     </div>
-  </div>
 
-</div>
+    <!-- TAB: Quản lý sự kiện -->
+    <div id="tabEvents" class="tab-panel active">
 
-<!-- Firebase compat (app + firestore + AUTH) + SheetJS, qua CDN — KHÔNG cần build -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h2 style="margin:0;">Danh sách sự kiện</h2>
+          <button id="btnRefresh" class="btn-ghost btn-sm">↻ Làm mới</button>
+        </div>
+        <div id="evListWrap"><p style="color:var(--mut);font-size:14px;">Đang tải…</p></div>
+      </div>
+
+      <div class="card" id="createCard">
+        <h2 id="formHeading">Tạo sự kiện mới</h2>
+        <p id="formErr" class="err"></p>
+        <p id="formOk"  class="ok-msg"></p>
+
+        <div class="form-row">
+          <label>ID sự kiện</label>
+          <div class="form-col">
+            <input type="text" id="fId" placeholder="vd: su-kien-2026-q2" spellcheck="false" />
+            <span class="hint">Chỉ dùng chữ thường, số, dấu gạch ngang. Tự sinh từ tên — có thể sửa tay.</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Tên sự kiện</label>
+          <div class="form-col">
+            <input type="text" id="fTitle" placeholder="Linh Thú Của Bạn" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Mô tả <span class="hint">(subtitle)</span></label>
+          <div class="form-col">
+            <textarea id="fSubtitle" rows="2" placeholder="Mỗi linh thú là &lt;b&gt;1 đội&lt;/b&gt;..."></textarea>
+            <span class="hint">HTML inline được phép (b, i, br). Hiển thị dưới tên sự kiện ở trang công khai.</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Sĩ số / đội</label>
+          <div class="form-col" style="max-width:120px;">
+            <input type="number" id="fCapacity" min="1" max="9999" value="10" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Chống trùng</label>
+          <div class="form-col" style="max-width:260px;">
+            <select id="fDedupField">
+              <option value="">Không chống trùng</option>
+            </select>
+            <span class="hint">Field dùng để phát hiện đăng ký trùng (VD: mã nhân viên).</span>
+          </div>
+          <div class="form-col" style="max-width:230px;padding-top:10px;">
+            <label class="cb-wrap">
+              <input type="checkbox" id="fBlockDup" checked />
+              Chặn đăng ký nếu trùng
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row" style="align-items:flex-start;">
+          <label style="padding-top:6px;">Ô nhập (fields)</label>
+          <div class="form-col">
+            <div class="hint" style="margin-bottom:6px;">key: tên biến (a-z, không dấu) · nhãn: chữ hiển thị với người dùng · placeholder tuỳ chọn</div>
+            <div id="fieldsList" class="dyn-list"></div>
+            <button type="button" id="btnAddField" class="btn-ghost btn-sm" style="margin-top:8px;align-self:flex-start;">+ Thêm ô nhập</button>
+          </div>
+        </div>
+
+        <div class="form-row" style="align-items:flex-start;">
+          <label style="padding-top:6px;">Danh sách đội</label>
+          <div class="form-col">
+            <div class="hint" style="margin-bottom:6px;">Mỗi đội cần emoji duy nhất + tên + màu.</div>
+            <div id="iconsList" class="dyn-list"></div>
+            <button type="button" id="btnAddIcon" class="btn-ghost btn-sm" style="margin-top:8px;align-self:flex-start;">+ Thêm đội</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button type="button" id="btnSave" class="btn-pri">Tạo sự kiện</button>
+          <button type="button" id="btnCancel" class="btn-ghost" hidden>Huỷ</button>
+        </div>
+      </div>
+
+    </div><!-- /tabEvents -->
+
+    <!-- TAB: Xem đăng ký -->
+    <div id="tabSignups" class="tab-panel">
+      <div class="card">
+        <div class="row-sig">
+          <label>Sự kiện:</label>
+          <select id="sigSelect"></select>
+          <button id="btnLoad"  class="btn-ghost">Tải dữ liệu</button>
+          <button id="btnExcel" class="btn-pri">⬇ Tải Excel</button>
+        </div>
+        <p id="loadErr" class="err"></p>
+        <p id="summary" class="summary"></p>
+        <div id="chips" class="chips"></div>
+        <div style="overflow:auto;max-height:64vh;margin-top:12px;">
+          <table id="tbl">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /tabSignups -->
+
+  </div><!-- /adminView -->
+
+</div><!-- /wrap -->
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-
-<!-- Tái dùng cấu hình chung của app (FIELDS, EVENT_ID, ICONS, FIREBASE_CONFIG, db).
-     KHÔNG nạp storage/api/ui/app của luồng index — trang admin đứng riêng. -->
 <script src="js/config.js"></script>
 <script src="js/firebase-config.js"></script>
 
 <script>
-// ── Logic admin (inline, đứng riêng) ──────────────────────────────────────
-// Bảo mật: trang này CHỈ đăng nhập rồi THỬ đọc signups. Cho/chặn đọc nằm ở
-// Security Rules phía server (allow read theo UID admin). UID không có trong
-// rules → Firestore trả "permission-denied" → không lộ PII.
 (function () {
+  "use strict";
   const $ = id => document.getElementById(id);
-  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-  if (!window.firebase || typeof FIREBASE_ON === "undefined" || !FIREBASE_ON || !db) {
-    document.body.innerHTML = "<div class='wrap'><div class='card'>Chưa cấu hình Firebase trong <b>docs/js/firebase-config.js</b> — trang admin cần chế độ firebase.</div></div>";
+  if (!window.firebase || !FIREBASE_ON || !db) {
+    document.body.innerHTML = "<div class='wrap'><div class='card'>Chưa cấu hình Firebase — trang admin cần chế độ firebase.</div></div>";
     return;
   }
 
-  const auth    = firebase.auth();
-  const byEmoji = {};
-  (typeof ICONS !== "undefined" ? ICONS : []).forEach(g => { byEmoji[g.icon] = g; });
-  const teamName  = icon => (byEmoji[icon] && byEmoji[icon].name) || icon || "—";
-  const teamLabel = icon => (icon ? icon + " " : "") + teamName(icon);
-  const fmtTime   = at => { try { return at && at.toDate ? at.toDate().toLocaleString("vi-VN") : ""; } catch (e) { return ""; } };
+  const auth = firebase.auth();
+  const FV   = firebase.firestore.FieldValue;
 
-  let currentRows = [];   // dữ liệu signups đã tải (cho cả bảng lẫn Excel)
-  let currentEid  = "";
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const fmtTime = at => {
+    try { return at && at.toDate ? at.toDate().toLocaleString("vi-VN") : ""; } catch(e) { return ""; }
+  };
 
-  // ── Đăng nhập / đăng xuất (Firebase Authentication thật) ──
+  function slugify(s) {
+    const map = {
+      "à":"a","á":"a","ả":"a","ã":"a","ạ":"a","ă":"a","ằ":"a","ắ":"a","ẳ":"a","ẵ":"a","ặ":"a",
+      "â":"a","ầ":"a","ấ":"a","ẩ":"a","ẫ":"a","ậ":"a","è":"e","é":"e","ẻ":"e","ẽ":"e","ẹ":"e",
+      "ê":"e","ề":"e","ế":"e","ể":"e","ễ":"e","ệ":"e","ì":"i","í":"i","ỉ":"i","ĩ":"i","ị":"i",
+      "ò":"o","ó":"o","ỏ":"o","õ":"o","ọ":"o","ô":"o","ồ":"o","ố":"o","ổ":"o","ỗ":"o","ộ":"o",
+      "ơ":"o","ờ":"o","ớ":"o","ở":"o","ỡ":"o","ợ":"o","ù":"u","ú":"u","ủ":"u","ũ":"u","ụ":"u",
+      "ư":"u","ừ":"u","ứ":"u","ử":"u","ữ":"u","ự":"u","ỳ":"y","ý":"y","ỷ":"y","ỹ":"y","ỵ":"y",
+      "đ":"d","À":"a","Á":"a","Ả":"a","Ã":"a","Ạ":"a","Ă":"a","Ằ":"a","Ắ":"a","Ẳ":"a","Ẵ":"a",
+      "Ặ":"a","Â":"a","Ầ":"a","Ấ":"a","Ẩ":"a","Ẫ":"a","Ậ":"a","È":"e","É":"e","Ẻ":"e","Ẽ":"e",
+      "Ẹ":"e","Ê":"e","Ề":"e","Ế":"e","Ể":"e","Ễ":"e","Ệ":"e","Ì":"i","Í":"i","Ỉ":"i","Ĩ":"i",
+      "Ị":"i","Ò":"o","Ó":"o","Ỏ":"o","Õ":"o","Ọ":"o","Ô":"o","Ồ":"o","Ố":"o","Ổ":"o","Ỗ":"o",
+      "Ộ":"o","Ơ":"o","Ờ":"o","Ớ":"o","Ở":"o","Ỡ":"o","Ợ":"o","Ù":"u","Ú":"u","Ủ":"u","Ũ":"u",
+      "Ụ":"u","Ư":"u","Ừ":"u","Ứ":"u","Ử":"u","Ữ":"u","Ự":"u","Ỳ":"y","Ý":"y","Ỷ":"y","Ỹ":"y",
+      "Ỵ":"y","Đ":"d"
+    };
+    return s.replace(/[^\x00-\x7F]/g, c => map[c] || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+  }
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────
+  document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      $(btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  let activeEventId = "";
+  let cachedEvents  = [];   // { id, exists, cfg }
+
   auth.onAuthStateChanged(user => {
     if (user) {
       $("loginView").hidden = true;
       $("adminView").hidden = false;
       $("who").textContent = "Đăng nhập: " + (user.email || user.uid);
-      if (!$("eventId").value) $("eventId").value = (typeof EVENT_ID !== "undefined" ? EVENT_ID : "");
-      load($("eventId").value.trim());   // tự tải sự kiện hiện tại
+      loadEventList();
     } else {
       $("adminView").hidden = true;
       $("loginView").hidden = false;
-      currentRows = []; currentEid = "";
       $("password").value = "";
+      activeEventId = "";
+      cachedEvents  = [];
     }
   });
 
@@ -141,94 +306,393 @@
     $("loginErr").textContent = "";
     try {
       await auth.signInWithEmailAndPassword($("email").value.trim(), $("password").value);
-    } catch (err) {
-      $("loginErr").textContent = authError(err);
-    }
+    } catch (err) { $("loginErr").textContent = authMsg(err); }
   });
 
   $("btnLogout").addEventListener("click", () => auth.signOut());
 
-  function authError(err) {
-    const code = (err && err.code) || "";
-    if (code === "auth/invalid-email")          return "Email không hợp lệ.";
-    if (code === "auth/user-disabled")          return "Tài khoản đã bị khoá.";
-    if (code === "auth/too-many-requests")      return "Thử quá nhiều lần — đợi một lát rồi thử lại.";
-    if (code === "auth/network-request-failed") return "Lỗi mạng — kiểm tra kết nối.";
-    if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential")
+  function authMsg(err) {
+    const c = (err && err.code) || "";
+    if (c === "auth/invalid-email")          return "Email không hợp lệ.";
+    if (c === "auth/user-disabled")          return "Tài khoản đã bị khoá.";
+    if (c === "auth/too-many-requests")      return "Thử quá nhiều lần — đợi một lát rồi thử lại.";
+    if (c === "auth/network-request-failed") return "Lỗi mạng — kiểm tra kết nối.";
+    if (c === "auth/user-not-found" || c === "auth/wrong-password" || c === "auth/invalid-credential")
       return "Sai email hoặc mật khẩu.";
-    return "Đăng nhập thất bại: " + (err.message || code);
+    return "Đăng nhập thất bại: " + (err.message || c);
   }
 
-  // ── Tải & hiển thị ──
-  $("btnLoad").addEventListener("click", () => load($("eventId").value.trim()));
+  // ── Danh sách sự kiện ────────────────────────────────────────────────────
+  $("btnRefresh").addEventListener("click", loadEventList);
+
+  async function loadEventList() {
+    $("evListWrap").innerHTML = "<p style='color:var(--mut);font-size:14px;'>Đang tải…</p>";
+    try {
+      const [listSnap, activeSnap] = await Promise.all([
+        db.collection("config").doc("eventList").get(),
+        db.collection("config").doc("active").get()
+      ]);
+      activeEventId = (activeSnap.exists && activeSnap.data().eventId) || "";
+      const ids = listSnap.exists && Array.isArray(listSnap.data().ids) ? listSnap.data().ids : [];
+
+      if (!ids.length) {
+        $("evListWrap").innerHTML = "<p style='color:var(--mut);font-size:14px;'>Chưa có sự kiện nào. Tạo sự kiện đầu tiên bên dưới.</p>";
+        syncSigSelect([]);
+        return;
+      }
+
+      const snaps = await Promise.all(ids.map(id =>
+        db.collection("events").doc(id).collection("meta").doc("config").get()
+      ));
+      cachedEvents = snaps.map((snap, i) => ({
+        id: ids[i], exists: snap.exists, cfg: snap.exists ? snap.data() : null
+      }));
+      renderEvList(cachedEvents);
+      syncSigSelect(cachedEvents);
+    } catch (err) {
+      $("evListWrap").innerHTML =
+        "<p style='color:var(--bad);font-size:14px;'>Lỗi tải danh sách: " + esc(err.message || String(err)) + "</p>";
+    }
+  }
+
+  function renderEvList(events) {
+    if (!events.length) {
+      $("evListWrap").innerHTML = "<p style='color:var(--mut);font-size:14px;'>Chưa có sự kiện nào.</p>";
+      return;
+    }
+    $("evListWrap").innerHTML = '<div class="ev-list">'
+      + events.map(ev => {
+          const active = ev.id === activeEventId;
+          const title  = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
+          const cap    = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
+          const nTeam  = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
+          return `<div class="ev-row${active ? " is-active" : ""}">
+            <div class="ev-info">
+              <div class="ev-title">${esc(title)}${active ? ' <span class="badge">Đang mở</span>' : ""}</div>
+              <div class="ev-meta">ID: <code>${esc(ev.id)}</code> &nbsp;·&nbsp; ${nTeam} đội &nbsp;·&nbsp; ${cap} người/đội</div>
+            </div>
+            <div class="ev-actions">
+              ${active
+                ? '<span style="font-size:13px;color:var(--pri);font-weight:600;padding:6px 0;">Đang mở</span>'
+                : `<button class="btn-ok btn-sm" data-action="open" data-id="${esc(ev.id)}">Mở sự kiện này</button>`}
+              <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>
+            </div>
+          </div>`;
+        }).join("")
+      + "</div>";
+
+    $("evListWrap").querySelectorAll("button[data-action]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        if (btn.dataset.action === "open")  openEvent(id);
+        if (btn.dataset.action === "clone") cloneEvent(id);
+      });
+    });
+  }
+
+  async function openEvent(eid) {
+    const ev = cachedEvents.find(e => e.id === eid);
+    const name = ev && ev.cfg && ev.cfg.title ? ev.cfg.title : eid;
+    if (!confirm(`Chuyển sự kiện đang mở sang "${name}"?\n\nTrang công khai sẽ ngay lập tức hiển thị sự kiện này. Tiếp tục?`)) return;
+    try {
+      await db.collection("config").doc("active").set({ eventId: eid });
+      activeEventId = eid;
+      renderEvList(cachedEvents);
+      syncSigSelect(cachedEvents);
+    } catch (err) {
+      alert("Lỗi: " + (err.message || err));
+    }
+  }
+
+  async function cloneEvent(eid) {
+    const ev = cachedEvents.find(e => e.id === eid);
+    if (!ev || !ev.cfg) { alert("Không tìm thấy cấu hình sự kiện."); return; }
+    populateForm(ev.cfg, "");
+    $("formHeading").textContent = `Nhân bản từ "${ev.cfg.title || eid}"`;
+    $("btnCancel").hidden = false;
+    $("createCard").scrollIntoView({ behavior: "smooth" });
+  }
+
+  // ── Form động: fields & icons ─────────────────────────────────────────────
+  $("fTitle").addEventListener("input", function () {
+    if (!$("fId").dataset.manual) $("fId").value = slugify(this.value);
+  });
+  $("fId").addEventListener("input", function () {
+    this.dataset.manual = this.value ? "1" : "";
+  });
+
+  function addFieldRow(f) {
+    f = Object.assign({ key:"", label:"", type:"text", required:true, placeholder:"" }, f || {});
+    const row = document.createElement("div");
+    row.className = "dyn-row";
+    row.innerHTML =
+      `<input class="inp-key" type="text" placeholder="key (vd: name)" value="${esc(f.key)}" title="Tên biến (a-z, không dấu, không khoảng trắng)" />` +
+      `<input type="text" placeholder="Nhãn hiển thị" value="${esc(f.label)}" style="flex:2;" />` +
+      `<select title="Kiểu nhập" style="width:80px;">` +
+        `<option value="text"${f.type==="text"?" selected":""}>text</option>` +
+        `<option value="email"${f.type==="email"?" selected":""}>email</option>` +
+        `<option value="tel"${f.type==="tel"?" selected":""}>tel</option>` +
+      `</select>` +
+      `<label class="cb-wrap" title="Bắt buộc nhập"><input type="checkbox"${f.required?" checked":""} /> Bắt buộc</label>` +
+      `<input type="text" placeholder="Placeholder (tuỳ chọn)" value="${esc(f.placeholder||"")}" style="flex:2;" />` +
+      `<button type="button" class="btn-del" title="Xoá ô này">✕</button>`;
+    row.querySelector(".btn-del").addEventListener("click", () => { row.remove(); syncDedupSelect(); });
+    row.querySelector(".inp-key").addEventListener("input", syncDedupSelect);
+    $("fieldsList").appendChild(row);
+    syncDedupSelect();
+  }
+
+  function addIconRow(ic) {
+    ic = Object.assign({ icon:"", name:"", color:"#4f8cff" }, ic || {});
+    const row = document.createElement("div");
+    row.className = "dyn-row";
+    row.innerHTML =
+      `<input class="inp-emoji" type="text" placeholder="🦊" value="${esc(ic.icon)}" maxlength="4" title="Emoji đội (phải duy nhất)" />` +
+      `<input type="text" placeholder="Tên đội" value="${esc(ic.name)}" style="flex:2;" />` +
+      `<input class="inp-color" type="color" value="${esc(ic.color||"#4f8cff")}" title="Màu thẻ đội" />` +
+      `<button type="button" class="btn-del" title="Xoá đội này">✕</button>`;
+    row.querySelector(".btn-del").addEventListener("click", () => row.remove());
+    $("iconsList").appendChild(row);
+  }
+
+  $("btnAddField").addEventListener("click", () => addFieldRow());
+  $("btnAddIcon").addEventListener("click",  () => addIconRow());
+
+  function syncDedupSelect() {
+    const cur  = $("fDedupField").value;
+    const keys = Array.from($("fieldsList").querySelectorAll(".inp-key"))
+                      .map(i => i.value.trim()).filter(Boolean);
+    $("fDedupField").innerHTML =
+      '<option value="">Không chống trùng</option>' +
+      keys.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join("");
+  }
+
+  function readForm() {
+    const fields = Array.from($("fieldsList").querySelectorAll(".dyn-row")).map(row => {
+      const texts = row.querySelectorAll("input[type=text]");
+      return {
+        key:         texts[0].value.trim(),
+        label:       texts[1].value.trim(),
+        type:        row.querySelector("select").value,
+        required:    row.querySelector("input[type=checkbox]").checked,
+        placeholder: texts[2].value.trim()
+      };
+    });
+    const icons = Array.from($("iconsList").querySelectorAll(".dyn-row")).map(row => {
+      const texts = row.querySelectorAll("input[type=text]");
+      return {
+        icon:  texts[0].value.trim(),
+        name:  texts[1].value.trim(),
+        color: row.querySelector("input[type=color]").value
+      };
+    });
+    return {
+      eventId:    $("fId").value.trim(),
+      title:      $("fTitle").value.trim(),
+      subtitle:   $("fSubtitle").value.trim(),
+      capacity:   parseInt($("fCapacity").value, 10) || 10,
+      dedupField: $("fDedupField").value,
+      blockDup:   $("fBlockDup").checked,
+      fields, icons
+    };
+  }
+
+  function validateForm(d) {
+    if (!d.eventId)                         return "Hãy nhập ID sự kiện.";
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(d.eventId))
+                                            return "ID sự kiện chỉ được dùng chữ thường, số và dấu gạch ngang, bắt đầu bằng chữ/số.";
+    if (!d.title)                           return "Hãy nhập tên sự kiện.";
+    if (!d.fields.length)                   return "Cần ít nhất 1 ô nhập.";
+    if (!d.icons.length)                    return "Cần ít nhất 1 đội.";
+    if (isNaN(d.capacity) || d.capacity < 1) return "Sĩ số phải là số nguyên ≥ 1.";
+    for (const f of d.fields) {
+      if (!f.key)   return "Có ô nhập chưa điền key.";
+      if (!f.label) return "Có ô nhập chưa điền nhãn.";
+      if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(f.key))
+        return `Key "${f.key}" không hợp lệ — bắt đầu bằng chữ cái, chỉ dùng a-z A-Z 0-9 _.`;
+    }
+    for (const ic of d.icons) {
+      if (!ic.icon) return "Có đội chưa điền emoji.";
+      if (!ic.name) return "Có đội chưa điền tên.";
+    }
+    const emojis = d.icons.map(ic => ic.icon);
+    if (new Set(emojis).size !== emojis.length) return "Có emoji đội bị trùng — mỗi đội cần một emoji duy nhất.";
+    return null;
+  }
+
+  $("btnSave").addEventListener("click", async () => {
+    $("formErr").textContent = "";
+    $("formOk").textContent  = "";
+    const d   = readForm();
+    const err = validateForm(d);
+    if (err) { $("formErr").textContent = err; return; }
+
+    // Kiểm tra trùng ID
+    try {
+      const ex = await db.collection("events").doc(d.eventId).collection("meta").doc("config").get();
+      if (ex.exists) {
+        $("formErr").textContent = `Sự kiện "${d.eventId}" đã tồn tại. Chọn ID khác hoặc nhân bản sự kiện cũ.`;
+        return;
+      }
+    } catch (_) { /* chưa tồn tại hoặc permission — an toàn để tiếp tục */ }
+
+    $("btnSave").disabled    = true;
+    $("btnSave").textContent = "Đang lưu…";
+    try {
+      await db.collection("events").doc(d.eventId).collection("meta").doc("config").set({
+        title:      d.title,
+        subtitle:   d.subtitle,
+        fields:     d.fields,
+        icons:      d.icons,
+        capacity:   d.capacity,
+        dedupField: d.dedupField,
+        blockDup:   d.blockDup,
+        createdAt:  FV.serverTimestamp()
+      });
+      await db.collection("config").doc("eventList")
+              .set({ ids: FV.arrayUnion(d.eventId) }, { merge: true });
+      $("formOk").textContent = `Đã tạo sự kiện "${d.eventId}" thành công!`;
+      resetForm();
+      await loadEventList();
+    } catch (err) {
+      $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
+    } finally {
+      $("btnSave").disabled    = false;
+      $("btnSave").textContent = "Tạo sự kiện";
+    }
+  });
+
+  $("btnCancel").addEventListener("click", () => { resetForm(); });
+
+  function resetForm() {
+    $("fId").value         = "";
+    $("fId").dataset.manual = "";
+    $("fTitle").value      = "";
+    $("fSubtitle").value   = "";
+    $("fCapacity").value   = "10";
+    $("fBlockDup").checked = true;
+    $("fieldsList").innerHTML = "";
+    $("iconsList").innerHTML  = "";
+    $("fDedupField").innerHTML = '<option value="">Không chống trùng</option>';
+    $("formErr").textContent = "";
+    $("formOk").textContent  = "";
+    $("btnCancel").hidden    = true;
+    $("btnSave").textContent = "Tạo sự kiện";
+    $("formHeading").textContent = "Tạo sự kiện mới";
+  }
+
+  function populateForm(cfg, id) {
+    resetForm();
+    $("fId").value = id || "";
+    $("fId").dataset.manual = id ? "1" : "";
+    $("fTitle").value    = cfg.title    || "";
+    $("fSubtitle").value = cfg.subtitle || "";
+    $("fCapacity").value = cfg.capacity != null ? cfg.capacity : 10;
+    $("fBlockDup").checked = cfg.blockDup !== false;
+    if (Array.isArray(cfg.fields)) cfg.fields.forEach(f  => addFieldRow(f));
+    if (Array.isArray(cfg.icons))  cfg.icons.forEach(ic => addIconRow(ic));
+    // syncDedupSelect đã gọi trong addFieldRow; gán value sau 1 tick
+    setTimeout(() => { $("fDedupField").value = cfg.dedupField || ""; }, 0);
+  }
+
+  // ── Tab Đăng ký ───────────────────────────────────────────────────────────
+  function syncSigSelect(events) {
+    const sel  = $("sigSelect");
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Chọn sự kiện —</option>'
+      + events.filter(ev => ev.exists).map(ev => {
+          const label = ev.cfg && ev.cfg.title
+            ? ev.cfg.title + " (" + ev.id + ")"
+            : ev.id;
+          const sel_ = ev.id === prev || (!prev && ev.id === activeEventId) ? " selected" : "";
+          return `<option value="${esc(ev.id)}"${sel_}>${esc(label)}</option>`;
+        }).join("");
+  }
+
+  let sigRows   = [];
+  let sigFields = [];
+  let sigIcons  = {};
+
+  $("btnLoad").addEventListener("click", () => {
+    const eid = $("sigSelect").value;
+    if (!eid) { $("loadErr").textContent = "Hãy chọn sự kiện."; return; }
+    loadSignups(eid);
+  });
   $("btnExcel").addEventListener("click", exportExcel);
 
-  async function load(eid) {
+  async function loadSignups(eid) {
     $("loadErr").textContent = "";
-    if (!eid) { $("loadErr").textContent = "Hãy nhập EVENT_ID."; return; }
     try {
-      const snap = await db.collection("events").doc(eid).collection("signups").get();
-      currentRows = snap.docs.map(d => d.data());
-      currentEid  = eid;
-      // sắp xếp: theo đội rồi theo thời gian đăng ký
-      currentRows.sort((a, b) => {
-        const ta = teamName(a.icon), tb = teamName(b.icon);
-        if (ta !== tb) return ta.localeCompare(tb, "vi");
-        const sa = a.at && a.at.seconds || 0, sb = b.at && b.at.seconds || 0;
-        return sa - sb;
+      const [sigSnap, cfgSnap] = await Promise.all([
+        db.collection("events").doc(eid).collection("signups").get(),
+        db.collection("events").doc(eid).collection("meta").doc("config").get()
+      ]);
+      sigFields = cfgSnap.exists && Array.isArray(cfgSnap.data().fields)
+        ? cfgSnap.data().fields
+        : (typeof FIELDS !== "undefined" ? FIELDS : []);
+      const icArr = cfgSnap.exists && Array.isArray(cfgSnap.data().icons)
+        ? cfgSnap.data().icons
+        : (typeof ICONS !== "undefined" ? ICONS : []);
+      sigIcons = {};
+      icArr.forEach(g => { sigIcons[g.icon] = g; });
+
+      const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
+      const teamLabel = ic => (ic ? ic + " " : "") + teamName(ic);
+
+      sigRows = sigSnap.docs.map(d => d.data());
+      sigRows.sort((a, b) => {
+        const tn = teamName(a.icon).localeCompare(teamName(b.icon), "vi");
+        if (tn) return tn;
+        return (a.at && a.at.seconds || 0) - (b.at && b.at.seconds || 0);
       });
-      renderTable();
-      renderSummary();
+      renderSigTable(eid, teamLabel);
     } catch (err) {
-      currentRows = [];
-      renderTable(); renderSummary();
+      sigRows = []; sigFields = [];
+      $("thead").innerHTML = "";
+      $("tbody").innerHTML = "";
+      $("summary").innerHTML = "";
+      $("chips").innerHTML = "";
       const msg = String(err && (err.code || err.message) || err);
       $("loadErr").textContent = /permission|insufficient/i.test(msg)
-        ? "Tài khoản này chưa có quyền xem. Dán UID của nó vào mảng admin trong firestore.rules rồi Publish lại."
+        ? "Tài khoản này chưa có quyền xem. Dán UID vào mảng admin trong firestore.rules rồi Publish lại."
         : "Lỗi tải dữ liệu: " + msg;
     }
   }
 
-  function renderTable() {
-    const fields = (typeof FIELDS !== "undefined" ? FIELDS : []);
+  function renderSigTable(eid, teamLabel) {
     $("thead").innerHTML = "<tr><th class='num'>#</th><th>Đội</th>"
-      + fields.map(f => "<th>" + esc(f.label) + "</th>").join("")
+      + sigFields.map(f => "<th>" + esc(f.label) + "</th>").join("")
       + "<th>Thời gian</th></tr>";
-    $("tbody").innerHTML = currentRows.map((r, i) =>
-      "<tr><td class='num'>" + (i + 1) + "</td>"
-      + "<td>" + esc(teamLabel(r.icon)) + "</td>"
-      + fields.map(f => "<td>" + esc(r[f.key]) + "</td>").join("")
+    $("tbody").innerHTML = sigRows.map((r, i) =>
+      "<tr><td class='num'>" + (i+1) + "</td><td>" + esc(teamLabel(r.icon)) + "</td>"
+      + sigFields.map(f => "<td>" + esc(r[f.key]) + "</td>").join("")
       + "<td>" + esc(fmtTime(r.at)) + "</td></tr>"
     ).join("");
-  }
-
-  function renderSummary() {
-    const n = currentRows.length;
     const per = {};
-    currentRows.forEach(r => { per[r.icon] = (per[r.icon] || 0) + 1; });
-    $("summary").innerHTML = "Tổng số người đăng ký: <b>" + n + "</b>"
-      + (currentEid ? " — sự kiện <b>" + esc(currentEid) + "</b>" : "");
-    $("chips").innerHTML = Object.keys(per)
-      .sort((a, b) => per[b] - per[a])
+    sigRows.forEach(r => { per[r.icon] = (per[r.icon] || 0) + 1; });
+    $("summary").innerHTML = "Tổng số người đăng ký: <b>" + sigRows.length + "</b>"
+      + " — sự kiện <b>" + esc(eid) + "</b>";
+    $("chips").innerHTML = Object.keys(per).sort((a, b) => per[b] - per[a])
       .map(ic => "<span class='chip'>" + esc(teamLabel(ic)) + ": <b>" + per[ic] + "</b></span>")
       .join("");
   }
 
-  // ── Xuất Excel bằng SheetJS → {EVENT_ID}.xlsx ──
   function exportExcel() {
-    if (!currentRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }
-    const fields  = (typeof FIELDS !== "undefined" ? FIELDS : []);
-    const headers = ["STT", "Đội"].concat(fields.map(f => f.label)).concat(["Thời gian"]);
-    const data = currentRows.map((r, i) => {
+    if (!sigRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }
+    const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
+    const teamLabel = ic => (ic ? ic + " " : "") + teamName(ic);
+    const headers = ["STT", "Đội"].concat(sigFields.map(f => f.label)).concat(["Thời gian"]);
+    const data = sigRows.map((r, i) => {
       const o = { "STT": i + 1, "Đội": teamLabel(r.icon) };
-      fields.forEach(f => { o[f.label] = (r[f.key] == null ? "" : String(r[f.key])); });
+      sigFields.forEach(f => { o[f.label] = r[f.key] == null ? "" : String(r[f.key]); });
       o["Thời gian"] = fmtTime(r.at);
       return o;
     });
     const ws = XLSX.utils.json_to_sheet(data, { header: headers });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "signups");
-    XLSX.writeFile(wb, (currentEid || "signups") + ".xlsx");
+    const eid = $("sigSelect").value || "signups";
+    XLSX.writeFile(wb, eid + ".xlsx");
   }
 })();
 </script>
