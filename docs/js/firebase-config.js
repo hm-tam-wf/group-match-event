@@ -13,7 +13,8 @@ const FIREBASE_CONFIG = {
 };
 
 // Có bật chống trùng người đăng ký không (tiêu chí lấy theo DEDUP_FIELD trong config.js).
-const BLOCK_DUP = true;
+// Ở chế độ firebase: được gán lại bởi boot() từ events/{id}/meta/config.
+let BLOCK_DUP = true;
 
 const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
 let db = null;

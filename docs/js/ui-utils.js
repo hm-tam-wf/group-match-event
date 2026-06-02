@@ -2,7 +2,12 @@ const MODE    = (typeof FIREBASE_ON !== "undefined" && FIREBASE_ON) ? "firebase"
 const REAL    = !!(window.storage && typeof window.storage.get === "function");
 const $       = id => document.getElementById(id);
 const byEmoji = {};
-ICONS.forEach(g => byEmoji[g.icon] = g);
+// byEmoji được dựng bởi rebuildByEmoji() sau khi boot() tải xong ICONS từ Firestore.
+// Ở chế độ demo/sheet: boot() gọi ngay với DEFAULT_ICONS.
+function rebuildByEmoji() {
+  Object.keys(byEmoji).forEach(k => delete byEmoji[k]);
+  ICONS.forEach(g => { byEmoji[g.icon] = g; });
+}
 
 // State cục bộ
 let me      = { id: null, fields: {} };

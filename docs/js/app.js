@@ -73,7 +73,8 @@ async function saveMe() {
   await sSet("me", JSON.stringify({ me, myIcon }), false);
 }
 
-(async function init() {
+// ── Hàm init(): chạy SAU KHI boot() đã nạp xong config từ Firestore ──────────
+async function init() {
   await loadMe();
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); }
@@ -86,5 +87,74 @@ async function saveMe() {
     apiSubscribe(teams => { if (busy) return; state = teams; stateLoaded = true; renderStateIfChanged(false); });
   } else {
     setInterval(() => { if (!busy) refresh(); }, POLL_MS); // poll ngầm 3s (sheet/demo)
+  }
+}
+
+// ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
+(async function boot() {
+  if (MODE !== "firebase") {
+    // Demo/sheet: dùng DEFAULT_* đã có sẵn, chạy thẳng
+    rebuildByEmoji();
+    await init();
+    return;
+  }
+
+  // Hiện trạng thái loading
+  const appLoading  = document.getElementById("appLoading");
+  const noEvent     = document.getElementById("noEvent");
+  const appError    = document.getElementById("appError");
+  const appContent  = document.getElementById("appContent");
+
+  function showMsg(el, html) {
+    if (appLoading) appLoading.hidden = true;
+    if (noEvent)    noEvent.hidden    = true;
+    if (appError)   appError.hidden   = true;
+    if (appContent) appContent.hidden = true;
+    if (el) { el.hidden = false; if (html) el.innerHTML = html; }
+  }
+
+  try {
+    // ── Bước 1: lấy sự kiện đang mở ──
+    const activeSnap = await db.collection("config").doc("active").get();
+    if (!activeSnap.exists || !activeSnap.data().eventId) {
+      showMsg(noEvent);
+      return;
+    }
+    EVENT_ID = String(activeSnap.data().eventId).trim();
+    if (!EVENT_ID) { showMsg(noEvent); return; }
+
+    // ── Bước 2: lấy cấu hình sự kiện ──
+    const cfgSnap = await db.collection("events").doc(EVENT_ID)
+                             .collection("meta").doc("config").get();
+    if (!cfgSnap.exists) { showMsg(noEvent); return; }
+
+    const cfg = cfgSnap.data();
+    if (Array.isArray(cfg.fields)   && cfg.fields.length)   FIELDS      = cfg.fields;
+    if (Array.isArray(cfg.icons)    && cfg.icons.length)    ICONS       = cfg.icons;
+    if (typeof cfg.capacity   === "number")                 CAPACITY    = cfg.capacity;
+    if (typeof cfg.dedupField === "string")                 DEDUP_FIELD = cfg.dedupField;
+    if (typeof cfg.blockDup   === "boolean")                BLOCK_DUP   = cfg.blockDup;
+
+    // Đổ title / subtitle vào DOM
+    if (cfg.title) {
+      const h1 = document.querySelector("#appContent h1");
+      if (h1) h1.textContent = cfg.title;
+    }
+    if (cfg.subtitle) {
+      const sub = document.querySelector("#appContent .sub");
+      if (sub) sub.innerHTML = cfg.subtitle;
+    }
+
+    rebuildByEmoji();
+
+    // ── Hiện nội dung chính, chạy app ──
+    if (appLoading) appLoading.hidden = true;
+    if (appContent) appContent.hidden = false;
+    await init();
+
+  } catch (e) {
+    // Lỗi mạng hoặc Firestore không phản hồi
+    const msg = "Lỗi tải cấu hình sự kiện. Vui lòng thử lại.";
+    showMsg(appError, msg);
   }
 })();
