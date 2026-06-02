@@ -14,7 +14,7 @@ if (-not (Test-Path $outDir)) { New-Item -ItemType Directory $outDir | Out-Null 
 $html = Get-Content "Index.html" -Raw -Encoding UTF8
 
 # Thay thế từng include directive bằng nội dung file thực
-$parts = @("Styles", "ClientConfig", "Storage", "Api", "UiUtils", "UiRender", "App")
+$parts = @("Styles", "ClientConfig", "FirebaseConfig", "Storage", "Api", "UiUtils", "UiRender", "App")
 foreach ($name in $parts) {
     $content = Get-Content "$name.html" -Raw -Encoding UTF8
     $html = $html.Replace("<?!= include('$name') ?>", $content)

@@ -1,5 +1,5 @@
 <script>
-const MODE    = SCRIPT_URL ? "sheet" : "demo";
+const MODE    = (typeof FIREBASE_ON !== "undefined" && FIREBASE_ON) ? "firebase" : (SCRIPT_URL ? "sheet" : "demo");
 const REAL    = !!(window.storage && typeof window.storage.get === "function");
 const $       = id => document.getElementById(id);
 const byEmoji = {};
@@ -9,10 +9,10 @@ ICONS.forEach(g => byEmoji[g.icon] = g);
 let me      = { id: null, fields: {} };
 let myIcon  = null;   // emoji mình đã chọn
 let editing = false;
-let state   = [];     // [{icon, name}] từ server
+let state   = {};     // map đội { icon: { count, names } } từ server
+let stateLoaded = false; // đã NHẬN được state thật từ server lần nào chưa (phân biệt "rỗng" với "chưa tải/lỗi mạng")
 let busy    = false;
-let resetScheduled = false; // cờ chống lặp: mỗi client chỉ hẹn giờ reset 1 lần/vòng
-let lastSig = null;         // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
+let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
 
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };

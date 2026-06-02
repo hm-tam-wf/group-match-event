@@ -54,7 +54,7 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .linkbtn{background:none;border:0;color:var(--muted);font-family:var(--body);font-weight:700;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:6px 4px}
 .linkbtn:hover{color:var(--accent)}
 
-/* banner sau khi đã chọn */
+/* banner đội của bạn */
 .banner{margin-top:20px;border-radius:var(--r-lg);padding:18px 20px;display:flex;align-items:center;gap:16px;
   border:1.5px solid color-mix(in srgb,var(--c) 40%,transparent);
   background:linear-gradient(120deg,color-mix(in srgb,var(--c) 18%,#fff),#fff);box-shadow:var(--sh-soft)}
@@ -68,22 +68,33 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .section-h .count{font-size:13px;color:var(--muted-2);font-weight:800}
 .hr{height:2px;background:var(--line);flex:1;border-radius:2px}
 
-/* grid icon */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:16px}
-.tile{position:relative;border:1.5px solid var(--line);border-radius:var(--r-lg);padding:24px 16px 16px;text-align:center;overflow:hidden;
+/* grid đội còn chỗ */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:16px}
+.tile{position:relative;border:1.5px solid var(--line);border-radius:var(--r-lg);padding:22px 16px 16px;text-align:center;overflow:hidden;
   background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,#fff) 0%,#fff 70%);
   box-shadow:0 14px 34px -20px rgba(124,115,150,.38),inset 0 1px 0 rgba(255,255,255,.9);
   transition:transform .3s var(--bounce),box-shadow .25s ease,border-color .25s ease,opacity .35s ease;
   animation:rise .5s var(--bounce) both}
 .tile::before{content:"";position:absolute;inset:0;border-radius:var(--r-lg);background:radial-gradient(130px 100px at 50% -8%, var(--c), transparent 70%);opacity:.22;pointer-events:none;transition:opacity .25s}
-.tile .ic{font-size:clamp(44px,9vw,54px);line-height:1;filter:drop-shadow(0 6px 10px color-mix(in srgb,var(--c) 40%,transparent))}
-.tile .nm{font-family:var(--display);font-weight:600;font-size:16px;margin-top:10px;color:var(--text)}
+.tile .ic{font-size:clamp(42px,8vw,52px);line-height:1;filter:drop-shadow(0 6px 10px color-mix(in srgb,var(--c) 40%,transparent))}
+.tile .nm{font-family:var(--display);font-weight:600;font-size:16px;margin-top:8px;color:var(--text)}
 .tile.sel{cursor:pointer}
 .tile.sel:hover{transform:translateY(-6px) scale(1.04);border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 24px 46px -22px color-mix(in srgb,var(--c) 70%,rgba(124,115,150,.5))}
 .tile.sel:hover::before{opacity:.42}
 .tile.sel:hover .ic{animation:wobble .6s var(--bounce)}
 .tile.sel:active{transform:translateY(-2px) scale(1)}
-.tile.disabled{opacity:.5;filter:saturate(.75);cursor:not-allowed}
+.tile.disabled{opacity:.62;filter:saturate(.85);cursor:not-allowed}
+.tile.mine{border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 30%,transparent) inset,var(--sh-soft);opacity:1;filter:none}
+
+/* sĩ số + thanh tiến trình + avatar thành viên */
+.tile .cap{font-family:var(--display);font-weight:600;font-size:13px;color:var(--muted);margin-top:7px}
+.cap-bar{height:7px;border-radius:var(--pill);background:rgba(124,115,150,.16);margin:8px 6px 0;overflow:hidden}
+.cap-bar span{display:block;height:100%;border-radius:var(--pill);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 70%,#fff),var(--c));transition:width .45s var(--bounce)}
+.avas{display:flex;justify-content:center;align-items:center;gap:5px;margin-top:12px;flex-wrap:wrap;min-height:26px}
+.mini{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:600;font-size:12px;color:#fff;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--c) 65%,#fff),var(--c));box-shadow:0 4px 9px -4px color-mix(in srgb,var(--c) 60%,transparent)}
+.mini.more{background:#EDE7FA;color:var(--muted)}
+.mini.empty{background:transparent;color:var(--muted-2);box-shadow:none;font-size:18px}
 
 .pick{margin-top:14px;width:100%;border:0;border-radius:16px;padding:11px;font-family:var(--display);font-weight:600;font-size:14.5px;color:#fff;cursor:pointer;
   background:linear-gradient(135deg,color-mix(in srgb,var(--c) 75%,#fff),var(--c));
@@ -93,28 +104,25 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .pick:active{transform:scale(.96)}
 .pick.lock{background:#EFEAF8;color:var(--muted-2);box-shadow:none;cursor:not-allowed}
 
-/* taken list */
-.taken-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-.taken{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:var(--r-md);padding:13px 15px;background:var(--card);box-shadow:var(--sh-soft);animation:rise .5s var(--bounce) both}
-.taken.mine{border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent) inset,var(--sh-soft)}
-.taken .ti{font-size:32px;filter:drop-shadow(0 4px 8px color-mix(in srgb,var(--c) 35%,transparent))}
-.taken .info{min-width:0;line-height:1.25}
-.taken .who{font-family:var(--display);font-weight:600;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.taken .lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:800}
-.taken .mark{font-size:10px;color:#fff;background:var(--c);padding:3px 8px;border-radius:var(--pill);font-weight:800;margin-left:auto;font-family:var(--body)}
+/* đội đã đủ */
+.taken-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:16px}
+.full-team{border:1.5px solid var(--line);border-radius:var(--r-lg);padding:16px 18px 14px;background:var(--card);box-shadow:var(--sh-soft);backdrop-filter:blur(8px);animation:rise .5s var(--bounce) both}
+.full-team.mine{border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent) inset,var(--sh-soft)}
+.ft-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.ft-head .ti{font-size:34px;filter:drop-shadow(0 4px 8px color-mix(in srgb,var(--c) 35%,transparent))}
+.ft-meta{min-width:0;line-height:1.2}
+.ft-meta .lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:800}
+.ft-meta .ft-name{font-family:var(--display);font-weight:600;font-size:17px;color:var(--text)}
+.ft-badge{margin-left:auto;font-size:11px;color:#fff;background:var(--c);padding:5px 11px;border-radius:var(--pill);font-weight:800;font-family:var(--body);white-space:nowrap}
+.ft-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ft-list li{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13.5px;color:var(--text);min-width:0}
+.ft-list li>:last-child,.ft-list li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ft-list .no{flex:0 0 auto;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--muted);background:rgba(124,115,150,.12);font-family:var(--body)}
 
 /* empty / hint */
 .empty-note{color:var(--muted);font-weight:600;font-size:14px;padding:26px 20px;border:2px dashed rgba(169,140,255,.32);border-radius:var(--r-lg);text-align:center;background:rgba(255,255,255,.55);line-height:1.55}
 .empty-note::before{content:"🫧";display:block;font-size:34px;opacity:.75;margin-bottom:8px}
 .hint{color:var(--muted);font-weight:700;font-size:13px;background:rgba(221,235,255,.6);border-radius:14px;padding:10px 14px;margin:-4px 0 16px}
-
-/* toolbar */
-.toolbar{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
-.tbtn{border:0;background:#F2EEFB;color:var(--muted);font-family:var(--display);font-weight:600;font-size:14px;padding:11px 20px;border-radius:var(--pill);cursor:pointer;box-shadow:var(--sh-soft);transition:transform .25s var(--bounce),background .15s,color .15s}
-.tbtn:hover{background:#EAE3F7;transform:translateY(-2px)}
-.tbtn:active{transform:translateY(0) scale(.97)}
-.tbtn.danger{background:#FFE9EF;color:#B23A57}
-.tbtn.danger:hover{background:#FFD9E3}
 
 /* ── modal (confirm + profile popup) ── */
 .modal-bg{position:fixed;inset:0;z-index:50;background:rgba(74,64,99,.32);backdrop-filter:blur(8px) saturate(1.1);display:grid;place-items:center;padding:20px;animation:fade .25s ease}
@@ -128,9 +136,9 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .modal .row button{flex:1;border-radius:var(--pill);padding:14px;font-family:var(--display);font-weight:600;font-size:15px;cursor:pointer;border:0;transition:transform .28s var(--bounce),filter .2s,box-shadow .2s,background .15s}
 .modal .cancel{background:#F2EEFB;color:var(--muted)}
 .modal .cancel:hover{background:#EAE3F7}
-.modal .confirm,.go{color:#fff;background:var(--candy);box-shadow:0 10px 22px -10px rgba(169,140,255,.65),inset 0 1px 0 rgba(255,255,255,.55)}
-.modal .confirm:hover,.go:hover{transform:translateY(-2px) scale(1.02);filter:brightness(1.04);box-shadow:0 16px 32px -10px rgba(169,140,255,.72)}
-.modal .confirm:active,.go:active{transform:scale(.97)}
+.modal .confirm{color:#fff;background:var(--candy);box-shadow:0 10px 22px -10px rgba(169,140,255,.65),inset 0 1px 0 rgba(255,255,255,.55)}
+.modal .confirm:hover{transform:translateY(-2px) scale(1.02);filter:brightness(1.04);box-shadow:0 16px 32px -10px rgba(169,140,255,.72)}
+.modal .confirm:active{transform:scale(.97)}
 
 /* profile popup specifics */
 .profile-modal{max-width:430px}
@@ -153,35 +161,20 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.show::after{content:"";position:absolute;left:16px;right:16px;bottom:7px;height:3px;border-radius:var(--pill);background:linear-gradient(90deg,#A98CFF,#FFB3D1);transform-origin:left;animation:toastBar 2.4s linear forwards}
 
-/* ── celebration overlay ── */
-.celebrate-bg{position:fixed;inset:0;z-index:70;display:grid;place-items:center;overflow:hidden;
-  background:radial-gradient(circle at 50% 40%, rgba(255,230,240,.55), rgba(251,247,255,.88));backdrop-filter:blur(6px);animation:fade .4s ease}
-.celebrate-card{position:relative;z-index:2;background:linear-gradient(180deg,#fff,#FBF7FF);border:1.5px solid rgba(255,255,255,.9);border-radius:var(--r-xl);padding:40px 32px;max-width:420px;text-align:center;
-  box-shadow:0 50px 110px -34px rgba(169,140,255,.55),inset 0 1px 0 #fff;animation:popIn .5s var(--bounce) both}
-.cc-emoji{font-size:72px;animation:cheer 1s var(--bounce) both,float 3s ease-in-out 1s infinite}
-.celebrate-card h3{font-family:var(--display);font-weight:700;font-size:clamp(24px,7vw,28px);margin:8px 0 8px;
-  background:linear-gradient(90deg,#FF7AC0,#A98CFF,#7DD3FC);-webkit-background-clip:text;background-clip:text;color:transparent}
-.celebrate-card p{font-family:var(--body);font-weight:600;color:var(--muted);font-size:14.5px;margin:0;line-height:1.5}
-.confetti{position:absolute;top:-12vh;z-index:1;border-radius:3px;pointer-events:none;animation:confettiFall linear forwards}
-
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes wobble{0%{transform:rotate(0)}25%{transform:rotate(-7deg) scale(1.08)}55%{transform:rotate(6deg) scale(1.06)}100%{transform:rotate(0) scale(1)}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes popIn{from{opacity:0;transform:translateY(18px) scale(.92)}to{opacity:1;transform:none}}
 @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
-@keyframes cheer{0%{transform:scale(.4) rotate(-12deg)}60%{transform:scale(1.18) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(122vh) rotate(620deg);opacity:.9}}
 
 @media(max-width:560px){
   .wrap{padding:34px 16px 80px}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
   .taken-grid{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){
-  .tile,.tile .ic,.taken,.modal,.modal-bg,.celebrate-bg,.celebrate-card,.cc-emoji,.toast,.toast.show::after,.confetti{animation:none!important;transition:none!important}
+  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after{animation:none!important;transition:none!important}
   .tile.sel:hover{transform:none}
-  .confetti{display:none}
 }
 </style>
 
@@ -189,17 +182,17 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 <body>
 <div class="wrap">
   <h1>Linh Thú Của Bạn</h1>
-  <p class="sub">Mỗi linh thú chỉ thuộc về <b>1 người</b>. Điền thông tin, rồi chọn 1 linh thú bạn thích — chọn xong nó sẽ <b>biến mất</b> để người khác không chọn trùng.</p>
+  <p class="sub">Mỗi linh thú là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
-  <!-- bước 1: hồ sơ -->
+  <!-- hồ sơ -->
   <div class="profile" id="profile"></div>
 
-  <!-- banner sau khi đã chọn -->
+  <!-- banner đội của bạn -->
   <div id="bannerWrap"></div>
 
-  <!-- lưới còn trống -->
+  <!-- đội còn chỗ -->
   <div class="section-h">
-    <h2>Còn trống</h2>
+    <h2>Đội còn chỗ</h2>
     <span class="count" id="freeCount"></span>
     <span class="hr"></span>
   </div>
@@ -207,25 +200,20 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
   <div class="grid" id="grid"></div>
   <div id="freeEmpty"></div>
 
-  <!-- đã được chọn -->
+  <!-- đội đã đủ -->
   <div class="section-h">
-    <h2>Đã được chọn</h2>
+    <h2>Đội đã đủ</h2>
     <span class="count" id="takenCount"></span>
     <span class="hr"></span>
   </div>
   <div class="taken-grid" id="taken"></div>
   <div id="takenEmpty"></div>
-
-  <div class="toolbar">
-    <button class="tbtn" id="refreshBtn">↻ Làm mới</button>
-    <button class="tbtn danger" id="resetBtn">↺ Vòng mới</button>
-  </div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <!-- SCRIPT_URL tự động lấy URL web app hiện tại -->
-<script>const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypy4bvOM6k6WVdMmA1tskqlU_SMX6Y4JVUZ8kb6zxRq9WdIFnutr3flpQegr7xUvM_/exec";</script>
+<script>const SCRIPT_URL = "";</script>
 
 <script>
 // ➊ Các trường người chơi nhập. Thêm trường thì thêm vào đây
@@ -236,7 +224,10 @@ const FIELDS = [
   { key:"phone", label:"Số điện thoại",  type:"tel",   required:true, placeholder:"09xx xxx xxx" },
 ];
 
-// ➋ Danh sách biểu tượng. Thêm/bớt thoải mái — mỗi cái = 1 suất.
+// ➋ Sĩ số tối đa mỗi đội. Phải khớp CAPACITY ở Config.gs (backend).
+const CAPACITY = 10;
+
+// ➌ Danh sách biểu tượng. Mỗi cái = 1 ĐỘI (tối đa CAPACITY người).
 const ICONS = [
   { icon:"🦊", name:"Cáo",       color:"#ff7a45" },
   { icon:"🐉", name:"Rồng",      color:"#ff3b5c" },
@@ -253,44 +244,144 @@ const ICONS = [
 const POLL_MS = 3000; // chu kỳ đồng bộ (ms)
 </script>
 
+<!-- Firebase SDK (compat) + cấu hình dự án. Tải qua CDN nên KHÔNG cần bước build/bundle. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-// Lớp trừu tượng storage: dùng window.storage (Claude artifact) nếu có, fallback về in-memory
+// ⚠️ DÁN CẤU HÌNH FIREBASE CỦA BẠN VÀO ĐÂY
+//    Firebase Console → ⚙ Project settings → mục "Your apps" → Web app → "SDK setup and configuration".
+//    Để trống projectId thì app tự chạy ở chế độ sheet/demo (không dùng Firebase).
+const FIREBASE_CONFIG = {
+  apiKey:            "",
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             "",
+};
+
+// Có chặn 1 email chọn nhiều lần không (giống BLOCK_DUP_EMAIL bên Apps Script cũ)
+const BLOCK_DUP_EMAIL = true;
+
+const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
+let db = null;
+if (FIREBASE_ON) {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+}
+</script>
+
+<script>
+// Lưu trữ: ưu tiên window.storage (Claude artifact); nếu không có thì dùng localStorage
+// để TOKEN định danh + đội đã tham gia NHỚ qua lần tải lại trang (không hiện lại popup).
+// Nếu localStorage bị chặn (chế độ riêng tư) → fallback in-memory (mất khi tải lại).
 const mem = {};
+let LS_OK = false;
+try { localStorage.setItem("__lt_probe", "1"); localStorage.removeItem("__lt_probe"); LS_OK = true; } catch (e) { LS_OK = false; }
+const LS_PREFIX = "linhthu:";
 
 async function sGet(key, shared) {
   try {
-    if (REAL) { const r = await window.storage.get(key, shared); return r ? r.value : null; }
+    if (REAL)  { const r = await window.storage.get(key, shared); return r ? r.value : null; }
+    if (LS_OK) { const v = localStorage.getItem(LS_PREFIX + key); return v === null ? null : v; }
     return key in mem ? mem[key] : null;
   } catch (e) { return null; }
 }
 
 async function sSet(key, val, shared) {
   try {
-    if (REAL) await window.storage.set(key, val, shared);
-    else mem[key] = val;
+    if (REAL)  { await window.storage.set(key, val, shared); return; }
+    if (LS_OK) { localStorage.setItem(LS_PREFIX + key, val);  return; }
+    mem[key] = val;
   } catch (e) {}
 }
 
 async function sDel(key, shared) {
   try {
-    if (REAL) await window.storage.delete(key, shared);
-    else delete mem[key];
+    if (REAL)  { await window.storage.delete(key, shared);  return; }
+    if (LS_OK) { localStorage.removeItem(LS_PREFIX + key);  return; }
+    delete mem[key];
   } catch (e) {}
 }
 </script>
 
 <script>
+// ─────────────────────────────────────────────────────────────────────────
+// Tầng dữ liệu — MÔ HÌNH ĐỘI (mỗi icon = 1 đội, tối đa CAPACITY người). 3 chế độ:
+//   firebase → Firestore (chịu tải lớn, ghi atomic, đọc realtime)  ← khuyến nghị cho ~500 người
+//   sheet    → Google Apps Script + Sheet (legacy, không hợp >50 người cùng lúc)
+//   demo     → in-memory / window.storage (chạy thử cục bộ)
+// Hợp đồng: apiState()→{ icon:{count,names[]} }; apiClaim()→{ok}|{ok:false,reason};
+//           apiSubscribe(cb) (chỉ firebase) đẩy realtime, thay cho việc poll mỗi 3s.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Mô hình Firestore (tách PII khỏi mọi doc đọc-được — xem firestore.rules):
+//   teams/{icon}   : { icon, count, names:[...] }                  — CÔNG KHAI, chỉ TÊN (hiển thị realtime)
+//   members/{pid}  : { icon, at }                                 — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
+//   emails/{key}   : { at }                                       — guard chống trùng email (chỉ tồn-tại)
+//   signups/{pid}  : { playerId, icon, name, email, phone, at }   — FULL hồ sơ, KHOÁ ĐỌC (xuất qua Console)
+// Sĩ số tối đa được ép thêm ở Security Rules (count <= CAPACITY) nên client gian lận cũng không vượt được.
+
+function _emailKey(e) { return String(e || "").trim().toLowerCase().replace(/\//g, "_"); }
+
 async function apiState() {
+  if (MODE === "firebase") {
+    const snap  = await db.collection("teams").get();
+    const teams = {};
+    snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; });
+    return teams;
+  }
   if (MODE === "sheet") {
     const r = await fetch(SCRIPT_URL + "?action=state", { method: "GET" });
     const j = await r.json();
-    return (j && j.taken) || [];
+    return (j && j.teams) || {};
   }
+  // demo: dựng map đội từ claims cục bộ ({ icon: [ {name,email,pid}, ... ] })
   const obj = JSON.parse(await sGet("claims", true) || "{}");
-  return Object.entries(obj).map(([icon, v]) => ({ icon, name: v.name }));
+  const teams = {};
+  Object.keys(obj).forEach(icon => {
+    const arr = obj[icon] || [];
+    teams[icon] = { count: arr.length, names: arr.map(m => m.name || "") };
+  });
+  return teams;
 }
 
 async function apiClaim(payload) {
+  if (MODE === "firebase") {
+    const icon  = String(payload.icon     || "").trim();
+    const pid   = String(payload.playerId || "").trim();
+    const f     = payload.fields || {};
+    const name  = String(f.name  || "").trim();
+    const email = String(f.email || "").trim().toLowerCase();
+    if (!icon || !name) return { ok: false, reason: "missing" };
+    try {
+      return await db.runTransaction(async tx => {
+        const teamRef   = db.collection("teams").doc(icon);
+        const memberRef = db.collection("members").doc(pid);   // guard 1-người-1-đội (chỉ {icon})
+        const signupRef = db.collection("signups").doc(pid);   // full hồ sơ — KHOÁ đọc
+        const mailRef   = (BLOCK_DUP_EMAIL && email)
+          ? db.collection("emails").doc(_emailKey(email)) : null; // guard chống trùng email
+
+        // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
+        const [t, mb, ml] = await Promise.all([
+          tx.get(teamRef), tx.get(memberRef), mailRef ? tx.get(mailRef) : Promise.resolve(null),
+        ]);
+        if (pid && mb.exists)  return { ok: false, reason: "already" };   // 1 người chỉ 1 đội
+        if (ml && ml.exists)   return { ok: false, reason: "dup_email" };
+
+        const count = t.exists ? (t.data().count || 0) : 0;
+        const names = t.exists ? (t.data().names || []) : [];
+        if (count >= CAPACITY) return { ok: false, reason: "full" };      // đội đã đủ người
+
+        const at = firebase.firestore.FieldValue.serverTimestamp();
+        tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
+        tx.set(memberRef, { icon, at });                                  // guard: chỉ tên đội (đọc được)
+        if (mailRef) tx.set(mailRef, { at });                             // guard: chỉ tồn-tại
+        tx.set(signupRef, { playerId: pid, icon, name, email, phone: String(f.phone || ""), at }); // PII (khoá đọc)
+        return { ok: true };
+      });
+    } catch (e) { return { ok: false, reason: "error", detail: String(e) }; }
+  }
   if (MODE === "sheet") {
     // text/plain tránh CORS preflight; Apps Script vẫn đọc được body JSON
     const r = await fetch(SCRIPT_URL, {
@@ -300,30 +391,38 @@ async function apiClaim(payload) {
     });
     return await r.json();
   }
-  const obj = JSON.parse(await sGet("claims", true) || "{}");
-  if (obj[payload.icon]) return { ok: false, reason: "taken" };
-  for (const k in obj) { if (obj[k].pid === payload.playerId) return { ok: false, reason: "already" }; }
-  obj[payload.icon] = { ...payload.fields, pid: payload.playerId, at: Date.now() };
+  // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng email)
+  const obj    = JSON.parse(await sGet("claims", true) || "{}");
+  const fields = payload.fields || {};
+  const email  = String(fields.email || "").trim().toLowerCase();
+  for (const ic in obj) {
+    for (const m of obj[ic]) {
+      if (m.pid && m.pid === payload.playerId) return { ok: false, reason: "already" };
+      if (email && String(m.email || "").toLowerCase() === email) return { ok: false, reason: "dup_email" };
+    }
+  }
+  const arr = obj[payload.icon] || (obj[payload.icon] = []);
+  if (arr.length >= CAPACITY) return { ok: false, reason: "full" };
+  arr.push({ name: String(fields.name || ""), email, pid: payload.playerId });
   await sSet("claims", JSON.stringify(obj), true);
   return { ok: true };
 }
 
-async function apiReset() {
-  if (MODE === "sheet") {
-    const r = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "reset" }),
-    });
-    return await r.json();
-  }
-  await sDel("claims", true);
-  return { ok: true, reset: true };
+// Realtime: server tự ĐẨY thay đổi của các đội cho mọi client → bỏ hẳn poll 3s (rẻ + tức thì).
+// Mỗi đội = 1 doc nhỏ; 500 client cùng nghe vẫn nhẹ vì chỉ truyền phần thay đổi.
+let _unsubTeams = null;
+function apiSubscribe(onChange) {
+  if (MODE !== "firebase") return null;       // sheet/demo vẫn dùng poll như cũ
+  _unsubTeams = db.collection("teams").onSnapshot(
+    snap => { const teams = {}; snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; }); onChange(teams); },
+    _err => { /* mạng trục trặc → giữ state cũ; vòng poll dự phòng sẽ tự đồng bộ lại */ }
+  );
+  return () => { if (_unsubTeams) _unsubTeams(); };
 }
 </script>
 
 <script>
-const MODE    = SCRIPT_URL ? "sheet" : "demo";
+const MODE    = (typeof FIREBASE_ON !== "undefined" && FIREBASE_ON) ? "firebase" : (SCRIPT_URL ? "sheet" : "demo");
 const REAL    = !!(window.storage && typeof window.storage.get === "function");
 const $       = id => document.getElementById(id);
 const byEmoji = {};
@@ -333,10 +432,10 @@ ICONS.forEach(g => byEmoji[g.icon] = g);
 let me      = { id: null, fields: {} };
 let myIcon  = null;   // emoji mình đã chọn
 let editing = false;
-let state   = [];     // [{icon, name}] từ server
+let state   = {};     // map đội { icon: { count, names } } từ server
+let stateLoaded = false; // đã NHẬN được state thật từ server lần nào chưa (phân biệt "rỗng" với "chưa tải/lỗi mạng")
 let busy    = false;
-let resetScheduled = false; // cờ chống lặp: mỗi client chỉ hẹn giờ reset 1 lần/vòng
-let lastSig = null;         // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
+let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
 
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };
@@ -366,8 +465,7 @@ function fieldError(f, v) {
 
 <script>
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
-// Khi đã có thông tin hợp lệ → hiện thanh tóm tắt inline.
-// Khi CHƯA có (người mới) → hiện popup ở giữa màn hình, không cho bỏ qua.
+// Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
   const box  = $("profile");
   const done = profileComplete() && !editing;
@@ -400,7 +498,7 @@ function closeProfileModal() {
 }
 
 // Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
-// với người mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
+// với token mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
 function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
   const canCancel = profileComplete();
@@ -412,7 +510,7 @@ function showProfileModal() {
     <div class="modal profile-modal">
       <div class="pm-emoji">🐾</div>
       <h3>Chào bạn!</h3>
-      <p>Điền một chút thông tin để bắt đầu chọn linh thú của bạn nhé.</p>
+      <p>Điền một chút thông tin để bắt đầu tham gia đội của bạn nhé.</p>
       <div class="form" id="pmForm">
         ${FIELDS.map(f => `
           <div class="field ${f.type === "email" || f.type === "tel" ? "" : "full"}">
@@ -425,7 +523,7 @@ function showProfileModal() {
       </div>
       <div class="row">
         ${canCancel ? `<button class="cancel" id="pmCancel">Quay lại</button>` : ""}
-        <button class="confirm" id="pmSave">Bắt đầu chọn linh thú →</button>
+        <button class="confirm" id="pmSave">Bắt đầu tham gia đội →</button>
       </div>
     </div>`;
   document.body.appendChild(bg);
@@ -446,7 +544,7 @@ function showProfileModal() {
     closeProfileModal();
     renderProfile();
     renderStateIfChanged(true);
-    toast("Đã lưu thông tin. Giờ hãy chọn 1 linh thú 👇");
+    toast("Đã lưu thông tin. Giờ hãy chọn 1 đội để tham gia 👇");
   };
 
   $("pmSave").onclick = save;
@@ -462,107 +560,89 @@ function showProfileModal() {
   if (first) setTimeout(() => first.focus(), 40);
 }
 
-// ── Overlay ăn mừng khi đủ người ───────────────────────────────────
-const CONFETTI_COLORS = ["#FFE6F0", "#DDEBFF", "#D7F5E6", "#FFF1D6", "#E9DEFF", "#FFB3D1"];
-function showCelebrate() {
-  if ($("celebrate")) return;
-  const el = document.createElement("div");
-  el.id = "celebrate";
-  el.className = "celebrate-bg";
+// ── Bảng đội (vẽ lại mỗi khi dữ liệu đổi) ──────────────────────────
+function teamOf(icon) { return state[icon] || { count: 0, names: [] }; }
 
-  let confetti = "";
-  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduce) {
-    for (let i = 0; i < 22; i++) {
-      const c = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
-      const left = Math.round(Math.random() * 100);
-      const delay = (Math.random() * 1.2).toFixed(2);
-      const dur = (2.6 + Math.random() * 1.4).toFixed(2);
-      const size = (8 + Math.random() * 4).toFixed(0);
-      confetti += `<i class="confetti" style="left:${left}%;width:${size}px;height:${size}px;background:${c};animation-delay:${delay}s;animation-duration:${dur}s"></i>`;
-    }
-  }
-
-  el.innerHTML = `
-    ${confetti}
-    <div class="celebrate-card">
-      <div class="cc-emoji">🎉</div>
-      <h3>Đã đủ người 🎉</h3>
-      <p>Tất cả linh thú đã có chủ! Đang chuẩn bị vòng mới…</p>
-    </div>`;
-  document.body.appendChild(el);
-}
-function hideCelebrate() {
-  const el = $("celebrate");
-  if (el) el.remove();
-}
-
-// ── Bảng chọn (vẽ lại mỗi khi dữ liệu đổi) ─────────────────────────
 function renderState() {
-  const takenSet  = new Set(state.map(t => t.icon));
-  const takenName = {};
-  state.forEach(t => takenName[t.icon] = t.name);
-  if (myIcon && !takenSet.has(myIcon)) myIcon = null; // bị reset từ phía khác
+  // myIcon còn hợp lệ? Chỉ mở khoá khi ĐÃ tải được state thật từ server và đội đó thực sự rỗng
+  // (tránh xoá nhầm khi state chưa tải xong / fetch lỗi lúc mới vào trang).
+  if (stateLoaded && myIcon && teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
 
-  // banner đã chọn
+  // banner đội của mình
   const bw = $("bannerWrap");
   if (myIcon) {
     const g = byEmoji[myIcon];
     bw.innerHTML = `<div class="banner" style="--c:${g.color}">
         <span class="bi">${g.icon}</span>
         <div>
-          <div class="bt">Bạn đã chọn ${g.name} ${g.icon}</div>
-          <div class="bs">Thông tin của bạn đã được ghi lại. Cảm ơn bạn!</div>
+          <div class="bt">Bạn đang ở đội ${g.name} ${g.icon}</div>
+          <div class="bs">Đã ghi nhận thông tin của bạn. Mỗi người chỉ tham gia 1 đội.</div>
         </div></div>`;
   } else {
     bw.innerHTML = "";
   }
 
-  const canPick = profileComplete() && !editing && !myIcon;
+  const ready = profileComplete() && !editing;
 
-  // lưới còn trống (đã taken thì biến mất)
+  // ── Đội còn chỗ (count < CAPACITY) ──
   const grid = $("grid"); grid.innerHTML = "";
-  let free = 0;
+  let open = 0;
   ICONS.forEach(g => {
-    if (takenSet.has(g.icon)) return;
-    free++;
+    const tm = teamOf(g.icon);
+    if (tm.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
+    open++;
+    const mine    = g.icon === myIcon;
+    const canJoin = ready && !myIcon;        // chưa có đội mới được tham gia
+    const pct     = Math.round(tm.count / CAPACITY * 100);
+    const avas    = tm.names.slice(0, 5).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
+                  + (tm.count > 5 ? `<span class="mini more">+${tm.count - 5}</span>` : "")
+                  || `<span class="mini empty">·</span>`;
+    const label   = !ready ? "Điền thông tin" : (myIcon ? (mine ? "Đội của bạn" : "Đã có đội") : "Tham gia");
+
     const t = document.createElement("div");
-    t.className = "tile " + (canPick ? "sel" : "disabled");
+    t.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "");
     t.style.setProperty("--c", g.color);
-    t.innerHTML = `<div class="ic">${g.icon}</div><div class="nm">${g.name}</div>
-      <button class="pick ${canPick ? "" : "lock"}">${canPick ? "Chọn" : myIcon ? "Đã chọn xong" : "Điền thông tin"}</button>`;
-    if (canPick) {
+    t.innerHTML = `
+      <div class="ic">${g.icon}</div>
+      <div class="nm">${g.name}</div>
+      <div class="cap">${tm.count}/${CAPACITY}</div>
+      <div class="cap-bar"><span style="width:${pct}%"></span></div>
+      <div class="avas">${avas}</div>
+      <button class="pick ${canJoin ? "" : "lock"}">${label}</button>`;
+    if (canJoin) {
       const act = () => askConfirm(g);
       t.onclick = e => { if (!e.target.closest("button")) act(); };
       t.querySelector(".pick").onclick = e => { e.stopPropagation(); act(); };
     }
     grid.appendChild(t);
   });
-  $("freeCount").textContent  = `${free}/${ICONS.length}`;
-  $("freeHint").innerHTML     = !profileComplete() && free > 0 ? `<div class="hint">→ Điền thông tin để mở khoá việc chọn.</div>` : "";
-  $("freeEmpty").innerHTML    = free === 0 ? `<div class="empty-note">Hết chỗ rồi — mọi linh thú đã có chủ 🎉</div>` : "";
+  $("freeCount").textContent = `${open}/${ICONS.length} đội`;
+  $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">→ Điền thông tin để mở khoá việc tham gia đội.</div>` : "";
+  $("freeEmpty").innerHTML   = open === 0 ? `<div class="empty-note">Tất cả các đội đều đã đủ người 🎉</div>` : "";
 
-  // danh sách đã chọn
+  // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
   const tk = $("taken"); tk.innerHTML = "";
+  let done = 0;
   ICONS.forEach(g => {
-    if (!takenSet.has(g.icon)) return;
+    const tm = teamOf(g.icon);
+    if (tm.count < CAPACITY) return;
+    done++;
     const mine = g.icon === myIcon;
-    const el   = document.createElement("div");
-    el.className = "taken " + (mine ? "mine" : "");
+    const lis  = tm.names.map((n, i) => `<li><span class="no">${i + 1}</span>${esc(n || "—")}</li>`).join("");
+    const el = document.createElement("div");
+    el.className = "full-team" + (mine ? " mine" : "");
     el.style.setProperty("--c", g.color);
-    el.innerHTML = `<span class="ti">${g.icon}</span>
-      <div class="info">
-        <div class="lab">${g.name}</div>
-        <div class="who">${esc(firstName(takenName[g.icon]) || "—")}</div>
+    el.innerHTML = `
+      <div class="ft-head">
+        <span class="ti">${g.icon}</span>
+        <div class="ft-meta"><div class="lab">Đội</div><div class="ft-name">${g.name}</div></div>
+        <span class="ft-badge">${tm.count}/${CAPACITY}${mine ? " · bạn" : ""}</span>
       </div>
-      ${mine ? '<span class="mark">bạn</span>' : ""}`;
+      <ol class="ft-list">${lis}</ol>`;
     tk.appendChild(el);
   });
-  $("takenCount").textContent = `${takenSet.size}/${ICONS.length}`;
-  $("takenEmpty").innerHTML   = takenSet.size === 0 ? `<div class="empty-note">Chưa ai chọn. Bạn có thể là người đầu tiên!</div>` : "";
-
-  // đủ người → ăn mừng rồi tự reset vòng mới (chỉ hẹn giờ 1 lần/vòng)
-  maybeAutoReset(ICONS.length > 0 && takenSet.size >= ICONS.length);
+  $("takenCount").textContent = `${done}/${ICONS.length} đội`;
+  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";
 }
 </script>
 
@@ -572,8 +652,8 @@ function askConfirm(g) {
   bg.className = "modal-bg";
   bg.innerHTML = `<div class="modal" style="--c:${g.color}">
       <div class="mic">${g.icon}</div>
-      <h3>Chọn "${g.name}"?</h3>
-      <p>Mỗi người chỉ được chọn 1 linh thú. Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
+      <h3>Tham gia đội ${esc(g.name)}?</h3>
+      <p>Mỗi người chỉ tham gia 1 đội (tối đa ${CAPACITY} người/đội). Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
       <div class="row">
         <button class="cancel"  id="c0">Quay lại</button>
         <button class="confirm" id="c1">Xác nhận</button>
@@ -593,13 +673,13 @@ async function doClaim(g) {
     if (res && res.ok) {
       myIcon = g.icon;
       await saveMe();
-      toast(`🎉 Bạn đã chọn ${g.name} ${g.icon}`);
+      toast(`🎉 Bạn đã tham gia đội ${g.name} ${g.icon}`);
     } else {
       const r = res && res.reason;
-      if      (r === "taken")     toast(`Tiếc quá! ${g.name} vừa có người chọn mất.`);
-      else if (r === "already")   toast("Bạn đã chọn 1 linh thú rồi.");
-      else if (r === "dup_email") toast("Email này đã được dùng để chọn rồi.");
-      else                        toast("Không lưu được, thử lại nhé.");
+      if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
+      else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
+      else if (r === "dup_email") toast("Email này đã được dùng để tham gia rồi.");
+      else                        toast("Không tham gia được, thử lại nhé.");
     }
     await refresh(true);
     renderProfile();
@@ -612,10 +692,12 @@ async function doClaim(g) {
   }
 }
 
-// Chữ ký dữ liệu: chỉ render lại khi state/myIcon/editing/hồ-sơ thực sự đổi → chống nhấp nháy
+// Chữ ký dữ liệu: chỉ render lại khi sĩ số/tên đội/myIcon/editing/hồ-sơ thực sự đổi → chống nhấp nháy
 function computeSig() {
-  const t = state.map(s => (s.icon || "") + "" + (s.name || "")).sort().join("");
-  return t + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0);
+  const t = Object.keys(state).sort()
+    .map(ic => ic + ":" + state[ic].count + ":" + (state[ic].names || []).join(","))
+    .join("|");
+  return t + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0) + "|" + (stateLoaded ? 1 : 0);
 }
 function renderStateIfChanged(force) {
   const sig = computeSig();
@@ -623,33 +705,10 @@ function renderStateIfChanged(force) {
 }
 
 async function refresh(force) {
-  try { state = await apiState(); } catch (e) { state = state || []; }
+  // fetch lỗi (mạng chập chờn / Apps Script khởi động nguội) → GIỮ NGUYÊN state lần trước,
+  // KHÔNG coi là rỗng → tránh xoá nhầm đội đã tham gia khi tải lại trang.
+  try { state = await apiState(); stateLoaded = true; } catch (e) { /* giữ state cũ */ }
   renderStateIfChanged(force);
-}
-
-// Đủ người → ăn mừng 3s rồi tự reset. Cờ resetScheduled đảm bảo mỗi client hẹn giờ 1 lần.
-function maybeAutoReset(full) {
-  if (!full || resetScheduled) return;
-  resetScheduled = true;
-  showCelebrate();
-  setTimeout(doReset, 3000);
-}
-
-// Xoá dữ liệu vòng cũ (backend idempotent + LockService), rồi xoá lựa chọn cục bộ và poll lại.
-async function doReset() {
-  try { await apiReset(); } catch (e) {}
-  myIcon = null;
-  await saveMe();
-  hideCelebrate();
-  await refresh(true);
-  resetScheduled = false; // cho phép vòng kế tiếp lại tự reset khi đủ người
-}
-
-async function manualReset() {
-  if (resetScheduled) return;
-  if (!confirm("Bắt đầu vòng mới? Toàn bộ lựa chọn hiện tại sẽ bị xoá.")) return;
-  await doReset();
-  toast("Đã bắt đầu vòng mới.");
 }
 
 async function loadMe() {
@@ -665,14 +724,18 @@ async function saveMe() {
 
 (async function init() {
   await loadMe();
+  // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); }
 
-  $("refreshBtn").onclick = () => refresh(true);
-  $("resetBtn").onclick   = manualReset;
-
-  renderProfile();         // người mới → bật popup nhập thông tin ngay
+  renderProfile();         // token mới → bật popup; đã có thông tin → tóm tắt / banner đội
   await refresh(true);
-  setInterval(() => { if (!busy && !resetScheduled) refresh(); }, POLL_MS);
+  if (MODE === "firebase" && typeof apiSubscribe === "function") {
+    // realtime: server tự ĐẨY thay đổi của các đội → KHÔNG poll. onSnapshot tự kết nối lại
+    // và đồng bộ khi online trở lại, nên rẻ nhất mà vẫn tức thì.
+    apiSubscribe(teams => { if (busy) return; state = teams; stateLoaded = true; renderStateIfChanged(false); });
+  } else {
+    setInterval(() => { if (!busy) refresh(); }, POLL_MS); // poll ngầm 3s (sheet/demo)
+  }
 })();
 </script>
 

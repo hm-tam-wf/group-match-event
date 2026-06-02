@@ -1,7 +1,6 @@
 <script>
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
-// Khi đã có thông tin hợp lệ → hiện thanh tóm tắt inline.
-// Khi CHƯA có (người mới) → hiện popup ở giữa màn hình, không cho bỏ qua.
+// Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
   const box  = $("profile");
   const done = profileComplete() && !editing;
@@ -34,7 +33,7 @@ function closeProfileModal() {
 }
 
 // Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
-// với người mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
+// với token mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
 function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
   const canCancel = profileComplete();
@@ -46,7 +45,7 @@ function showProfileModal() {
     <div class="modal profile-modal">
       <div class="pm-emoji">🐾</div>
       <h3>Chào bạn!</h3>
-      <p>Điền một chút thông tin để bắt đầu chọn linh thú của bạn nhé.</p>
+      <p>Điền một chút thông tin để bắt đầu tham gia đội của bạn nhé.</p>
       <div class="form" id="pmForm">
         ${FIELDS.map(f => `
           <div class="field ${f.type === "email" || f.type === "tel" ? "" : "full"}">
@@ -59,7 +58,7 @@ function showProfileModal() {
       </div>
       <div class="row">
         ${canCancel ? `<button class="cancel" id="pmCancel">Quay lại</button>` : ""}
-        <button class="confirm" id="pmSave">Bắt đầu chọn linh thú →</button>
+        <button class="confirm" id="pmSave">Bắt đầu tham gia đội →</button>
       </div>
     </div>`;
   document.body.appendChild(bg);
@@ -80,7 +79,7 @@ function showProfileModal() {
     closeProfileModal();
     renderProfile();
     renderStateIfChanged(true);
-    toast("Đã lưu thông tin. Giờ hãy chọn 1 linh thú 👇");
+    toast("Đã lưu thông tin. Giờ hãy chọn 1 đội để tham gia 👇");
   };
 
   $("pmSave").onclick = save;
@@ -96,106 +95,88 @@ function showProfileModal() {
   if (first) setTimeout(() => first.focus(), 40);
 }
 
-// ── Overlay ăn mừng khi đủ người ───────────────────────────────────
-const CONFETTI_COLORS = ["#FFE6F0", "#DDEBFF", "#D7F5E6", "#FFF1D6", "#E9DEFF", "#FFB3D1"];
-function showCelebrate() {
-  if ($("celebrate")) return;
-  const el = document.createElement("div");
-  el.id = "celebrate";
-  el.className = "celebrate-bg";
+// ── Bảng đội (vẽ lại mỗi khi dữ liệu đổi) ──────────────────────────
+function teamOf(icon) { return state[icon] || { count: 0, names: [] }; }
 
-  let confetti = "";
-  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduce) {
-    for (let i = 0; i < 22; i++) {
-      const c = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
-      const left = Math.round(Math.random() * 100);
-      const delay = (Math.random() * 1.2).toFixed(2);
-      const dur = (2.6 + Math.random() * 1.4).toFixed(2);
-      const size = (8 + Math.random() * 4).toFixed(0);
-      confetti += `<i class="confetti" style="left:${left}%;width:${size}px;height:${size}px;background:${c};animation-delay:${delay}s;animation-duration:${dur}s"></i>`;
-    }
-  }
-
-  el.innerHTML = `
-    ${confetti}
-    <div class="celebrate-card">
-      <div class="cc-emoji">🎉</div>
-      <h3>Đã đủ người 🎉</h3>
-      <p>Tất cả linh thú đã có chủ! Đang chuẩn bị vòng mới…</p>
-    </div>`;
-  document.body.appendChild(el);
-}
-function hideCelebrate() {
-  const el = $("celebrate");
-  if (el) el.remove();
-}
-
-// ── Bảng chọn (vẽ lại mỗi khi dữ liệu đổi) ─────────────────────────
 function renderState() {
-  const takenSet  = new Set(state.map(t => t.icon));
-  const takenName = {};
-  state.forEach(t => takenName[t.icon] = t.name);
-  if (myIcon && !takenSet.has(myIcon)) myIcon = null; // bị reset từ phía khác
+  // myIcon còn hợp lệ? Chỉ mở khoá khi ĐÃ tải được state thật từ server và đội đó thực sự rỗng
+  // (tránh xoá nhầm khi state chưa tải xong / fetch lỗi lúc mới vào trang).
+  if (stateLoaded && myIcon && teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
 
-  // banner đã chọn
+  // banner đội của mình
   const bw = $("bannerWrap");
   if (myIcon) {
     const g = byEmoji[myIcon];
     bw.innerHTML = `<div class="banner" style="--c:${g.color}">
         <span class="bi">${g.icon}</span>
         <div>
-          <div class="bt">Bạn đã chọn ${g.name} ${g.icon}</div>
-          <div class="bs">Thông tin của bạn đã được ghi lại. Cảm ơn bạn!</div>
+          <div class="bt">Bạn đang ở đội ${g.name} ${g.icon}</div>
+          <div class="bs">Đã ghi nhận thông tin của bạn. Mỗi người chỉ tham gia 1 đội.</div>
         </div></div>`;
   } else {
     bw.innerHTML = "";
   }
 
-  const canPick = profileComplete() && !editing && !myIcon;
+  const ready = profileComplete() && !editing;
 
-  // lưới còn trống (đã taken thì biến mất)
+  // ── Đội còn chỗ (count < CAPACITY) ──
   const grid = $("grid"); grid.innerHTML = "";
-  let free = 0;
+  let open = 0;
   ICONS.forEach(g => {
-    if (takenSet.has(g.icon)) return;
-    free++;
+    const tm = teamOf(g.icon);
+    if (tm.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
+    open++;
+    const mine    = g.icon === myIcon;
+    const canJoin = ready && !myIcon;        // chưa có đội mới được tham gia
+    const pct     = Math.round(tm.count / CAPACITY * 100);
+    const avas    = tm.names.slice(0, 5).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
+                  + (tm.count > 5 ? `<span class="mini more">+${tm.count - 5}</span>` : "")
+                  || `<span class="mini empty">·</span>`;
+    const label   = !ready ? "Điền thông tin" : (myIcon ? (mine ? "Đội của bạn" : "Đã có đội") : "Tham gia");
+
     const t = document.createElement("div");
-    t.className = "tile " + (canPick ? "sel" : "disabled");
+    t.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "");
     t.style.setProperty("--c", g.color);
-    t.innerHTML = `<div class="ic">${g.icon}</div><div class="nm">${g.name}</div>
-      <button class="pick ${canPick ? "" : "lock"}">${canPick ? "Chọn" : myIcon ? "Đã chọn xong" : "Điền thông tin"}</button>`;
-    if (canPick) {
+    t.innerHTML = `
+      <div class="ic">${g.icon}</div>
+      <div class="nm">${g.name}</div>
+      <div class="cap">${tm.count}/${CAPACITY}</div>
+      <div class="cap-bar"><span style="width:${pct}%"></span></div>
+      <div class="avas">${avas}</div>
+      <button class="pick ${canJoin ? "" : "lock"}">${label}</button>`;
+    if (canJoin) {
       const act = () => askConfirm(g);
       t.onclick = e => { if (!e.target.closest("button")) act(); };
       t.querySelector(".pick").onclick = e => { e.stopPropagation(); act(); };
     }
     grid.appendChild(t);
   });
-  $("freeCount").textContent  = `${free}/${ICONS.length}`;
-  $("freeHint").innerHTML     = !profileComplete() && free > 0 ? `<div class="hint">→ Điền thông tin để mở khoá việc chọn.</div>` : "";
-  $("freeEmpty").innerHTML    = free === 0 ? `<div class="empty-note">Hết chỗ rồi — mọi linh thú đã có chủ 🎉</div>` : "";
+  $("freeCount").textContent = `${open}/${ICONS.length} đội`;
+  $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">→ Điền thông tin để mở khoá việc tham gia đội.</div>` : "";
+  $("freeEmpty").innerHTML   = open === 0 ? `<div class="empty-note">Tất cả các đội đều đã đủ người 🎉</div>` : "";
 
-  // danh sách đã chọn
+  // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
   const tk = $("taken"); tk.innerHTML = "";
+  let done = 0;
   ICONS.forEach(g => {
-    if (!takenSet.has(g.icon)) return;
+    const tm = teamOf(g.icon);
+    if (tm.count < CAPACITY) return;
+    done++;
     const mine = g.icon === myIcon;
-    const el   = document.createElement("div");
-    el.className = "taken " + (mine ? "mine" : "");
+    const lis  = tm.names.map((n, i) => `<li><span class="no">${i + 1}</span>${esc(n || "—")}</li>`).join("");
+    const el = document.createElement("div");
+    el.className = "full-team" + (mine ? " mine" : "");
     el.style.setProperty("--c", g.color);
-    el.innerHTML = `<span class="ti">${g.icon}</span>
-      <div class="info">
-        <div class="lab">${g.name}</div>
-        <div class="who">${esc(firstName(takenName[g.icon]) || "—")}</div>
+    el.innerHTML = `
+      <div class="ft-head">
+        <span class="ti">${g.icon}</span>
+        <div class="ft-meta"><div class="lab">Đội</div><div class="ft-name">${g.name}</div></div>
+        <span class="ft-badge">${tm.count}/${CAPACITY}${mine ? " · bạn" : ""}</span>
       </div>
-      ${mine ? '<span class="mark">bạn</span>' : ""}`;
+      <ol class="ft-list">${lis}</ol>`;
     tk.appendChild(el);
   });
-  $("takenCount").textContent = `${takenSet.size}/${ICONS.length}`;
-  $("takenEmpty").innerHTML   = takenSet.size === 0 ? `<div class="empty-note">Chưa ai chọn. Bạn có thể là người đầu tiên!</div>` : "";
-
-  // đủ người → ăn mừng rồi tự reset vòng mới (chỉ hẹn giờ 1 lần/vòng)
-  maybeAutoReset(ICONS.length > 0 && takenSet.size >= ICONS.length);
+  $("takenCount").textContent = `${done}/${ICONS.length} đội`;
+  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";
 }
 </script>

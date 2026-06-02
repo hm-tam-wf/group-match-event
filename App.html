@@ -4,8 +4,8 @@ function askConfirm(g) {
   bg.className = "modal-bg";
   bg.innerHTML = `<div class="modal" style="--c:${g.color}">
       <div class="mic">${g.icon}</div>
-      <h3>Chọn "${g.name}"?</h3>
-      <p>Mỗi người chỉ được chọn 1 linh thú. Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
+      <h3>Tham gia đội ${esc(g.name)}?</h3>
+      <p>Mỗi người chỉ tham gia 1 đội (tối đa ${CAPACITY} người/đội). Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
       <div class="row">
         <button class="cancel"  id="c0">Quay lại</button>
         <button class="confirm" id="c1">Xác nhận</button>
@@ -25,13 +25,13 @@ async function doClaim(g) {
     if (res && res.ok) {
       myIcon = g.icon;
       await saveMe();
-      toast(`🎉 Bạn đã chọn ${g.name} ${g.icon}`);
+      toast(`🎉 Bạn đã tham gia đội ${g.name} ${g.icon}`);
     } else {
       const r = res && res.reason;
-      if      (r === "taken")     toast(`Tiếc quá! ${g.name} vừa có người chọn mất.`);
-      else if (r === "already")   toast("Bạn đã chọn 1 linh thú rồi.");
-      else if (r === "dup_email") toast("Email này đã được dùng để chọn rồi.");
-      else                        toast("Không lưu được, thử lại nhé.");
+      if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
+      else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
+      else if (r === "dup_email") toast("Email này đã được dùng để tham gia rồi.");
+      else                        toast("Không tham gia được, thử lại nhé.");
     }
     await refresh(true);
     renderProfile();
@@ -44,10 +44,12 @@ async function doClaim(g) {
   }
 }
 
-// Chữ ký dữ liệu: chỉ render lại khi state/myIcon/editing/hồ-sơ thực sự đổi → chống nhấp nháy
+// Chữ ký dữ liệu: chỉ render lại khi sĩ số/tên đội/myIcon/editing/hồ-sơ thực sự đổi → chống nhấp nháy
 function computeSig() {
-  const t = state.map(s => (s.icon || "") + "" + (s.name || "")).sort().join("");
-  return t + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0);
+  const t = Object.keys(state).sort()
+    .map(ic => ic + ":" + state[ic].count + ":" + (state[ic].names || []).join(","))
+    .join("|");
+  return t + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0) + "|" + (stateLoaded ? 1 : 0);
 }
 function renderStateIfChanged(force) {
   const sig = computeSig();
@@ -55,33 +57,10 @@ function renderStateIfChanged(force) {
 }
 
 async function refresh(force) {
-  try { state = await apiState(); } catch (e) { state = state || []; }
+  // fetch lỗi (mạng chập chờn / Apps Script khởi động nguội) → GIỮ NGUYÊN state lần trước,
+  // KHÔNG coi là rỗng → tránh xoá nhầm đội đã tham gia khi tải lại trang.
+  try { state = await apiState(); stateLoaded = true; } catch (e) { /* giữ state cũ */ }
   renderStateIfChanged(force);
-}
-
-// Đủ người → ăn mừng 3s rồi tự reset. Cờ resetScheduled đảm bảo mỗi client hẹn giờ 1 lần.
-function maybeAutoReset(full) {
-  if (!full || resetScheduled) return;
-  resetScheduled = true;
-  showCelebrate();
-  setTimeout(doReset, 3000);
-}
-
-// Xoá dữ liệu vòng cũ (backend idempotent + LockService), rồi xoá lựa chọn cục bộ và poll lại.
-async function doReset() {
-  try { await apiReset(); } catch (e) {}
-  myIcon = null;
-  await saveMe();
-  hideCelebrate();
-  await refresh(true);
-  resetScheduled = false; // cho phép vòng kế tiếp lại tự reset khi đủ người
-}
-
-async function manualReset() {
-  if (resetScheduled) return;
-  if (!confirm("Bắt đầu vòng mới? Toàn bộ lựa chọn hiện tại sẽ bị xoá.")) return;
-  await doReset();
-  toast("Đã bắt đầu vòng mới.");
 }
 
 async function loadMe() {
@@ -97,13 +76,17 @@ async function saveMe() {
 
 (async function init() {
   await loadMe();
+  // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); }
 
-  $("refreshBtn").onclick = () => refresh(true);
-  $("resetBtn").onclick   = manualReset;
-
-  renderProfile();         // người mới → bật popup nhập thông tin ngay
+  renderProfile();         // token mới → bật popup; đã có thông tin → tóm tắt / banner đội
   await refresh(true);
-  setInterval(() => { if (!busy && !resetScheduled) refresh(); }, POLL_MS);
+  if (MODE === "firebase" && typeof apiSubscribe === "function") {
+    // realtime: server tự ĐẨY thay đổi của các đội → KHÔNG poll. onSnapshot tự kết nối lại
+    // và đồng bộ khi online trở lại, nên rẻ nhất mà vẫn tức thì.
+    apiSubscribe(teams => { if (busy) return; state = teams; stateLoaded = true; renderStateIfChanged(false); });
+  } else {
+    setInterval(() => { if (!busy) refresh(); }, POLL_MS); // poll ngầm 3s (sheet/demo)
+  }
 })();
 </script>

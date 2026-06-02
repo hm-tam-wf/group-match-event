@@ -11,7 +11,6 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     if (data.action === "claim") return jsonResponse(claim(data));
-    if (data.action === "reset") return jsonResponse(resetState());
     return jsonResponse({ ok: false, reason: "unknown_action" });
   } catch (err) {
     return jsonResponse({ ok: false, reason: "error", detail: String(err) });
