@@ -2,25 +2,26 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-// ⚠️ DÁN CẤU HÌNH FIREBASE CỦA BẠN VÀO ĐÂY
-//    Firebase Console → ⚙ Project settings → mục "Your apps" → Web app → "SDK setup and configuration".
-//    Để trống projectId thì app tự chạy ở chế độ sheet/demo (không dùng Firebase).
-const FIREBASE_CONFIG = {
-  apiKey:            "",
-  authDomain:        "",
-  projectId:         "",
-  storageBucket:     "",
-  messagingSenderId: "",
-  appId:             "",
-};
+  // ⚠️ DÁN CẤU HÌNH FIREBASE CỦA BẠN VÀO ĐÂY
+  //    Firebase Console → ⚙ Project settings → mục "Your apps" → Web app → "SDK setup and configuration".
+  //    Để trống projectId thì app tự chạy ở chế độ sheet/demo (không dùng Firebase).
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCddSYLOIQsYgp1bVrpWpdMHegRmZD3FEE",
+    authDomain: "icon-picker.firebaseapp.com",
+    projectId: "icon-picker",
+    storageBucket: "icon-picker.firebasestorage.app",
+    messagingSenderId: "587236027049",
+    appId: "1:587236027049:web:d812f9abff01f0f20f97b8",
+    measurementId: "G-M5SRNR2P36"
+  };
 
-// Có chặn 1 email chọn nhiều lần không (giống BLOCK_DUP_EMAIL bên Apps Script cũ)
-const BLOCK_DUP_EMAIL = true;
+  // Có chặn 1 email chọn nhiều lần không (giống BLOCK_DUP_EMAIL bên Apps Script cũ)
+  const BLOCK_DUP_EMAIL = true;
 
-const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
-let db = null;
-if (FIREBASE_ON) {
-  firebase.initializeApp(FIREBASE_CONFIG);
-  db = firebase.firestore();
-}
+  const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
+  let db = null;
+  if (FIREBASE_ON) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+  }
 </script>
