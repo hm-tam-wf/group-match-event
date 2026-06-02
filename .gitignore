@@ -3,5 +3,6 @@ node_modules/
 test-firebase.html
 
 # Khóa service account (KHÔNG bao giờ commit) và file CSV xuất ra
-serviceAccountKey.json
+serviceAccountKey*.json
+*firebase-adminsdk*.json
 signups-*.csv
