@@ -77,6 +77,18 @@
   tbody tr:hover { background:#fafbfe; }
   .num { color:var(--mut); width:46px; }
   [hidden] { display:none !important; }
+  /* Modal xác nhận dùng chung */
+  .cm-bg{position:fixed;inset:0;z-index:1000;background:rgba(40,30,60,.38);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}
+  .cm-box{width:100%;max-width:420px;background:#fff;border-radius:20px;padding:26px 24px;box-shadow:0 24px 60px -20px rgba(80,60,120,.5);text-align:left;font-family:inherit}
+  .cm-title{margin:0 0 10px;font-size:19px;font-weight:700;color:#3a3350}
+  .cm-msg{margin:0 0 22px;font-size:14.5px;line-height:1.55;color:#6a6388}
+  .cm-row{display:flex;gap:10px;justify-content:flex-end}
+  .cm-row button{border:0;border-radius:12px;padding:11px 18px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .cm-cancel{background:#efeaf6;color:#6a6388}.cm-cancel:hover{background:#e6dff2}
+  .cm-confirm{background:#a98cff;color:#fff}.cm-confirm:hover{filter:brightness(1.05)}
+  .cm-confirm.danger{background:#ff5a78}
+  .ev-live{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#16a34a;background:#dcfce7;padding:4px 10px;border-radius:999px}
+  .ev-end{background:#ff5a78;color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer}.ev-end:hover{filter:brightness(1.05)}
 </style>
 </head>
 <body>
@@ -204,8 +216,8 @@
         <div class="row-sig">
           <label>Sự kiện:</label>
           <select id="sigSelect"></select>
-          <button id="btnLoad"  class="btn-ghost">Tải dữ liệu</button>
-          <button id="btnExcel" class="btn-pri">⬇ Tải Excel</button>
+          <button id="btnLoad"  class="btn-ghost">Reload data</button>
+          <button id="btnExcel" class="btn-pri">Export excel</button>
         </div>
         <p id="loadErr" class="err"></p>
         <p id="summary" class="summary"></p>
@@ -244,6 +256,35 @@
 
   const auth = firebase.auth();
   const FV   = firebase.firestore.FieldValue;
+
+  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false }) {
+    return new Promise(resolve => {
+      const bg = document.createElement("div");
+      bg.className = "cm-bg";
+      bg.innerHTML = `
+        <div class="cm-box" role="dialog" aria-modal="true">
+          <h3 class="cm-title"></h3>
+          <p class="cm-msg"></p>
+          <div class="cm-row">
+            <button class="cm-cancel"></button>
+            <button class="cm-confirm${danger ? " danger" : ""}"></button>
+          </div>
+        </div>`;
+      bg.querySelector(".cm-title").textContent   = title || "";
+      bg.querySelector(".cm-msg").textContent     = message || "";
+      bg.querySelector(".cm-cancel").textContent  = cancelText;
+      bg.querySelector(".cm-confirm").textContent = confirmText;
+      if (!cancelText) bg.querySelector(".cm-cancel").hidden = true;
+      document.body.appendChild(bg);
+      const close = val => { bg.remove(); document.removeEventListener("keydown", onKey); resolve(val); };
+      const onKey = e => { if (e.key === "Escape") close(false); if (e.key === "Enter") close(true); };
+      bg.querySelector(".cm-cancel").onclick  = () => close(false);
+      bg.querySelector(".cm-confirm").onclick = () => close(true);
+      bg.addEventListener("click", e => { if (e.target === bg) close(false); });
+      document.addEventListener("keydown", onKey);
+      setTimeout(() => bg.querySelector(".cm-confirm").focus(), 30);
+    });
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const fmtTime = at => {
@@ -362,45 +403,69 @@
     }
     $("evListWrap").innerHTML = '<div class="ev-list">'
       + events.map(ev => {
-          const active = ev.id === activeEventId;
-          const title  = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
-          const cap    = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
-          const nTeam  = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
-          return `<div class="ev-row${active ? " is-active" : ""}">
+          const isActive = ev.id === activeEventId;
+          const title    = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
+          const cap      = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
+          const nTeam    = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
+          const badge    = isActive ? `<span class="ev-live">● Đang chạy</span>` : "";
+          const controls = isActive
+            ? `<button class="ev-end btn-sm" data-action="end" data-id="${esc(ev.id)}" data-name="${esc(title)}">Kết thúc</button>
+               <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>`
+            : `<button class="btn-ok btn-sm" data-action="open" data-id="${esc(ev.id)}" data-name="${esc(title)}">Mở sự kiện này</button>
+               <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>`;
+          return `<div class="ev-row${isActive ? " is-active" : ""}">
             <div class="ev-info">
-              <div class="ev-title">${esc(title)}${active ? ' <span class="badge">Đang mở</span>' : ""}</div>
+              <div class="ev-title">${esc(title)} ${badge}</div>
               <div class="ev-meta">ID: <code>${esc(ev.id)}</code> &nbsp;·&nbsp; ${nTeam} đội &nbsp;·&nbsp; ${cap} người/đội</div>
             </div>
-            <div class="ev-actions">
-              ${active
-                ? '<span style="font-size:13px;color:var(--pri);font-weight:600;padding:6px 0;">Đang mở</span>'
-                : `<button class="btn-ok btn-sm" data-action="open" data-id="${esc(ev.id)}">Mở sự kiện này</button>`}
-              <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>
-            </div>
+            <div class="ev-actions">${controls}</div>
           </div>`;
         }).join("")
       + "</div>";
 
     $("evListWrap").querySelectorAll("button[data-action]").forEach(btn => {
       btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        if (btn.dataset.action === "open")  openEvent(id);
+        const id   = btn.dataset.id;
+        const name = btn.dataset.name || id;
+        if (btn.dataset.action === "open")  openEvent(id, name);
+        if (btn.dataset.action === "end")   endEvent(id, name);
         if (btn.dataset.action === "clone") cloneEvent(id);
       });
     });
   }
 
-  async function openEvent(eid) {
-    const ev = cachedEvents.find(e => e.id === eid);
-    const name = ev && ev.cfg && ev.cfg.title ? ev.cfg.title : eid;
-    if (!confirm(`Chuyển sự kiện đang mở sang "${name}"?\n\nTrang công khai sẽ ngay lập tức hiển thị sự kiện này. Tiếp tục?`)) return;
+  async function openEvent(eid, name) {
+    const ok = await confirmModal({
+      title: "Mở sự kiện này?",
+      message: `Chuyển sự kiện đang mở sang "${name}". Trang công khai sẽ hiển thị sự kiện này ngay lập tức.`,
+      confirmText: "Mở sự kiện",
+    });
+    if (!ok) return;
     try {
       await db.collection("config").doc("active").set({ eventId: eid });
       activeEventId = eid;
       renderEvList(cachedEvents);
       syncSigSelect(cachedEvents);
     } catch (err) {
-      alert("Lỗi: " + (err.message || err));
+      await confirmModal({ title: "Lỗi", message: err.message || String(err), confirmText: "Đóng", cancelText: "" });
+    }
+  }
+
+  async function endEvent(eid, name) {
+    const ok = await confirmModal({
+      title: "Kết thúc sự kiện?",
+      message: `Đóng đăng ký cho "${name}". Trang công khai sẽ không nhận đăng ký nữa cho tới khi bạn mở một sự kiện khác. Dữ liệu đã đăng ký vẫn được giữ nguyên.`,
+      confirmText: "Kết thúc",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await db.collection("config").doc("active").set({ eventId: "" });
+      activeEventId = "";
+      renderEvList(cachedEvents);
+      syncSigSelect(cachedEvents);
+    } catch (err) {
+      await confirmModal({ title: "Lỗi", message: err.message || String(err), confirmText: "Đóng", cancelText: "" });
     }
   }
 
