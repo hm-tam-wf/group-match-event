@@ -12,8 +12,8 @@ const FIREBASE_CONFIG = {
   measurementId: "G-M5SRNR2P36"
 };
 
-// Có chặn 1 MSNV đăng ký nhiều lần không
-const BLOCK_DUP_EMPLOYEE_ID = true;
+// Có bật chống trùng người đăng ký không (tiêu chí lấy theo DEDUP_FIELD trong config.js).
+const BLOCK_DUP = true;
 
 const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
 let db = null;

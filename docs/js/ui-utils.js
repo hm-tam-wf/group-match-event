@@ -16,6 +16,7 @@ let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };
 const profileComplete = () => FIELDS.every(f => !f.required || (me.fields[f.key] || "").trim());
+const labelOf = key => (FIELDS.find(f => f.key === key) || {}).label || key;
 const esc = s => (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 let toastTimer;

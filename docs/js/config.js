@@ -8,6 +8,14 @@ const FIELDS = [
   { key:"employeeId", label:"Mã số nhân viên",  type:"text", required:true, placeholder:"VD: NV001234" },
 ];
 
+// ➊b Chống trùng theo MỘT field (phải là key trong FIELDS). "" = không chống trùng.
+//     Công tắc bật/tắt nằm ở BLOCK_DUP trong firebase-config.js.
+const DEDUP_FIELD = "employeeId";
+
+// ➊c Nhãn sự kiện — mọi dữ liệu (Firestore + cục bộ) nằm trong không gian riêng theo nhãn này.
+//     Sự kiện mới: đổi sang nhãn khác (chỉ chữ thường, số, gạch ngang). Dữ liệu sự kiện cũ vẫn còn.
+const EVENT_ID = "su-kien-2026-q2";
+
 // ➋ Sĩ số tối đa mỗi đội. Phải khớp CAPACITY ở Config.gs (backend).
 const CAPACITY = 10;
 

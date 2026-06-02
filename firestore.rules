@@ -1,51 +1,60 @@
 rules_version = '2';
-// Security Rules cho mô hình ĐỘI. Dán nội dung này vào: Firebase Console → Firestore Database → Rules → Publish.
+// Security Rules cho mô hình ĐỘI, NAMESPACE theo sự kiện: mọi doc nằm dưới events/{eventId}/...
+// Dán nội dung này vào: Firebase Console → Firestore Database → Rules → Publish.
 // Triết lý: client ghi thẳng nên rules là tuyến phòng thủ — ép sĩ số, khoá PII, chống sửa/cướp suất.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ⚠️ PHẢI KHỚP với CAPACITY trong ClientConfig.html. Đổi sĩ số thì sửa cả 2 nơi.
+    // ⚠️ PHẢI KHỚP với CAPACITY trong docs/js/config.js. Đổi sĩ số thì sửa cả 2 nơi.
     function cap() { return 10; }
 
-    // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa PII. ──
-    // count chỉ được tăng đúng 1 mỗi lần, không bao giờ vượt cap(), và độ dài names luôn = count.
-    match /teams/{icon} {
-      allow read: if true;
-      allow create: if request.resource.data.icon is string
-                    && request.resource.data.count == 1
-                    && request.resource.data.names.size() == 1;
-      allow update: if request.resource.data.icon == resource.data.icon
-                    && request.resource.data.count == resource.data.count + 1
-                    && request.resource.data.count <= cap()
-                    && request.resource.data.names.size() == request.resource.data.count;
-      allow delete: if false;
+    // Mỗi sự kiện = 1 không gian riêng. Đổi EVENT_ID ở client là sang sự kiện mới.
+    match /events/{eventId} {
+
+      // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa PII. ──
+      // count chỉ được tăng đúng 1 mỗi lần, không bao giờ vượt cap(), và độ dài names luôn = count.
+      match /teams/{icon} {
+        allow read: if true;
+        allow create: if request.resource.data.icon is string
+                      && request.resource.data.count == 1
+                      && request.resource.data.names.size() == 1;
+        allow update: if request.resource.data.icon == resource.data.icon
+                      && request.resource.data.count == resource.data.count + 1
+                      && request.resource.data.count <= cap()
+                      && request.resource.data.names.size() == request.resource.data.count;
+        allow delete: if false;
+      }
+
+      // ── Guard "1 người 1 đội": chỉ {icon}. Cho ĐỌC 1 doc (transaction cần), CẤM liệt kê cả bảng. ──
+      match /members/{pid} {
+        allow get: if true;
+        allow list: if false;
+        allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
+        allow update, delete: if false;
+      }
+
+      // ── Guard chống trùng (theo DEDUP_FIELD): KHÔNG chứa PII, chỉ để biết "đã tồn tại hay chưa". ──
+      match /dedup_keys/{key} {
+        allow get: if true;
+        allow list: if false;
+        allow create: if request.resource.data.keys().hasOnly(['at']);
+        allow update, delete: if false;
+      }
+
+      // ── Hồ sơ đầy đủ (tên/MSNV…) — chứa PII. Khách CHỈ GHI, KHÔNG đọc được. ──
+      // CHỈ admin đã đăng nhập (Firebase Auth) & UID nằm trong danh sách mới đọc/liệt kê được.
+      //   → dùng cho trang docs/admin.html. Dán UID admin vào mảng dưới (có thể nhiều admin).
+      //   → để nguyên placeholder thì CHƯA ai đọc được (an toàn mặc định).
+      // Lấy UID: Firebase Console → Authentication → tài khoản admin → cột "User UID".
+      match /signups/{pid} {
+        allow read: if request.auth != null
+                    && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2"];
+        allow create: if true;
+        allow update, delete: if false;
+      }
     }
 
-    // ── Guard "1 người 1 đội": chỉ {icon}. Cho ĐỌC 1 doc (transaction cần), CẤM liệt kê cả bảng. ──
-    match /members/{pid} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
-      allow update, delete: if false;
-    }
-
-    // ── Guard chống trùng MSNV: KHÔNG chứa MSNV/PII, chỉ để biết "đã tồn tại hay chưa". ──
-    match /employee_ids/{key} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if request.resource.data.keys().hasOnly(['at']);
-      allow update, delete: if false;
-    }
-
-    // ── Hồ sơ đầy đủ (tên/MSNV) — CHỈ GHI, client KHÔNG đọc được. ──
-    // Ban tổ chức xem & xuất qua Firebase Console (quyền admin bỏ qua rules).
-    match /signups/{pid} {
-      allow read: if false;
-      allow create: if true;
-      allow update, delete: if false;
-    }
-
-    // Mọi thứ khác: cấm.
+    // Mọi thứ khác (kể cả dữ liệu cũ ở GỐC): cấm với client.
     match /{document=**} { allow read, write: if false; }
   }
 }
