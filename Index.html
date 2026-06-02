@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Linh Thú Của Bạn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<?!= include('Styles') ?>
+</head>
+<body>
+<div class="wrap">
+  <h1>Linh Thú Của Bạn</h1>
+  <p class="sub">Mỗi linh thú chỉ thuộc về <b>1 người</b>. Điền thông tin, rồi chọn 1 linh thú bạn thích — chọn xong nó sẽ <b>biến mất</b> để người khác không chọn trùng.</p>
+
+  <!-- bước 1: hồ sơ -->
+  <div class="profile" id="profile"></div>
+
+  <!-- banner sau khi đã chọn -->
+  <div id="bannerWrap"></div>
+
+  <!-- lưới còn trống -->
+  <div class="section-h">
+    <h2>Còn trống</h2>
+    <span class="count" id="freeCount"></span>
+    <span class="hr"></span>
+  </div>
+  <div id="freeHint"></div>
+  <div class="grid" id="grid"></div>
+  <div id="freeEmpty"></div>
+
+  <!-- đã được chọn -->
+  <div class="section-h">
+    <h2>Đã được chọn</h2>
+    <span class="count" id="takenCount"></span>
+    <span class="hr"></span>
+  </div>
+  <div class="taken-grid" id="taken"></div>
+  <div id="takenEmpty"></div>
+
+  <div class="toolbar">
+    <button class="tbtn" id="refreshBtn">↻ Làm mới</button>
+    <button class="tbtn danger" id="resetBtn">↺ Vòng mới</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- SCRIPT_URL tự động lấy URL web app hiện tại -->
+<script>const SCRIPT_URL = "<?= ScriptApp.getService().getUrl() ?>";</script>
+
+<?!= include('ClientConfig') ?>
+<?!= include('Storage') ?>
+<?!= include('Api') ?>
+<?!= include('UiUtils') ?>
+<?!= include('UiRender') ?>
+<?!= include('App') ?>
+</body>
+</html>

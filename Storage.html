@@ -1,0 +1,25 @@
+<script>
+// Lớp trừu tượng storage: dùng window.storage (Claude artifact) nếu có, fallback về in-memory
+const mem = {};
+
+async function sGet(key, shared) {
+  try {
+    if (REAL) { const r = await window.storage.get(key, shared); return r ? r.value : null; }
+    return key in mem ? mem[key] : null;
+  } catch (e) { return null; }
+}
+
+async function sSet(key, val, shared) {
+  try {
+    if (REAL) await window.storage.set(key, val, shared);
+    else mem[key] = val;
+  } catch (e) {}
+}
+
+async function sDel(key, shared) {
+  try {
+    if (REAL) await window.storage.delete(key, shared);
+    else delete mem[key];
+  } catch (e) {}
+}
+</script>

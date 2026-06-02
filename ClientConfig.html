@@ -1,0 +1,25 @@
+<script>
+// ➊ Các trường người chơi nhập. Thêm trường thì thêm vào đây
+//    VÀ thêm tương ứng trong Config.gs (FIELD_KEYS / FIELD_LABELS).
+const FIELDS = [
+  { key:"name",  label:"Họ và tên",      type:"text",  required:true, placeholder:"Nguyễn Văn A" },
+  { key:"email", label:"Email",           type:"email", required:true, placeholder:"ban@email.com" },
+  { key:"phone", label:"Số điện thoại",  type:"tel",   required:true, placeholder:"09xx xxx xxx" },
+];
+
+// ➋ Danh sách biểu tượng. Thêm/bớt thoải mái — mỗi cái = 1 suất.
+const ICONS = [
+  { icon:"🦊", name:"Cáo",       color:"#ff7a45" },
+  { icon:"🐉", name:"Rồng",      color:"#ff3b5c" },
+  { icon:"🦅", name:"Đại Bàng",  color:"#ffb13d" },
+  { icon:"🦁", name:"Sư Tử",     color:"#ffe14d" },
+  { icon:"🐢", name:"Rùa",       color:"#4dd47a" },
+  { icon:"🦈", name:"Cá Mập",    color:"#2fd4c4" },
+  { icon:"🐬", name:"Cá Heo",    color:"#38bdf8" },
+  { icon:"🐺", name:"Sói",       color:"#7a8cff" },
+  { icon:"🐙", name:"Bạch Tuộc", color:"#b06cff" },
+  { icon:"🦄", name:"Kỳ Lân",    color:"#ff6cce" },
+];
+
+const POLL_MS = 3000; // chu kỳ đồng bộ (ms)
+</script>

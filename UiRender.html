@@ -1,0 +1,201 @@
+<script>
+// ── Hồ sơ người chơi ───────────────────────────────────────────────
+// Khi đã có thông tin hợp lệ → hiện thanh tóm tắt inline.
+// Khi CHƯA có (người mới) → hiện popup ở giữa màn hình, không cho bỏ qua.
+function renderProfile() {
+  const box  = $("profile");
+  const done = profileComplete() && !editing;
+
+  if (done) {
+    closeProfileModal();
+    const metaBits = FIELDS.filter(f => f.key !== "name").map(f => me.fields[f.key]).filter(Boolean).join("  ·  ");
+    box.innerHTML = `
+      <div class="summary">
+        <div class="ava" style="background:${myIcon ? byEmoji[myIcon].color : 'var(--accent)'}">${initial(me.fields.name)}</div>
+        <div class="s-txt">
+          <span class="nm">${esc(me.fields.name) || "Người chơi"}</span>
+          <span class="meta">${esc(metaBits)}</span>
+        </div>
+        <div class="s-spacer"></div>
+        ${myIcon ? "" : `<button class="linkbtn" id="editBtn">Sửa thông tin</button>`}
+      </div>`;
+    const eb = $("editBtn");
+    if (eb) eb.onclick = () => { editing = true; renderProfile(); };
+    return;
+  }
+
+  box.innerHTML = "";        // không còn form inline — dùng popup bên dưới
+  showProfileModal();
+}
+
+function closeProfileModal() {
+  const m = $("profileModal");
+  if (m) m.remove();
+}
+
+// Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
+// với người mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
+function showProfileModal() {
+  if ($("profileModal")) return;          // tránh mở chồng
+  const canCancel = profileComplete();
+
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.id = "profileModal";
+  bg.innerHTML = `
+    <div class="modal profile-modal">
+      <div class="pm-emoji">🐾</div>
+      <h3>Chào bạn!</h3>
+      <p>Điền một chút thông tin để bắt đầu chọn linh thú của bạn nhé.</p>
+      <div class="form" id="pmForm">
+        ${FIELDS.map(f => `
+          <div class="field ${f.type === "email" || f.type === "tel" ? "" : "full"}">
+            <label>${esc(f.label)}${f.required ? " *" : ""}</label>
+            <input id="f_${f.key}" type="${f.type}" placeholder="${esc(f.placeholder || "")}"
+                   value="${esc(me.fields[f.key] || "")}" autocomplete="off"
+                   inputmode="${f.type === "tel" ? "tel" : f.type === "email" ? "email" : "text"}">
+            <span class="msg" id="m_${f.key}"></span>
+          </div>`).join("")}
+      </div>
+      <div class="row">
+        ${canCancel ? `<button class="cancel" id="pmCancel">Quay lại</button>` : ""}
+        <button class="confirm" id="pmSave">Bắt đầu chọn linh thú →</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+
+  const save = async () => {
+    let ok = true;
+    FIELDS.forEach(f => {
+      const inp = $("f_" + f.key), msg = $("m_" + f.key);
+      const err = fieldError(f, inp.value);
+      msg.textContent = err;
+      inp.classList.toggle("bad", !!err);
+      if (err) ok = false;
+    });
+    if (!ok) return;
+    FIELDS.forEach(f => me.fields[f.key] = $("f_" + f.key).value.trim());
+    editing = false;
+    await saveMe();
+    closeProfileModal();
+    renderProfile();
+    renderStateIfChanged(true);
+    toast("Đã lưu thông tin. Giờ hãy chọn 1 linh thú 👇");
+  };
+
+  $("pmSave").onclick = save;
+  if (canCancel) $("pmCancel").onclick = () => { editing = false; closeProfileModal(); renderProfile(); };
+  // CHỦ ĐÍCH: không gắn sự kiện click nền / Esc → popup không thể bỏ qua khi chưa hợp lệ.
+
+  FIELDS.forEach(f => {
+    const inp = $("f_" + f.key);
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
+    inp.addEventListener("input",   () => { $("m_" + f.key).textContent = ""; inp.classList.remove("bad"); });
+  });
+  const first = $("f_" + FIELDS[0].key);
+  if (first) setTimeout(() => first.focus(), 40);
+}
+
+// ── Overlay ăn mừng khi đủ người ───────────────────────────────────
+const CONFETTI_COLORS = ["#FFE6F0", "#DDEBFF", "#D7F5E6", "#FFF1D6", "#E9DEFF", "#FFB3D1"];
+function showCelebrate() {
+  if ($("celebrate")) return;
+  const el = document.createElement("div");
+  el.id = "celebrate";
+  el.className = "celebrate-bg";
+
+  let confetti = "";
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce) {
+    for (let i = 0; i < 22; i++) {
+      const c = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      const left = Math.round(Math.random() * 100);
+      const delay = (Math.random() * 1.2).toFixed(2);
+      const dur = (2.6 + Math.random() * 1.4).toFixed(2);
+      const size = (8 + Math.random() * 4).toFixed(0);
+      confetti += `<i class="confetti" style="left:${left}%;width:${size}px;height:${size}px;background:${c};animation-delay:${delay}s;animation-duration:${dur}s"></i>`;
+    }
+  }
+
+  el.innerHTML = `
+    ${confetti}
+    <div class="celebrate-card">
+      <div class="cc-emoji">🎉</div>
+      <h3>Đã đủ người 🎉</h3>
+      <p>Tất cả linh thú đã có chủ! Đang chuẩn bị vòng mới…</p>
+    </div>`;
+  document.body.appendChild(el);
+}
+function hideCelebrate() {
+  const el = $("celebrate");
+  if (el) el.remove();
+}
+
+// ── Bảng chọn (vẽ lại mỗi khi dữ liệu đổi) ─────────────────────────
+function renderState() {
+  const takenSet  = new Set(state.map(t => t.icon));
+  const takenName = {};
+  state.forEach(t => takenName[t.icon] = t.name);
+  if (myIcon && !takenSet.has(myIcon)) myIcon = null; // bị reset từ phía khác
+
+  // banner đã chọn
+  const bw = $("bannerWrap");
+  if (myIcon) {
+    const g = byEmoji[myIcon];
+    bw.innerHTML = `<div class="banner" style="--c:${g.color}">
+        <span class="bi">${g.icon}</span>
+        <div>
+          <div class="bt">Bạn đã chọn ${g.name} ${g.icon}</div>
+          <div class="bs">Thông tin của bạn đã được ghi lại. Cảm ơn bạn!</div>
+        </div></div>`;
+  } else {
+    bw.innerHTML = "";
+  }
+
+  const canPick = profileComplete() && !editing && !myIcon;
+
+  // lưới còn trống (đã taken thì biến mất)
+  const grid = $("grid"); grid.innerHTML = "";
+  let free = 0;
+  ICONS.forEach(g => {
+    if (takenSet.has(g.icon)) return;
+    free++;
+    const t = document.createElement("div");
+    t.className = "tile " + (canPick ? "sel" : "disabled");
+    t.style.setProperty("--c", g.color);
+    t.innerHTML = `<div class="ic">${g.icon}</div><div class="nm">${g.name}</div>
+      <button class="pick ${canPick ? "" : "lock"}">${canPick ? "Chọn" : myIcon ? "Đã chọn xong" : "Điền thông tin"}</button>`;
+    if (canPick) {
+      const act = () => askConfirm(g);
+      t.onclick = e => { if (!e.target.closest("button")) act(); };
+      t.querySelector(".pick").onclick = e => { e.stopPropagation(); act(); };
+    }
+    grid.appendChild(t);
+  });
+  $("freeCount").textContent  = `${free}/${ICONS.length}`;
+  $("freeHint").innerHTML     = !profileComplete() && free > 0 ? `<div class="hint">→ Điền thông tin để mở khoá việc chọn.</div>` : "";
+  $("freeEmpty").innerHTML    = free === 0 ? `<div class="empty-note">Hết chỗ rồi — mọi linh thú đã có chủ 🎉</div>` : "";
+
+  // danh sách đã chọn
+  const tk = $("taken"); tk.innerHTML = "";
+  ICONS.forEach(g => {
+    if (!takenSet.has(g.icon)) return;
+    const mine = g.icon === myIcon;
+    const el   = document.createElement("div");
+    el.className = "taken " + (mine ? "mine" : "");
+    el.style.setProperty("--c", g.color);
+    el.innerHTML = `<span class="ti">${g.icon}</span>
+      <div class="info">
+        <div class="lab">${g.name}</div>
+        <div class="who">${esc(firstName(takenName[g.icon]) || "—")}</div>
+      </div>
+      ${mine ? '<span class="mark">bạn</span>' : ""}`;
+    tk.appendChild(el);
+  });
+  $("takenCount").textContent = `${takenSet.size}/${ICONS.length}`;
+  $("takenEmpty").innerHTML   = takenSet.size === 0 ? `<div class="empty-note">Chưa ai chọn. Bạn có thể là người đầu tiên!</div>` : "";
+
+  // đủ người → ăn mừng rồi tự reset vòng mới (chỉ hẹn giờ 1 lần/vòng)
+  maybeAutoReset(ICONS.length > 0 && takenSet.size >= ICONS.length);
+}
+</script>

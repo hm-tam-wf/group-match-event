@@ -1,0 +1,109 @@
+<script>
+function askConfirm(g) {
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `<div class="modal" style="--c:${g.color}">
+      <div class="mic">${g.icon}</div>
+      <h3>Chọn "${g.name}"?</h3>
+      <p>Mỗi người chỉ được chọn 1 linh thú. Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
+      <div class="row">
+        <button class="cancel"  id="c0">Quay lại</button>
+        <button class="confirm" id="c1">Xác nhận</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+  bg.querySelector("#c0").onclick   = () => bg.remove();
+  bg.addEventListener("click", e => { if (e.target === bg) bg.remove(); });
+  bg.querySelector("#c1").onclick   = async () => { bg.remove(); await doClaim(g); };
+}
+
+async function doClaim(g) {
+  if (busy) return;
+  busy = true;
+  try {
+    const res = await apiClaim({ icon: g.icon, playerId: me.id, fields: me.fields });
+    if (res && res.ok) {
+      myIcon = g.icon;
+      await saveMe();
+      toast(`🎉 Bạn đã chọn ${g.name} ${g.icon}`);
+    } else {
+      const r = res && res.reason;
+      if      (r === "taken")     toast(`Tiếc quá! ${g.name} vừa có người chọn mất.`);
+      else if (r === "already")   toast("Bạn đã chọn 1 linh thú rồi.");
+      else if (r === "dup_email") toast("Email này đã được dùng để chọn rồi.");
+      else                        toast("Không lưu được, thử lại nhé.");
+    }
+    await refresh(true);
+    renderProfile();
+  } catch (err) {
+    // mạng trục trặc — kiểm tra lại bằng poll
+    toast("Đang kiểm tra kết quả…");
+    await refresh(true);
+  } finally {
+    busy = false;
+  }
+}
+
+// Chữ ký dữ liệu: chỉ render lại khi state/myIcon/editing/hồ-sơ thực sự đổi → chống nhấp nháy
+function computeSig() {
+  const t = state.map(s => (s.icon || "") + "" + (s.name || "")).sort().join("");
+  return t + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0);
+}
+function renderStateIfChanged(force) {
+  const sig = computeSig();
+  if (force || sig !== lastSig) { lastSig = sig; renderState(); }
+}
+
+async function refresh(force) {
+  try { state = await apiState(); } catch (e) { state = state || []; }
+  renderStateIfChanged(force);
+}
+
+// Đủ người → ăn mừng 3s rồi tự reset. Cờ resetScheduled đảm bảo mỗi client hẹn giờ 1 lần.
+function maybeAutoReset(full) {
+  if (!full || resetScheduled) return;
+  resetScheduled = true;
+  showCelebrate();
+  setTimeout(doReset, 3000);
+}
+
+// Xoá dữ liệu vòng cũ (backend idempotent + LockService), rồi xoá lựa chọn cục bộ và poll lại.
+async function doReset() {
+  try { await apiReset(); } catch (e) {}
+  myIcon = null;
+  await saveMe();
+  hideCelebrate();
+  await refresh(true);
+  resetScheduled = false; // cho phép vòng kế tiếp lại tự reset khi đủ người
+}
+
+async function manualReset() {
+  if (resetScheduled) return;
+  if (!confirm("Bắt đầu vòng mới? Toàn bộ lựa chọn hiện tại sẽ bị xoá.")) return;
+  await doReset();
+  toast("Đã bắt đầu vòng mới.");
+}
+
+async function loadMe() {
+  try {
+    const raw = await sGet("me", false);
+    if (raw) { const o = JSON.parse(raw); me = o.me || me; myIcon = o.myIcon || null; }
+  } catch (e) {}
+}
+
+async function saveMe() {
+  await sSet("me", JSON.stringify({ me, myIcon }), false);
+}
+
+(async function init() {
+  await loadMe();
+  if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); }
+
+  $("refreshBtn").onclick = () => refresh(true);
+  $("resetBtn").onclick   = manualReset;
+
+  renderProfile();         // người mới → bật popup nhập thông tin ngay
+  await refresh(true);
+  setInterval(() => { if (!busy && !resetScheduled) refresh(); }, POLL_MS);
+})();
+</script>

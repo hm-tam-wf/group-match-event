@@ -1,0 +1,42 @@
+<script>
+async function apiState() {
+  if (MODE === "sheet") {
+    const r = await fetch(SCRIPT_URL + "?action=state", { method: "GET" });
+    const j = await r.json();
+    return (j && j.taken) || [];
+  }
+  const obj = JSON.parse(await sGet("claims", true) || "{}");
+  return Object.entries(obj).map(([icon, v]) => ({ icon, name: v.name }));
+}
+
+async function apiClaim(payload) {
+  if (MODE === "sheet") {
+    // text/plain tránh CORS preflight; Apps Script vẫn đọc được body JSON
+    const r = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "claim", ...payload }),
+    });
+    return await r.json();
+  }
+  const obj = JSON.parse(await sGet("claims", true) || "{}");
+  if (obj[payload.icon]) return { ok: false, reason: "taken" };
+  for (const k in obj) { if (obj[k].pid === payload.playerId) return { ok: false, reason: "already" }; }
+  obj[payload.icon] = { ...payload.fields, pid: payload.playerId, at: Date.now() };
+  await sSet("claims", JSON.stringify(obj), true);
+  return { ok: true };
+}
+
+async function apiReset() {
+  if (MODE === "sheet") {
+    const r = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "reset" }),
+    });
+    return await r.json();
+  }
+  await sDel("claims", true);
+  return { ok: true, reset: true };
+}
+</script>
