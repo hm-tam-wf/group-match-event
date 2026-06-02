@@ -1,4 +1,3 @@
-<script>
 // Lưu trữ: ưu tiên window.storage (Claude artifact); nếu không có thì dùng localStorage
 // để TOKEN định danh + đội đã tham gia NHỚ qua lần tải lại trang (không hiện lại popup).
 // Nếu localStorage bị chặn (chế độ riêng tư) → fallback in-memory (mất khi tải lại).
@@ -30,4 +29,3 @@ async function sDel(key, shared) {
     delete mem[key];
   } catch (e) {}
 }
-</script>

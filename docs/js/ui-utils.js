@@ -1,4 +1,3 @@
-<script>
 const MODE    = (typeof FIREBASE_ON !== "undefined" && FIREBASE_ON) ? "firebase" : (SCRIPT_URL ? "sheet" : "demo");
 const REAL    = !!(window.storage && typeof window.storage.get === "function");
 const $       = id => document.getElementById(id);
@@ -38,4 +37,3 @@ function fieldError(f, v) {
   if (f.type === "tel"   && !validPhone(v)) return "SĐT không hợp lệ (8–15 số)";
   return "";
 }
-</script>

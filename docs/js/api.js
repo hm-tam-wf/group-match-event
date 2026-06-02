@@ -1,4 +1,3 @@
-<script>
 // ─────────────────────────────────────────────────────────────────────────
 // Tầng dữ liệu — MÔ HÌNH ĐỘI (mỗi icon = 1 đội, tối đa CAPACITY người). 3 chế độ:
 //   firebase → Firestore (chịu tải lớn, ghi atomic, đọc realtime)  ← khuyến nghị cho ~500 người
@@ -112,4 +111,3 @@ function apiSubscribe(onChange) {
   );
   return () => { if (_unsubTeams) _unsubTeams(); };
 }
-</script>
