@@ -29,7 +29,7 @@ async function doClaim(g) {
       const r = res && res.reason;
       if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
       else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
-      else if (r === "dup_email") toast("Email này đã được dùng để tham gia rồi.");
+      else if (r === "dup_employee_id") toast("Mã số nhân viên này đã được dùng để tham gia rồi.");
       else                        toast("Không tham gia được, thử lại nhé.");
     }
     await refresh(true);

@@ -47,11 +47,10 @@ function showProfileModal() {
       <p>Điền một chút thông tin để bắt đầu tham gia đội của bạn nhé.</p>
       <div class="form" id="pmForm">
         ${FIELDS.map(f => `
-          <div class="field ${f.type === "email" || f.type === "tel" ? "" : "full"}">
+          <div class="field full">
             <label>${esc(f.label)}${f.required ? " *" : ""}</label>
             <input id="f_${f.key}" type="${f.type}" placeholder="${esc(f.placeholder || "")}"
-                   value="${esc(me.fields[f.key] || "")}" autocomplete="off"
-                   inputmode="${f.type === "tel" ? "tel" : f.type === "email" ? "email" : "text"}">
+                   value="${esc(me.fields[f.key] || "")}" autocomplete="off" inputmode="text">
             <span class="msg" id="m_${f.key}"></span>
           </div>`).join("")}
       </div>

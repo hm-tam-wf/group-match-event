@@ -12,8 +12,8 @@ const FIREBASE_CONFIG = {
   measurementId: "G-M5SRNR2P36"
 };
 
-// Có chặn 1 email chọn nhiều lần không (giống BLOCK_DUP_EMAIL bên Apps Script cũ)
-const BLOCK_DUP_EMAIL = true;
+// Có chặn 1 MSNV đăng ký nhiều lần không
+const BLOCK_DUP_EMPLOYEE_ID = true;
 
 const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
 let db = null;

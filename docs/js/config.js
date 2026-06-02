@@ -2,12 +2,10 @@
 //    app tự rơi vào chế độ firebase (có FIREBASE_CONFIG) hoặc demo. Điền lại nếu muốn dùng sheet.
 const SCRIPT_URL = "";
 
-// ➊ Các trường người chơi nhập. Thêm trường thì thêm vào đây
-//    VÀ thêm tương ứng trong Config.gs (FIELD_KEYS / FIELD_LABELS).
+// ➊ Các trường người chơi nhập.
 const FIELDS = [
-  { key:"name",  label:"Họ và tên",      type:"text",  required:true, placeholder:"Nguyễn Văn A" },
-  { key:"email", label:"Email",           type:"email", required:true, placeholder:"ban@email.com" },
-  { key:"phone", label:"Số điện thoại",  type:"tel",   required:true, placeholder:"09xx xxx xxx" },
+  { key:"name",       label:"Họ và tên",        type:"text", required:true, placeholder:"Nguyễn Văn A" },
+  { key:"employeeId", label:"Mã số nhân viên",  type:"text", required:true, placeholder:"VD: NV001234" },
 ];
 
 // ➋ Sĩ số tối đa mỗi đội. Phải khớp CAPACITY ở Config.gs (backend).
