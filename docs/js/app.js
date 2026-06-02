@@ -1,4 +1,3 @@
-<script>
 function askConfirm(g) {
   const bg = document.createElement("div");
   bg.className = "modal-bg";
@@ -89,4 +88,3 @@ async function saveMe() {
     setInterval(() => { if (!busy) refresh(); }, POLL_MS); // poll ngầm 3s (sheet/demo)
   }
 })();
-</script>

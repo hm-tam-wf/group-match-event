@@ -1,4 +1,7 @@
-<script>
+// ➍ URL web app Apps Script (chế độ "sheet"). Web tĩnh không có Apps Script nên để RỖNG;
+//    app tự rơi vào chế độ firebase (có FIREBASE_CONFIG) hoặc demo. Điền lại nếu muốn dùng sheet.
+const SCRIPT_URL = "";
+
 // ➊ Các trường người chơi nhập. Thêm trường thì thêm vào đây
 //    VÀ thêm tương ứng trong Config.gs (FIELD_KEYS / FIELD_LABELS).
 const FIELDS = [
@@ -25,4 +28,3 @@ const ICONS = [
 ];
 
 const POLL_MS = 3000; // chu kỳ đồng bộ (ms)
-</script>

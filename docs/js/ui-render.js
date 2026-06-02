@@ -1,4 +1,3 @@
-<script>
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
 // Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
@@ -179,4 +178,3 @@ function renderState() {
   $("takenCount").textContent = `${done}/${ICONS.length} đội`;
   $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";
 }
-</script>
