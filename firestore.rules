@@ -1,0 +1,51 @@
+rules_version = '2';
+// Security Rules cho mô hình ĐỘI. Dán nội dung này vào: Firebase Console → Firestore Database → Rules → Publish.
+// Triết lý: client ghi thẳng nên rules là tuyến phòng thủ — ép sĩ số, khoá PII, chống sửa/cướp suất.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ⚠️ PHẢI KHỚP với CAPACITY trong ClientConfig.html. Đổi sĩ số thì sửa cả 2 nơi.
+    function cap() { return 10; }
+
+    // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa email/SĐT. ──
+    // count chỉ được tăng đúng 1 mỗi lần, không bao giờ vượt cap(), và độ dài names luôn = count.
+    match /teams/{icon} {
+      allow read: if true;
+      allow create: if request.resource.data.icon is string
+                    && request.resource.data.count == 1
+                    && request.resource.data.names.size() == 1;
+      allow update: if request.resource.data.icon == resource.data.icon
+                    && request.resource.data.count == resource.data.count + 1
+                    && request.resource.data.count <= cap()
+                    && request.resource.data.names.size() == request.resource.data.count;
+      allow delete: if false;
+    }
+
+    // ── Guard "1 người 1 đội": chỉ {icon}. Cho ĐỌC 1 doc (transaction cần), CẤM liệt kê cả bảng. ──
+    match /members/{pid} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
+      allow update, delete: if false;
+    }
+
+    // ── Guard chống trùng email: KHÔNG chứa email/PII, chỉ để biết "đã tồn tại hay chưa". ──
+    match /emails/{key} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.keys().hasOnly(['at']);
+      allow update, delete: if false;
+    }
+
+    // ── Hồ sơ đầy đủ (tên/email/SĐT) — CHỈ GHI, client KHÔNG đọc được. ──
+    // Ban tổ chức xem & xuất qua Firebase Console (quyền admin bỏ qua rules).
+    match /signups/{pid} {
+      allow read: if false;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Mọi thứ khác: cấm.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

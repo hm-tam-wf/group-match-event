@@ -12,17 +12,17 @@
 <body>
 <div class="wrap">
   <h1>Linh Thú Của Bạn</h1>
-  <p class="sub">Mỗi linh thú chỉ thuộc về <b>1 người</b>. Điền thông tin, rồi chọn 1 linh thú bạn thích — chọn xong nó sẽ <b>biến mất</b> để người khác không chọn trùng.</p>
+  <p class="sub">Mỗi linh thú là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
-  <!-- bước 1: hồ sơ -->
+  <!-- hồ sơ -->
   <div class="profile" id="profile"></div>
 
-  <!-- banner sau khi đã chọn -->
+  <!-- banner đội của bạn -->
   <div id="bannerWrap"></div>
 
-  <!-- lưới còn trống -->
+  <!-- đội còn chỗ -->
   <div class="section-h">
-    <h2>Còn trống</h2>
+    <h2>Đội còn chỗ</h2>
     <span class="count" id="freeCount"></span>
     <span class="hr"></span>
   </div>
@@ -30,19 +30,14 @@
   <div class="grid" id="grid"></div>
   <div id="freeEmpty"></div>
 
-  <!-- đã được chọn -->
+  <!-- đội đã đủ -->
   <div class="section-h">
-    <h2>Đã được chọn</h2>
+    <h2>Đội đã đủ</h2>
     <span class="count" id="takenCount"></span>
     <span class="hr"></span>
   </div>
   <div class="taken-grid" id="taken"></div>
   <div id="takenEmpty"></div>
-
-  <div class="toolbar">
-    <button class="tbtn" id="refreshBtn">↻ Làm mới</button>
-    <button class="tbtn danger" id="resetBtn">↺ Vòng mới</button>
-  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -51,6 +46,7 @@
 <script>const SCRIPT_URL = "<?= ScriptApp.getService().getUrl() ?>";</script>
 
 <?!= include('ClientConfig') ?>
+<?!= include('FirebaseConfig') ?>
 <?!= include('Storage') ?>
 <?!= include('Api') ?>
 <?!= include('UiUtils') ?>

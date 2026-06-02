@@ -1,25 +1,33 @@
 <script>
-// Lớp trừu tượng storage: dùng window.storage (Claude artifact) nếu có, fallback về in-memory
+// Lưu trữ: ưu tiên window.storage (Claude artifact); nếu không có thì dùng localStorage
+// để TOKEN định danh + đội đã tham gia NHỚ qua lần tải lại trang (không hiện lại popup).
+// Nếu localStorage bị chặn (chế độ riêng tư) → fallback in-memory (mất khi tải lại).
 const mem = {};
+let LS_OK = false;
+try { localStorage.setItem("__lt_probe", "1"); localStorage.removeItem("__lt_probe"); LS_OK = true; } catch (e) { LS_OK = false; }
+const LS_PREFIX = "linhthu:";
 
 async function sGet(key, shared) {
   try {
-    if (REAL) { const r = await window.storage.get(key, shared); return r ? r.value : null; }
+    if (REAL)  { const r = await window.storage.get(key, shared); return r ? r.value : null; }
+    if (LS_OK) { const v = localStorage.getItem(LS_PREFIX + key); return v === null ? null : v; }
     return key in mem ? mem[key] : null;
   } catch (e) { return null; }
 }
 
 async function sSet(key, val, shared) {
   try {
-    if (REAL) await window.storage.set(key, val, shared);
-    else mem[key] = val;
+    if (REAL)  { await window.storage.set(key, val, shared); return; }
+    if (LS_OK) { localStorage.setItem(LS_PREFIX + key, val);  return; }
+    mem[key] = val;
   } catch (e) {}
 }
 
 async function sDel(key, shared) {
   try {
-    if (REAL) await window.storage.delete(key, shared);
-    else delete mem[key];
+    if (REAL)  { await window.storage.delete(key, shared);  return; }
+    if (LS_OK) { localStorage.removeItem(LS_PREFIX + key);  return; }
+    delete mem[key];
   } catch (e) {}
 }
 </script>

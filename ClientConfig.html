@@ -7,7 +7,10 @@ const FIELDS = [
   { key:"phone", label:"Số điện thoại",  type:"tel",   required:true, placeholder:"09xx xxx xxx" },
 ];
 
-// ➋ Danh sách biểu tượng. Thêm/bớt thoải mái — mỗi cái = 1 suất.
+// ➋ Sĩ số tối đa mỗi đội. Phải khớp CAPACITY ở Config.gs (backend).
+const CAPACITY = 10;
+
+// ➌ Danh sách biểu tượng. Mỗi cái = 1 ĐỘI (tối đa CAPACITY người).
 const ICONS = [
   { icon:"🦊", name:"Cáo",       color:"#ff7a45" },
   { icon:"🐉", name:"Rồng",      color:"#ff3b5c" },
