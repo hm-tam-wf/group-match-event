@@ -99,7 +99,7 @@ function teamOf(icon) { return state[icon] || { count: 0, names: [] }; }
 function renderState() {
   // myIcon còn hợp lệ? Chỉ mở khoá khi ĐÃ tải được state thật từ server và đội đó thực sự rỗng
   // (tránh xoá nhầm khi state chưa tải xong / fetch lỗi lúc mới vào trang).
-  if (stateLoaded && myIcon && teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
+  if (!_skipSelfHeal && stateLoaded && myIcon && teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
 
   // banner đội của mình
   const bw = $("bannerWrap");

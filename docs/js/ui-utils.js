@@ -17,6 +17,7 @@ let state   = {};     // map đội { icon: { count, names } } từ server
 let stateLoaded = false; // đã NHẬN được state thật từ server lần nào chưa (phân biệt "rỗng" với "chưa tải/lỗi mạng")
 let busy    = false;
 let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
+let _skipSelfHeal = false; // true trong window vừa tham gia → chặn self-heal stale-state
 
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };

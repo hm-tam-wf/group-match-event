@@ -23,8 +23,11 @@ async function doClaim(g) {
     const res = await apiClaim({ icon: g.icon, playerId: me.id, fields: me.fields });
     if (res && res.ok) {
       myIcon = g.icon;
+      _skipSelfHeal = true;
       await saveMe();
       toast(`🎉 Bạn đã tham gia đội ${g.name} ${g.icon}`);
+      renderProfile();            // khoá "Sửa thông tin" ngay lập tức
+      renderStateIfChanged(true); // khoá toàn bộ tile ngay lập tức
     } else {
       const r = res && res.reason;
       if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
@@ -39,6 +42,7 @@ async function doClaim(g) {
     toast("Đang kiểm tra kết quả…");
     await refresh(true);
   } finally {
+    _skipSelfHeal = false;
     busy = false;
   }
 }
