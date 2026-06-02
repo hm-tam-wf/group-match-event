@@ -24,10 +24,11 @@ Xác định trong [docs/js/ui-utils.js](docs/js/ui-utils.js) (`const MODE = …
 ```
 docs/                     ← GitHub Pages phục vụ thư mục này
   index.html              ← HTML shell: <link> css + <script src> các file js theo ĐÚNG thứ tự
+  admin.html              ← trang quản trị (đứng riêng): đăng nhập Firebase Auth, xem & tải Excel signups
   css/styles.css          ← giao diện (Soft Cloud Candy)
   js/
-    config.js             ← FIELDS, CAPACITY, ICONS, POLL_MS, SCRIPT_URL
-    firebase-config.js    ← FIREBASE_CONFIG, BLOCK_DUP_EMAIL, khởi tạo db (SDK nạp qua CDN ở index.html)
+    config.js             ← FIELDS, DEDUP_FIELD, EVENT_ID, CAPACITY, ICONS, POLL_MS, SCRIPT_URL
+    firebase-config.js    ← FIREBASE_CONFIG, BLOCK_DUP, khởi tạo db (SDK nạp qua CDN ở index.html)
     storage.js            ← lưu token định danh + đội đã tham gia (localStorage)
     api.js                ← tầng dữ liệu: apiState / apiClaim / apiSubscribe (3 chế độ)
     ui-utils.js           ← MODE, state, tiện ích, validate

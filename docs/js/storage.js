@@ -5,27 +5,28 @@ const mem = {};
 let LS_OK = false;
 try { localStorage.setItem("__lt_probe", "1"); localStorage.removeItem("__lt_probe"); LS_OK = true; } catch (e) { LS_OK = false; }
 const LS_PREFIX = "linhthu:";
+const sk = key => key + ":" + EVENT_ID;   // namespace dữ liệu cục bộ theo sự kiện
 
 async function sGet(key, shared) {
   try {
-    if (REAL)  { const r = await window.storage.get(key, shared); return r ? r.value : null; }
-    if (LS_OK) { const v = localStorage.getItem(LS_PREFIX + key); return v === null ? null : v; }
-    return key in mem ? mem[key] : null;
+    if (REAL)  { const r = await window.storage.get(sk(key), shared); return r ? r.value : null; }
+    if (LS_OK) { const v = localStorage.getItem(LS_PREFIX + sk(key)); return v === null ? null : v; }
+    return sk(key) in mem ? mem[sk(key)] : null;
   } catch (e) { return null; }
 }
 
 async function sSet(key, val, shared) {
   try {
-    if (REAL)  { await window.storage.set(key, val, shared); return; }
-    if (LS_OK) { localStorage.setItem(LS_PREFIX + key, val);  return; }
-    mem[key] = val;
+    if (REAL)  { await window.storage.set(sk(key), val, shared); return; }
+    if (LS_OK) { localStorage.setItem(LS_PREFIX + sk(key), val);  return; }
+    mem[sk(key)] = val;
   } catch (e) {}
 }
 
 async function sDel(key, shared) {
   try {
-    if (REAL)  { await window.storage.delete(key, shared);  return; }
-    if (LS_OK) { localStorage.removeItem(LS_PREFIX + key);  return; }
-    delete mem[key];
+    if (REAL)  { await window.storage.delete(sk(key), shared);  return; }
+    if (LS_OK) { localStorage.removeItem(LS_PREFIX + sk(key));  return; }
+    delete mem[sk(key)];
   } catch (e) {}
 }

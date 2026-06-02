@@ -7,18 +7,21 @@
 //           apiSubscribe(cb) (chỉ firebase) đẩy realtime, thay cho việc poll mỗi 3s.
 // ─────────────────────────────────────────────────────────────────────────
 
-// Mô hình Firestore (tách PII khỏi mọi doc đọc-được — xem firestore.rules):
-//   teams/{icon}        : { icon, count, names:[...] }              — CÔNG KHAI, chỉ TÊN (hiển thị realtime)
-//   members/{pid}       : { icon, at }                              — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
-//   employee_ids/{key}  : { at }                                    — guard chống trùng MSNV (chỉ tồn-tại)
-//   signups/{pid}       : { playerId, icon, name, employeeId, at }  — FULL hồ sơ, KHOÁ ĐỌC (xuất qua Console)
+// Mô hình Firestore — MỌI collection nằm dưới events/{EVENT_ID}/ (mỗi sự kiện 1 không gian riêng):
+//   events/{EVENT_ID}/teams/{icon}     : { icon, count, names:[...] }      — CÔNG KHAI, chỉ TÊN (realtime)
+//   events/{EVENT_ID}/members/{pid}    : { icon, at }                      — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
+//   events/{EVENT_ID}/dedup_keys/{key} : { at }                           — guard chống trùng (theo DEDUP_FIELD, chỉ tồn-tại)
+//   events/{EVENT_ID}/signups/{pid}    : { ...fields, playerId, icon, at } — FULL hồ sơ, KHOÁ ĐỌC (xuất qua Console)
 // Sĩ số tối đa được ép thêm ở Security Rules (count <= CAPACITY) nên client gian lận cũng không vượt được.
 
-function _employeeIdKey(v) { return String(v || "").trim().toUpperCase().replace(/\s+/g, ""); }
+// Mọi collection của 1 sự kiện nằm dưới events/{EVENT_ID}/ → đổi EVENT_ID là sang không gian dữ liệu mới.
+const col = name => db.collection("events").doc(EVENT_ID).collection(name);
+
+function _dedupKey(v) { return String(v || "").trim().toUpperCase().replace(/\s+/g, ""); }
 
 async function apiState() {
   if (MODE === "firebase") {
-    const snap  = await db.collection("teams").get();
+    const snap  = await col("teams").get();
     const teams = {};
     snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; });
     return teams;
@@ -28,7 +31,7 @@ async function apiState() {
     const j = await r.json();
     return (j && j.teams) || {};
   }
-  // demo: dựng map đội từ claims cục bộ ({ icon: [ {name,employeeId,pid}, ... ] })
+  // demo: dựng map đội từ claims cục bộ ({ icon: [ {...fields, pid}, ... ] })  (claims đã namespace theo EVENT_ID ở storage.js)
   const obj = JSON.parse(await sGet("claims", true) || "{}");
   const teams = {};
   Object.keys(obj).forEach(icon => {
@@ -40,26 +43,26 @@ async function apiState() {
 
 async function apiClaim(payload) {
   if (MODE === "firebase") {
-    const icon       = String(payload.icon     || "").trim();
-    const pid        = String(payload.playerId || "").trim();
-    const f          = payload.fields || {};
-    const name       = String(f.name       || "").trim();
-    const employeeId = String(f.employeeId || "").trim();
+    const icon     = String(payload.icon     || "").trim();
+    const pid      = String(payload.playerId || "").trim();
+    const f        = payload.fields || {};
+    const name     = String(f.name || "").trim();
+    const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? String(f[DEDUP_FIELD] || "").trim() : "";
     if (!icon || !name) return { ok: false, reason: "missing" };
     try {
       return await db.runTransaction(async tx => {
-        const teamRef   = db.collection("teams").doc(icon);
-        const memberRef = db.collection("members").doc(pid);           // guard 1-người-1-đội (chỉ {icon})
-        const signupRef = db.collection("signups").doc(pid);           // full hồ sơ — KHOÁ đọc
-        const eidRef    = (BLOCK_DUP_EMPLOYEE_ID && employeeId)
-          ? db.collection("employee_ids").doc(_employeeIdKey(employeeId)) : null; // guard chống trùng MSNV
+        const teamRef   = col("teams").doc(icon);              // col() = events/{EVENT_ID}/<name>
+        const memberRef = col("members").doc(pid);             // guard 1-người-1-đội (chỉ {icon})
+        const signupRef = col("signups").doc(pid);             // full hồ sơ — KHOÁ đọc
+        const dedupRef  = dedupVal
+          ? col("dedup_keys").doc(_dedupKey(dedupVal)) : null; // guard chống trùng (theo DEDUP_FIELD)
 
         // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
-        const [t, mb, eid] = await Promise.all([
-          tx.get(teamRef), tx.get(memberRef), eidRef ? tx.get(eidRef) : Promise.resolve(null),
+        const [t, mb, dk] = await Promise.all([
+          tx.get(teamRef), tx.get(memberRef), dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
         ]);
         if (pid && mb.exists)   return { ok: false, reason: "already" };          // 1 người chỉ 1 đội
-        if (eid && eid.exists)  return { ok: false, reason: "dup_employee_id" };
+        if (dk && dk.exists)    return { ok: false, reason: "dup" };
 
         const count = t.exists ? (t.data().count || 0) : 0;
         const names = t.exists ? (t.data().names || []) : [];
@@ -68,8 +71,8 @@ async function apiClaim(payload) {
         const at = firebase.firestore.FieldValue.serverTimestamp();
         tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
         tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
-        if (eidRef) tx.set(eidRef, { at });                                        // guard: chỉ tồn-tại
-        tx.set(signupRef, { playerId: pid, icon, name, employeeId, at });          // PII (khoá đọc)
+        if (dedupRef) tx.set(dedupRef, { at });                                    // guard: chỉ tồn-tại
+        tx.set(signupRef, { ...f, playerId: pid, icon, at });                      // PII (khoá đọc, ghi đủ field)
         return { ok: true };
       });
     } catch (e) { return { ok: false, reason: "error", detail: String(e) }; }
@@ -83,19 +86,19 @@ async function apiClaim(payload) {
     });
     return await r.json();
   }
-  // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng MSNV)
-  const obj        = JSON.parse(await sGet("claims", true) || "{}");
-  const fields     = payload.fields || {};
-  const employeeId = _employeeIdKey(fields.employeeId || "");
+  // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng theo DEDUP_FIELD)
+  const obj      = JSON.parse(await sGet("claims", true) || "{}");
+  const fields   = payload.fields || {};
+  const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? _dedupKey(fields[DEDUP_FIELD] || "") : "";
   for (const ic in obj) {
     for (const m of obj[ic]) {
       if (m.pid && m.pid === payload.playerId) return { ok: false, reason: "already" };
-      if (employeeId && _employeeIdKey(m.employeeId || "") === employeeId) return { ok: false, reason: "dup_employee_id" };
+      if (dedupVal && _dedupKey(m[DEDUP_FIELD] || "") === dedupVal) return { ok: false, reason: "dup" };
     }
   }
   const arr = obj[payload.icon] || (obj[payload.icon] = []);
   if (arr.length >= CAPACITY) return { ok: false, reason: "full" };
-  arr.push({ name: String(fields.name || ""), employeeId, pid: payload.playerId });
+  arr.push({ ...fields, pid: payload.playerId });
   await sSet("claims", JSON.stringify(obj), true);
   return { ok: true };
 }
@@ -105,7 +108,7 @@ async function apiClaim(payload) {
 let _unsubTeams = null;
 function apiSubscribe(onChange) {
   if (MODE !== "firebase") return null;       // sheet/demo vẫn dùng poll như cũ
-  _unsubTeams = db.collection("teams").onSnapshot(
+  _unsubTeams = col("teams").onSnapshot(
     snap => { const teams = {}; snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; }); onChange(teams); },
     _err => { /* mạng trục trặc → giữ state cũ; vòng poll dự phòng sẽ tự đồng bộ lại */ }
   );
