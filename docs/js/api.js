@@ -8,13 +8,13 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 // Mô hình Firestore (tách PII khỏi mọi doc đọc-được — xem firestore.rules):
-//   teams/{icon}   : { icon, count, names:[...] }                  — CÔNG KHAI, chỉ TÊN (hiển thị realtime)
-//   members/{pid}  : { icon, at }                                 — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
-//   emails/{key}   : { at }                                       — guard chống trùng email (chỉ tồn-tại)
-//   signups/{pid}  : { playerId, icon, name, email, phone, at }   — FULL hồ sơ, KHOÁ ĐỌC (xuất qua Console)
+//   teams/{icon}        : { icon, count, names:[...] }              — CÔNG KHAI, chỉ TÊN (hiển thị realtime)
+//   members/{pid}       : { icon, at }                              — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
+//   employee_ids/{key}  : { at }                                    — guard chống trùng MSNV (chỉ tồn-tại)
+//   signups/{pid}       : { playerId, icon, name, employeeId, at }  — FULL hồ sơ, KHOÁ ĐỌC (xuất qua Console)
 // Sĩ số tối đa được ép thêm ở Security Rules (count <= CAPACITY) nên client gian lận cũng không vượt được.
 
-function _emailKey(e) { return String(e || "").trim().toLowerCase().replace(/\//g, "_"); }
+function _employeeIdKey(v) { return String(v || "").trim().toUpperCase().replace(/\s+/g, ""); }
 
 async function apiState() {
   if (MODE === "firebase") {
@@ -28,7 +28,7 @@ async function apiState() {
     const j = await r.json();
     return (j && j.teams) || {};
   }
-  // demo: dựng map đội từ claims cục bộ ({ icon: [ {name,email,pid}, ... ] })
+  // demo: dựng map đội từ claims cục bộ ({ icon: [ {name,employeeId,pid}, ... ] })
   const obj = JSON.parse(await sGet("claims", true) || "{}");
   const teams = {};
   Object.keys(obj).forEach(icon => {
@@ -40,36 +40,36 @@ async function apiState() {
 
 async function apiClaim(payload) {
   if (MODE === "firebase") {
-    const icon  = String(payload.icon     || "").trim();
-    const pid   = String(payload.playerId || "").trim();
-    const f     = payload.fields || {};
-    const name  = String(f.name  || "").trim();
-    const email = String(f.email || "").trim().toLowerCase();
+    const icon       = String(payload.icon     || "").trim();
+    const pid        = String(payload.playerId || "").trim();
+    const f          = payload.fields || {};
+    const name       = String(f.name       || "").trim();
+    const employeeId = String(f.employeeId || "").trim();
     if (!icon || !name) return { ok: false, reason: "missing" };
     try {
       return await db.runTransaction(async tx => {
         const teamRef   = db.collection("teams").doc(icon);
-        const memberRef = db.collection("members").doc(pid);   // guard 1-người-1-đội (chỉ {icon})
-        const signupRef = db.collection("signups").doc(pid);   // full hồ sơ — KHOÁ đọc
-        const mailRef   = (BLOCK_DUP_EMAIL && email)
-          ? db.collection("emails").doc(_emailKey(email)) : null; // guard chống trùng email
+        const memberRef = db.collection("members").doc(pid);           // guard 1-người-1-đội (chỉ {icon})
+        const signupRef = db.collection("signups").doc(pid);           // full hồ sơ — KHOÁ đọc
+        const eidRef    = (BLOCK_DUP_EMPLOYEE_ID && employeeId)
+          ? db.collection("employee_ids").doc(_employeeIdKey(employeeId)) : null; // guard chống trùng MSNV
 
         // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
-        const [t, mb, ml] = await Promise.all([
-          tx.get(teamRef), tx.get(memberRef), mailRef ? tx.get(mailRef) : Promise.resolve(null),
+        const [t, mb, eid] = await Promise.all([
+          tx.get(teamRef), tx.get(memberRef), eidRef ? tx.get(eidRef) : Promise.resolve(null),
         ]);
-        if (pid && mb.exists)  return { ok: false, reason: "already" };   // 1 người chỉ 1 đội
-        if (ml && ml.exists)   return { ok: false, reason: "dup_email" };
+        if (pid && mb.exists)   return { ok: false, reason: "already" };          // 1 người chỉ 1 đội
+        if (eid && eid.exists)  return { ok: false, reason: "dup_employee_id" };
 
         const count = t.exists ? (t.data().count || 0) : 0;
         const names = t.exists ? (t.data().names || []) : [];
-        if (count >= CAPACITY) return { ok: false, reason: "full" };      // đội đã đủ người
+        if (count >= CAPACITY) return { ok: false, reason: "full" };              // đội đã đủ người
 
         const at = firebase.firestore.FieldValue.serverTimestamp();
         tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
-        tx.set(memberRef, { icon, at });                                  // guard: chỉ tên đội (đọc được)
-        if (mailRef) tx.set(mailRef, { at });                             // guard: chỉ tồn-tại
-        tx.set(signupRef, { playerId: pid, icon, name, email, phone: String(f.phone || ""), at }); // PII (khoá đọc)
+        tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
+        if (eidRef) tx.set(eidRef, { at });                                        // guard: chỉ tồn-tại
+        tx.set(signupRef, { playerId: pid, icon, name, employeeId, at });          // PII (khoá đọc)
         return { ok: true };
       });
     } catch (e) { return { ok: false, reason: "error", detail: String(e) }; }
@@ -83,19 +83,19 @@ async function apiClaim(payload) {
     });
     return await r.json();
   }
-  // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng email)
-  const obj    = JSON.parse(await sGet("claims", true) || "{}");
-  const fields = payload.fields || {};
-  const email  = String(fields.email || "").trim().toLowerCase();
+  // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng MSNV)
+  const obj        = JSON.parse(await sGet("claims", true) || "{}");
+  const fields     = payload.fields || {};
+  const employeeId = _employeeIdKey(fields.employeeId || "");
   for (const ic in obj) {
     for (const m of obj[ic]) {
       if (m.pid && m.pid === payload.playerId) return { ok: false, reason: "already" };
-      if (email && String(m.email || "").toLowerCase() === email) return { ok: false, reason: "dup_email" };
+      if (employeeId && _employeeIdKey(m.employeeId || "") === employeeId) return { ok: false, reason: "dup_employee_id" };
     }
   }
   const arr = obj[payload.icon] || (obj[payload.icon] = []);
   if (arr.length >= CAPACITY) return { ok: false, reason: "full" };
-  arr.push({ name: String(fields.name || ""), email, pid: payload.playerId });
+  arr.push({ name: String(fields.name || ""), employeeId, pid: payload.playerId });
   await sSet("claims", JSON.stringify(obj), true);
   return { ok: true };
 }

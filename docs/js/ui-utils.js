@@ -27,13 +27,11 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
 }
 
-function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim()); }
-function validPhone(v) { const d = (v || "").replace(/[^\d]/g, ""); return d.length >= 8 && d.length <= 15; }
+function validEmployeeId(v) { return /^[A-Za-z0-9]{3,20}$/.test((v || "").trim()); }
 function fieldError(f, v) {
   v = (v || "").trim();
   if (f.required && !v) return "Bắt buộc nhập";
   if (!v) return "";
-  if (f.type === "email" && !validEmail(v)) return "Email không hợp lệ";
-  if (f.type === "tel"   && !validPhone(v)) return "SĐT không hợp lệ (8–15 số)";
+  if (f.key === "employeeId" && !validEmployeeId(v)) return "Mã số nhân viên không hợp lệ (chỉ chữ và số, 3–20 ký tự)";
   return "";
 }

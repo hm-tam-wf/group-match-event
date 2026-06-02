@@ -7,7 +7,7 @@ service cloud.firestore {
     // ⚠️ PHẢI KHỚP với CAPACITY trong ClientConfig.html. Đổi sĩ số thì sửa cả 2 nơi.
     function cap() { return 10; }
 
-    // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa email/SĐT. ──
+    // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa PII. ──
     // count chỉ được tăng đúng 1 mỗi lần, không bao giờ vượt cap(), và độ dài names luôn = count.
     match /teams/{icon} {
       allow read: if true;
@@ -29,15 +29,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ── Guard chống trùng email: KHÔNG chứa email/PII, chỉ để biết "đã tồn tại hay chưa". ──
-    match /emails/{key} {
+    // ── Guard chống trùng MSNV: KHÔNG chứa MSNV/PII, chỉ để biết "đã tồn tại hay chưa". ──
+    match /employee_ids/{key} {
       allow get: if true;
       allow list: if false;
       allow create: if request.resource.data.keys().hasOnly(['at']);
       allow update, delete: if false;
     }
 
-    // ── Hồ sơ đầy đủ (tên/email/SĐT) — CHỈ GHI, client KHÔNG đọc được. ──
+    // ── Hồ sơ đầy đủ (tên/MSNV) — CHỈ GHI, client KHÔNG đọc được. ──
     // Ban tổ chức xem & xuất qua Firebase Console (quyền admin bỏ qua rules).
     match /signups/{pid} {
       allow read: if false;
