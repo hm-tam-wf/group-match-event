@@ -24,9 +24,12 @@ dedup_keys/{empId_hashed}
   ts: timestamp         — thời điểm đăng ký (privacy: không store value)
 
 signups/{playerId}
-  name, empId, icon, ts — full PII
+  name, empId, playerId, icon?, at — full PII của MỌI người đã NHẬP THÔNG TIN
+  — WRITE: client GHI NGAY khi điền xong hồ sơ (KHÔNG cần chọn đội) qua apiSaveProfile();
+           join thì transaction merge thêm `icon`. → admin thấy cả người chưa chọn đội.
+  — `icon` CHỈ có sau khi join (trống/“—” nếu mới điền thông tin).
   — READ: admin UID only (Firestore rules)
-  — WRITE: client (trong transaction)
+  — UPDATE: cho phép nếu GIỮ NGUYÊN playerId (gắn đội / sửa lại hồ sơ của chính mình)
 
 meta/config
   title, fields, icons, capacity, eventId
@@ -40,7 +43,12 @@ meta/config
 3. **1-person-1-team:** Dùng `getAfter()` trong transaction để verify atomically
 4. **Admin delete (từ 2026-06-03):** `teams/members/dedup_keys/signups` đều có
    `allow delete: if isAdmin()` → admin xóa được từ browser (cho tính năng Xóa dữ liệu / Xóa
-   sự kiện). `update` vẫn `if false` (trừ teams = increment-only). KHÔNG có rule collectionGroup.
+   sự kiện). `members/dedup_keys` thêm `list: if isAdmin()` (admin cần liệt kê khi clear).
+5. **collectionGroup meta read (từ 2026-06-03):** `match /{path=**}/meta/{doc} { allow read: if isAdmin() }`
+   để dashboard liệt kê mọi sự kiện. (Trước đây note ghi "không có collectionGroup" — đã đổi.)
+6. **signups update (từ 2026-06-03):** `allow update: if request.resource.data.playerId == resource.data.playerId`.
+   Cần để: (a) gắn `icon` khi join (transaction `set` merge), (b) người dùng sửa lại hồ sơ của chính
+   mình. Đánh đổi: bản ghi PII KHÔNG còn bất biến — rủi ro thấp vì pid là token ngẫu nhiên & signups khoá đọc.
 
 ## Registry & event-list (config docs ngoài namespace)
 - `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.
@@ -58,6 +66,11 @@ meta/config
 | `firestore.rules` `cap()` | Server-side enforcement |
 
 **Luôn cập nhật cả 2 cùng lúc.** Nếu rules có capacity 10 nhưng config.js hiển thị 15 → UI cho join nhưng rules reject → confusing error.
+
+### Giảm capacity dưới số người đang có — AN TOÀN, không xoá ai
+Sửa capacity (1 số chung mọi đội) xuống thấp hơn đội đông nhất: admin hiện **cảnh báo xác nhận**
+(`admin.html` saveEdit, "không ai bị đẩy ra. Vẫn lưu?"). Người đã join **giữ nguyên**; đội vượt mức
+hiển thị "đầy" (vd `12/5`) và **không nhận thêm** (rule `count <= cap()`). Tăng lại thì mở chỗ.
 
 ## EVENT_ID namespacing
 Toàn bộ data nằm dưới `events/{EVENT_ID}/`. Thay EVENT_ID trong `config.js` để tạo event mới hoàn toàn isolated (không cần xoá data cũ).

@@ -94,6 +94,11 @@ async function init() {
     dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
   }
 
+  // Người đã điền thông tin từ trước (kể cả CHƯA/không chọn đội) → đồng bộ lên server để admin có data.
+  if (MODE === "firebase" && profileComplete() && typeof apiSaveProfile === "function") {
+    apiSaveProfile({ playerId: me.id, fields: me.fields });
+  }
+
   renderProfile();         // token mới → bật popup; đã thông tin → tóm tắt / banner; trùng MSNV → modal chặn
   await refresh(true);
   if (MODE === "firebase" && typeof apiSubscribe === "function") {

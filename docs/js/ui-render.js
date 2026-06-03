@@ -95,6 +95,7 @@ function showProfileModal() {
     FIELDS.forEach(f => me.fields[f.key] = $("f_" + f.key).value.trim());
     editing = false;
     await saveMe();
+    apiSaveProfile({ playerId: me.id, fields: me.fields });   // đồng bộ hồ sơ lên server NGAY (kể cả khi chưa chọn đội / bị chặn trùng)
 
     // CỔNG chống trùng: MSNV đã được đăng ký rồi → KHÔNG cho vào trang chọn linh thú.
     const btn = $("pmSave");
