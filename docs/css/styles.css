@@ -122,6 +122,22 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
 .empty-ic{display:block;width:64px;height:46px;margin:0 auto 10px}
 .hint{color:var(--muted);font-weight:700;font-size:13px;background:rgba(221,235,255,.6);border-radius:14px;padding:10px 14px;margin:-4px 0 16px}
 
+/* màn hình "tất cả đội đã đủ" — hoàn thành (Việc 1) */
+.all-full{position:relative;text-align:center;padding:48px 24px 44px;border-radius:var(--r-xl);
+  background:linear-gradient(180deg,rgba(231,248,238,.85),rgba(255,255,255,.7));
+  border:1.5px solid rgba(22,163,74,.22);box-shadow:var(--sh-card);animation:rise .5s var(--bounce) both}
+.af-burst{position:relative;width:96px;height:96px;margin:0 auto 6px}
+.af-check{width:96px;height:96px;display:block;animation:afPop .55s var(--bounce) both;filter:drop-shadow(0 10px 20px rgba(22,163,74,.28))}
+.af-spark{position:absolute;font-size:20px;color:#16A34A;opacity:0;animation:afTwinkle 1.8s ease infinite}
+.af-spark.s1{top:-6px;left:-8px;animation-delay:.1s}
+.af-spark.s2{top:2px;right:-10px;font-size:15px;animation-delay:.5s}
+.af-spark.s3{bottom:-4px;right:2px;animation-delay:.9s}
+.af-spark.s4{bottom:0;left:-2px;font-size:14px;animation-delay:1.3s}
+.af-title{font-family:var(--display);font-weight:700;font-size:clamp(22px,4.4vw,30px);color:var(--text);margin:10px 0 6px}
+.af-sub{color:var(--muted);font-weight:600;font-size:15px;line-height:1.6;max-width:440px;margin:0 auto}
+@keyframes afPop{0%{transform:scale(0) rotate(-12deg);opacity:0}60%{transform:scale(1.12) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes afTwinkle{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+
 /* ── modal (confirm + profile popup) ── */
 .modal-bg{position:fixed;inset:0;z-index:50;background:rgba(74,64,99,.32);backdrop-filter:blur(8px) saturate(1.1);display:grid;place-items:center;padding:20px;animation:fade .25s ease}
 .modal{width:100%;max-width:400px;border:1.5px solid rgba(255,255,255,.9);border-radius:var(--r-xl);padding:30px 26px;
@@ -192,6 +208,6 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
   .confetti i{width:13px;height:20px}
 }
 @media(prefers-reduced-motion:reduce){
-  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i{animation:none!important;transition:none!important}
+  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark{animation:none!important;transition:none!important}
   .tile.sel:hover{transform:none}
 }
