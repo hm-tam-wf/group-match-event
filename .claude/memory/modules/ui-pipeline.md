@@ -21,6 +21,18 @@ Mỗi file phụ thuộc vào globals của file trước. Sai thứ tự = `Ref
 4. Attach form submit handler
 5. Poll loop (fallback nếu không có realtime)
 
+## ⚠️ Gotcha: config đọc 1 LẦN lúc boot (reload-only)
+Trang công khai chỉ realtime ở **`teams`** (`apiSubscribe` → `onSnapshot`, api.js). Còn
+`config/active` và `events/{id}/meta/config` (title, capacity, icons, fields, dedup) được
+`boot()` đọc **một lần** rồi gán vào globals — KHÔNG subscribe, KHÔNG poll ở chế độ firebase
+(poll chỉ chạy ở nhánh sheet/demo). Hệ quả:
+- Admin **sửa sự kiện đang chạy** (capacity/icons/title) ⇒ client đang mở KHÔNG thấy tới khi
+  **tải lại trang**. `apiClaim` còn validate theo CAPACITY cũ trong RAM.
+- **Xóa dữ liệu** (xóa teams) ⇒ lưới công khai TỰ reset 0 (teams onSnapshot bắn); teams rỗng
+  vẫn render đủ ICONS ở 0/CAPACITY (không trắng trang).
+- Xóa 1 icon khỏi config nhưng teams còn data ⇒ thành viên đội đó biến mất khỏi lưới (grid
+  lặp theo ICONS boot-frozen) — vì vậy admin CHẶN CỨNG đổi/xóa emoji đội có người ([[admin-panel]]).
+
 ## ui-render.js — Rendering
 - `renderTeamGrid()` — render toàn bộ team tiles với count/capacity
 - `renderModal()` — confirm modal trước khi join

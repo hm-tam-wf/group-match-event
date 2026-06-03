@@ -38,6 +38,17 @@ meta/config
 1. **Capacity check:** `teams/{icon}.count < cap()` — `cap()` đọc `meta/config.capacity`
 2. **Admin UID hardcoded:** `function isAdmin() { return request.auth.uid in ['UID1', 'UID2'] }`
 3. **1-person-1-team:** Dùng `getAfter()` trong transaction để verify atomically
+4. **Admin delete (từ 2026-06-03):** `teams/members/dedup_keys/signups` đều có
+   `allow delete: if isAdmin()` → admin xóa được từ browser (cho tính năng Xóa dữ liệu / Xóa
+   sự kiện). `update` vẫn `if false` (trừ teams = increment-only). KHÔNG có rule collectionGroup.
+
+## Registry & event-list (config docs ngoài namespace)
+- `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.
+- `config/eventList = { ids:[...] }` — **registry liệt kê mọi sự kiện** (admin dashboard dùng,
+  KHÔNG dùng collectionGroup). Tạo sự kiện = `arrayUnion`; **xóa sự kiện = `arrayRemove`**
+  (quên ⇒ "ghost row" hiện `?/?`). Cả hai nằm dưới `match /config/{doc}` (write: isAdmin).
+- Xóa hẳn sự kiện = batch: arrayRemove khỏi eventList **+** delete `meta/config`. Participant
+  subcollections xóa riêng bằng `clearEventData`.
 
 ## CAPACITY sync — PHẢI nhất quán
 `CAPACITY` xuất hiện ở 2 nơi:

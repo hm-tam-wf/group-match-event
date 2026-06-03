@@ -29,6 +29,27 @@ Admin panel có theme riêng (back-office) nhưng dùng cùng font:
 - Gradient: `--grad: linear-gradient(135deg, #7857E6, #A98CFF)`
 - Font: Baloo 2 + Nunito (same as main app)
 
+## Quản lý sự kiện (trong `docs/admin.html`)
+Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm trong IIFE của admin.html.
+- **Danh sách sự kiện** đọc từ registry `config/eventList = { ids:[...] }` (KHÔNG dùng
+  collectionGroup). Mỗi id → đọc `meta/config` + `teams` để tính chỉ số:
+  `registrations = Σ team.count`, `teamsFull`, `fillRate`, status (Đang chạy/Đã kết thúc).
+- **Xóa dữ liệu** (`clearEvent`→`clearEventData`): xóa hết `signups/members/dedup_keys/teams`
+  (PHẢI có teams để count về 0), GIỮ `meta/config`. `deleteAll` lặp batch ≤400, có chặn vô hạn
+  (200 vòng) phòng sự kiện đang chạy nhận đăng ký liên tục.
+- **Xóa sự kiện** (`deleteEvent`): chỉ khi KHÔNG đang chạy & `signups` rỗng (limit(1).empty).
+  Batch: `arrayRemove` id khỏi `config/eventList` **+** delete `meta/config` (quên arrayRemove
+  ⇒ ghost row). Có nhánh "gỡ mục hỏng" cho id thiếu meta/config.
+- **Sửa sự kiện** (`editEvent`/`saveEdit`): dùng lại form tạo, khóa `fId` readonly, lưu bằng
+  `.set(..., {merge:true})` + `updatedAt` (KHÔNG ghi `createdAt` ⇒ giữ gốc). CHẶN CỨNG xóa/đổi
+  emoji của đội có người (emoji = khóa định danh `teams/{icon}`); cảnh báo giảm capacity dưới
+  đội đông nhất; báo đổi dedup chỉ áp dụng lượt mới.
+- **Xác nhận xóa**: `confirmModal({ requireText: eid })` bắt gõ lại ID, nút Xác nhận disabled
+  tới khi khớp, `danger:true`.
+- ⚠️ Sửa sự kiện đang chạy KHÔNG live trên trang công khai — xem [[ui-pipeline]] (config
+  reload-only). Success message nhắc admin/người dùng phải tải lại trang.
+
 ## Gotchas
 - Admin HTML không có dependency ngược lại `index.html` — 2 entry points độc lập
 - `signups` collection chỉ readable với admin UID (Firestore rules) — không thể đọc từ browser thường
+- Sau 2026-06-03: admin có quyền `delete` 4 collection (rules) — xóa PII là KHÔNG hồi phục. Xem [[firestore-schema]].
