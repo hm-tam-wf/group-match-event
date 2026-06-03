@@ -297,7 +297,22 @@ function renderState() {
   layoutFreeGrid();   // chia đều số cột theo số đội còn chỗ hiện tại (vd 10 → 5/5)
   $("freeCount").textContent = `${open}/${ICONS.length} đội`;
   $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">→ Điền thông tin để mở khoá việc tham gia đội.</div>` : "";
-  $("freeEmpty").innerHTML   = open === 0 ? `<div class="empty-note">${EMPTY_SVG}Tất cả các đội đều đã đủ người 🎉</div>` : "";
+  // open === 0 ⇒ MỌI đội đã đủ người → màn hình "hoàn thành" nổi bật (chỉ khi đã tải state thật
+  // từ server, tránh chớp nhoáng lúc mới vào trang khi state chưa về).
+  $("freeEmpty").innerHTML = (stateLoaded && open === 0)
+    ? `<div class="all-full" role="status">
+         <div class="af-burst">
+           <svg class="af-check" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+             <circle cx="40" cy="40" r="36" fill="#E7F8EE" stroke="#16A34A" stroke-width="3"/>
+             <path d="M25 41.5 35.5 52 56 30" stroke="#16A34A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+           </svg>
+           <span class="af-spark s1">✦</span><span class="af-spark s2">✧</span>
+           <span class="af-spark s3">✦</span><span class="af-spark s4">✧</span>
+         </div>
+         <div class="af-title">Tất cả các đội đã đủ người! 🎉</div>
+         <div class="af-sub">Cả ${ICONS.length} đội đều đã kín chỗ. Cảm ơn cả nhà đã tham gia — hẹn gặp ở sự kiện sau nhé!</div>
+       </div>`
+    : "";
 
   // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
   const tk = $("taken"); tk.innerHTML = "";
