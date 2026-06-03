@@ -50,7 +50,7 @@ Thứ tự tìm khóa: `--key` → `GOOGLE_APPLICATION_CREDENTIALS` → `./servi
 
 - Mặc định, file được tạo ngay trong thư mục dự án với tên dạng:
   `signups-YYYYMMDD-HHmmss.csv` (theo giờ Việt Nam), ví dụ `signups-20260602-141530.csv`.
-- Sau khi chạy xong, công cụ in ra **đường dẫn tuyệt đối** của file vừa ghi và bảng tóm tắt: tổng số đăng ký và số lượng theo từng đội (nhiều → ít).
+- Sau khi chạy xong, công cụ in ra **đường dẫn tuyệt đối** của file vừa ghi và bảng tóm tắt: tổng số đăng ký và số lượng theo từng đội (nhiều → íret).
 - Nếu chưa có ai đăng ký, công cụ vẫn ghi một file CSV chỉ có dòng tiêu đề và báo "Chưa có ai đăng ký".
 
 ## 5. Mẹo mở bằng Excel / Google Sheets
