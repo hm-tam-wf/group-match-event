@@ -26,12 +26,13 @@ const labelOf = key => (FIELDS.find(f => f.key === key) || {}).label || key;
 const esc = s => (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 let toastTimer;
-function toast(msg) {
+// sticky=true → giữ toast cho tới khi gọi toast() kế tiếp (dùng cho trạng thái "đang ghi nhận…").
+function toast(msg, sticky) {
   const el = $("toast");
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
+  if (!sticky) toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
 }
 
 function validEmployeeId(v) { return /^[A-Za-z0-9]{3,20}$/.test((v || "").trim()); }

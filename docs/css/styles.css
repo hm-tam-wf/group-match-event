@@ -74,6 +74,8 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .tile.sel:hover .ic{animation:wobble .6s var(--bounce)}
 .tile.sel:active{transform:translateY(-2px) scale(1)}
 .tile.disabled{opacity:.62;filter:saturate(.85);cursor:not-allowed}
+/* Đang ghi nhận 1 lượt tham gia → khoá mọi tile để không bấm chồng (re-entry câm). */
+body.claiming .tile.sel{pointer-events:none;opacity:.6}
 .tile.mine{border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 30%,transparent) inset,var(--sh-soft);opacity:1;filter:none}
 
 /* sĩ số + thanh tiến trình + avatar thành viên */

@@ -49,33 +49,55 @@ async function apiClaim(payload) {
     const name     = String(f.name || "").trim();
     const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? String(f[DEDUP_FIELD] || "").trim() : "";
     if (!icon || !name) return { ok: false, reason: "missing" };
-    try {
-      return await db.runTransaction(async tx => {
-        const teamRef   = col("teams").doc(icon);              // col() = events/{EVENT_ID}/<name>
-        const memberRef = col("members").doc(pid);             // guard 1-người-1-đội (chỉ {icon})
-        const signupRef = col("signups").doc(pid);             // full hồ sơ — KHOÁ đọc
-        const dedupRef  = dedupVal
-          ? col("dedup_keys").doc(_dedupKey(dedupVal)) : null; // guard chống trùng (theo DEDUP_FIELD)
 
-        // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
-        const [t, mb, dk] = await Promise.all([
-          tx.get(teamRef), tx.get(memberRef), dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
-        ]);
-        if (pid && mb.exists)   return { ok: false, reason: "already" };          // 1 người chỉ 1 đội
-        if (dk && dk.exists)    return { ok: false, reason: "dup" };
+    // 1 lần chạy giao dịch — tách riêng để bọc retry bên ngoài.
+    const runClaimTx = () => db.runTransaction(async tx => {
+      const teamRef   = col("teams").doc(icon);              // col() = events/{EVENT_ID}/<name>
+      const memberRef = col("members").doc(pid);             // guard 1-người-1-đội (chỉ {icon})
+      const signupRef = col("signups").doc(pid);             // full hồ sơ — KHOÁ đọc
+      const dedupRef  = dedupVal
+        ? col("dedup_keys").doc(_dedupKey(dedupVal)) : null; // guard chống trùng (theo DEDUP_FIELD)
 
-        const count = t.exists ? (t.data().count || 0) : 0;
-        const names = t.exists ? (t.data().names || []) : [];
-        if (count >= CAPACITY) return { ok: false, reason: "full" };              // đội đã đủ người
+      // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
+      const [t, mb, dk] = await Promise.all([
+        tx.get(teamRef), tx.get(memberRef), dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
+      ]);
+      // full/already/dup là kết quả TRẢ VỀ (không ném) → vòng retry bên dưới KHÔNG lặp lại chúng.
+      if (pid && mb.exists)   return { ok: false, reason: "already" };          // 1 người chỉ 1 đội
+      if (dk && dk.exists)    return { ok: false, reason: "dup" };
 
-        const at = firebase.firestore.FieldValue.serverTimestamp();
-        tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
-        tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
-        if (dedupRef) tx.set(dedupRef, { at });                                    // guard: chỉ tồn-tại
-        tx.set(signupRef, { ...f, playerId: pid, icon, at });                      // PII (khoá đọc, ghi đủ field)
-        return { ok: true };
-      });
-    } catch (e) { return { ok: false, reason: "error", detail: String(e) }; }
+      const count = t.exists ? (t.data().count || 0) : 0;
+      const names = t.exists ? (t.data().names || []) : [];
+      if (count >= CAPACITY) return { ok: false, reason: "full" };              // đội đã đủ người
+
+      const at = firebase.firestore.FieldValue.serverTimestamp();
+      tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
+      tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
+      if (dedupRef) tx.set(dedupRef, { at });                                    // guard: chỉ tồn-tại
+      tx.set(signupRef, { ...f, playerId: pid, icon, at });                      // PII (khoá đọc, ghi đủ field)
+      return { ok: true };
+    });
+
+    // Bọc retry jitter quanh runTransaction. SDK tự retry ABORTED BÊN TRONG; lớp ngoài này cứu khi
+    // giao dịch NÉM permission-denied (rule từ chối ghi đè stale do nhiều người GIÀNH CÙNG 1 đội).
+    // Vì đội còn chỗ thì rốt cuộc ai cũng vào được → cần đủ lần thử + jitter rộng để các bên LỆCH nhịp,
+    // tránh cùng retry một lúc rồi lại đụng nhau. Đủ chỗ thì hội tụ 'ok'; hết chỗ thì trả 'full' (dừng).
+    // Lưu ý: full/already/dup TRẢ VỀ {ok:false} (không ném) nên thoát ngay, KHÔNG retry.
+    // (Tham số phải khớp với loadtest.js để test phản ánh đúng production.)
+    const MAX_ATTEMPTS = 8, BASE_MS = 150, CAP_MS = 2500, BUDGET_MS = 12000;
+    const t0 = Date.now();
+    let lastErr;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        return await runClaimTx();
+      } catch (e) {
+        lastErr = e;
+        if (attempt === MAX_ATTEMPTS - 1 || Date.now() - t0 > BUDGET_MS) break;
+        const back = Math.min(CAP_MS, BASE_MS * 2 ** attempt);
+        await new Promise(r => setTimeout(r, Math.random() * back));            // full jitter → lệch nhịp
+      }
+    }
+    return { ok: false, reason: "error", detail: String(lastErr) };
   }
   if (MODE === "sheet") {
     // text/plain tránh CORS preflight; Apps Script vẫn đọc được body JSON

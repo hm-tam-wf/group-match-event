@@ -17,8 +17,10 @@ function askConfirm(g) {
 }
 
 async function doClaim(g) {
-  if (busy) return;
+  if (busy) { toast("Đang xử lý lượt tham gia của bạn…"); return; }   // bấm lúc đang ghi nhận → báo, không câm
   busy = true;
+  document.body.classList.add("claiming");      // khoá mọi tile trong lúc ghi nhận
+  toast("Đang ghi nhận…", true);                // toast dính: apiClaim có thể retry vài giây
   try {
     const res = await apiClaim({ icon: g.icon, playerId: me.id, fields: me.fields });
     if (res && res.ok) {
@@ -33,7 +35,8 @@ async function doClaim(g) {
       if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
       else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
       else if (r === "dup")       toast(`${labelOf(DEDUP_FIELD)} này đã được dùng để tham gia rồi.`);
-      else                        toast("Không tham gia được, thử lại nhé.");
+      // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
+      else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
     }
     await refresh(true);
     renderProfile();
@@ -42,6 +45,7 @@ async function doClaim(g) {
     toast("Đang kiểm tra kết quả…");
     await refresh(true);
   } finally {
+    document.body.classList.remove("claiming");
     _skipSelfHeal = false;
     busy = false;
   }
