@@ -4,7 +4,7 @@
   --card:rgba(255,255,255,.80); --card-alt:rgba(255,255,255,.56);
   --text:#4A4063; --muted:#6F6690; --muted-2:#A79FC0;
   --line:rgba(124,115,150,.14); --err:#FF6B8A; --accent:#A98CFF;
-  --display:'Fredoka','Baloo 2',system-ui,sans-serif;
+  --display:'Baloo 2','Quicksand',system-ui,sans-serif;
   --body:'Nunito','Quicksand',system-ui,sans-serif;
   /* radii */
   --r-sm:12px; --r-md:18px; --r-lg:26px; --r-xl:34px; --pill:999px;
@@ -113,7 +113,7 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
 
 /* empty / hint */
 .empty-note{color:var(--muted);font-weight:600;font-size:14px;padding:26px 20px;border:2px dashed rgba(169,140,255,.32);border-radius:var(--r-lg);text-align:center;background:rgba(255,255,255,.55);line-height:1.55}
-.empty-note::before{content:"🫧";display:block;font-size:34px;opacity:.75;margin-bottom:8px}
+.empty-ic{display:block;width:64px;height:46px;margin:0 auto 10px}
 .hint{color:var(--muted);font-weight:700;font-size:13px;background:rgba(221,235,255,.6);border-radius:14px;padding:10px 14px;margin:-4px 0 16px}
 
 /* ── modal (confirm + profile popup) ── */
@@ -131,6 +131,20 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
 .modal .confirm{color:#fff;background:var(--candy);box-shadow:0 10px 22px -10px rgba(169,140,255,.65),inset 0 1px 0 rgba(255,255,255,.55)}
 .modal .confirm:hover{transform:translateY(-2px) scale(1.02);filter:brightness(1.04);box-shadow:0 16px 32px -10px rgba(169,140,255,.72)}
 .modal .confirm:active{transform:scale(.97)}
+
+/* popup chúc mừng (join thành công) — confetti rơi + emoji nảy.
+   To gấp ~2 lần modal thường: rộng hơn, đệm dày hơn, icon/chữ/nút lớn hơn.
+   (Mục responsive ở @media bên dưới sẽ thu nhỏ lại cho vừa màn hình điện thoại.) */
+.joined-modal{position:relative;overflow:hidden;max-width:720px;padding:54px 46px}
+.joined-modal h3{font-size:42px;margin:24px 0 12px}
+.joined-modal p{font-size:25px;margin-bottom:32px;line-height:1.5}
+.joined-modal .row button{flex:0 1 auto;padding:22px 54px;font-size:25px}
+.jm-icon{font-size:140px;line-height:1;animation:jmPop .6s var(--bounce) both;
+  filter:drop-shadow(0 14px 26px color-mix(in srgb,var(--c) 45%,transparent))}
+@keyframes jmPop{0%{transform:scale(0) rotate(-18deg)}60%{transform:scale(1.15) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{position:absolute;top:-16px;width:18px;height:28px;border-radius:3px;opacity:.9;animation:cfFall linear forwards}
+@keyframes cfFall{to{transform:translateY(680px) rotate(420deg);opacity:0}}
 
 /* profile popup specifics */
 .profile-modal{max-width:430px}
@@ -163,8 +177,15 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
   .wrap{padding:34px 16px 80px}
   .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
   .taken-grid{grid-template-columns:1fr}
+  /* popup chúc mừng: vẫn to & nổi bật nhưng thu lại cho vừa khít màn hình điện thoại */
+  .joined-modal{padding:40px 20px}
+  .joined-modal h3{font-size:28px;margin:16px 0 8px}
+  .joined-modal p{font-size:17px;margin-bottom:24px}
+  .joined-modal .row button{padding:16px 42px;font-size:18px}
+  .jm-icon{font-size:96px}
+  .confetti i{width:13px;height:20px}
 }
 @media(prefers-reduced-motion:reduce){
-  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after{animation:none!important;transition:none!important}
+  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i{animation:none!important;transition:none!important}
   .tile.sel:hover{transform:none}
 }

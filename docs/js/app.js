@@ -27,7 +27,7 @@ async function doClaim(g) {
       myIcon = g.icon;
       _skipSelfHeal = true;
       await saveMe();
-      toast(`🎉 Bạn đã tham gia đội ${g.name} ${g.icon}`);
+      showJoinedModal(g);         // popup chúc mừng + confetti (thay toast nhỏ)
       renderProfile();            // khoá "Sửa thông tin" ngay lập tức
       renderStateIfChanged(true); // khoá toàn bộ tile ngay lập tức
     } else {

@@ -1,3 +1,15 @@
+// Đám mây nhỏ cười (tông "Cloud Candy") cho khung rỗng — dùng SVG để LUÔN hiển thị,
+// không phụ thuộc font emoji (emoji 🫧 quá mới, nhiều máy hiện thành ô vuông trống).
+const EMPTY_SVG = `<svg class="empty-ic" viewBox="0 0 80 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M21 47a15 15 0 0 1-2.4-29.8A19 19 0 0 1 55 13.5 14 14 0 0 1 62 41H21z"
+        fill="#EFE6FB" stroke="#C9B4FF" stroke-width="2.6" stroke-linejoin="round"/>
+  <circle cx="32" cy="33" r="2.8" fill="#A98CFF"/>
+  <circle cx="49" cy="33" r="2.8" fill="#A98CFF"/>
+  <path d="M34 39c2.2 2.6 8 2.6 10.5 0" stroke="#A98CFF" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="27" cy="38" r="2.4" fill="#FFB3D1"/>
+  <circle cx="55" cy="38" r="2.4" fill="#FFB3D1"/>
+</svg>`;
+
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
 // Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
@@ -93,6 +105,41 @@ function showProfileModal() {
   if (first) setTimeout(() => first.focus(), 40);
 }
 
+// ── Popup chúc mừng sau khi vào đội thành công ─────────────────────
+// Giữ phong cách modal sẵn có (.modal-bg/.modal/.confirm) + confetti. Emoji con vật
+// của đội (g.icon, loại cũ 🦊🐉…) hiển thị tốt nên giữ nguyên trong popup.
+function showJoinedModal(g) {
+  $("toast").classList.remove("show");   // dẹp toast "Đang ghi nhận…" dính trước đó (toast z-index cao hơn modal)
+
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `
+    <div class="modal joined-modal" style="--c:${g.color}">
+      <div class="confetti">${"<i></i>".repeat(28)}</div>
+      <div class="jm-icon">${g.icon}</div>
+      <h3>Chúc mừng! 🎉</h3>
+      <p>Bạn đã tham gia <b>đội ${esc(g.name)}</b>.<br>Hẹn gặp bạn cùng đồng đội nhé!</p>
+      <div class="row"><button class="confirm" id="jmOk">Tuyệt vời!</button></div>
+    </div>`;
+  document.body.appendChild(bg);
+
+  // confetti ngẫu nhiên màu/vị trí/thời gian
+  const colors = ["#FF7AC0","#A98CFF","#7DD3FC","#4dd47a","#ffe14d","#ffb13d"];
+  bg.querySelectorAll(".confetti i").forEach((p, i) => {
+    p.style.left = Math.random() * 100 + "%";
+    p.style.background = colors[i % colors.length];
+    p.style.animationDuration = (1.2 + Math.random() * 1.2) + "s";
+    p.style.animationDelay = (Math.random() * 0.4) + "s";
+  });
+
+  // close() gỡ CẢ listener keydown ở cả 3 lối đóng (nút / click nền / Esc) → không rò listener.
+  const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
+  function onKey(e) { if (e.key === "Escape") close(); }
+  bg.querySelector("#jmOk").onclick = close;
+  bg.addEventListener("click", e => { if (e.target === bg) close(); });
+  document.addEventListener("keydown", onKey);
+}
+
 // ── Bảng đội (vẽ lại mỗi khi dữ liệu đổi) ──────────────────────────
 function teamOf(icon) { return state[icon] || { count: 0, names: [] }; }
 
@@ -151,7 +198,7 @@ function renderState() {
   });
   $("freeCount").textContent = `${open}/${ICONS.length} đội`;
   $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">→ Điền thông tin để mở khoá việc tham gia đội.</div>` : "";
-  $("freeEmpty").innerHTML   = open === 0 ? `<div class="empty-note">Tất cả các đội đều đã đủ người 🎉</div>` : "";
+  $("freeEmpty").innerHTML   = open === 0 ? `<div class="empty-note">${EMPTY_SVG}Tất cả các đội đều đã đủ người 🎉</div>` : "";
 
   // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
   const tk = $("taken"); tk.innerHTML = "";
@@ -175,5 +222,5 @@ function renderState() {
     tk.appendChild(el);
   });
   $("takenCount").textContent = `${done}/${ICONS.length} đội`;
-  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";
+  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">${EMPTY_SVG}Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";
 }
