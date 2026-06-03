@@ -11,7 +11,8 @@
 //   events/{EVENT_ID}/teams/{icon}     : { icon, count, names:[...] }      — CÔNG KHAI, chỉ TÊN (realtime)
 //   events/{EVENT_ID}/members/{pid}    : { icon, at }                      — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
 //   events/{EVENT_ID}/dedup_keys/{key} : { at }                           — guard chống trùng (theo DEDUP_FIELD, chỉ tồn-tại)
-//   events/{EVENT_ID}/signups/{pid}    : { ...fields, playerId, icon, at } — FULL hồ sơ, KHOÁ ĐỌC (xuất qua Console)
+//   events/{EVENT_ID}/signups/{pid}    : { ...fields, playerId, icon?, at } — FULL hồ sơ MỌI người đã nhập thông tin
+//                                          (ghi ngay lúc điền xong, KHÔNG cần chọn đội; icon CHỈ có sau khi join). KHOÁ ĐỌC.
 // Sĩ số tối đa được ép thêm ở Security Rules (count <= CAPACITY) nên client gian lận cũng không vượt được.
 
 // Mọi collection của 1 sự kiện nằm dưới events/{EVENT_ID}/ → đổi EVENT_ID là sang không gian dữ liệu mới.
@@ -57,6 +58,27 @@ async function apiState() {
   return teams;
 }
 
+// Ghi/đồng bộ HỒ SƠ lên server NGAY khi người dùng điền xong thông tin (CHƯA cần chọn đội)
+// → admin thấy MỌI người đã nhập thông tin, không chỉ người đã join. Idempotent theo pid:
+// gọi lại khi sửa thông tin chỉ cập nhật field, KHÔNG xoá icon/at đã có từ lúc join (nhờ merge).
+// Best-effort: lỗi mạng không chặn UX (transaction lúc join vẫn ghi đủ hồ sơ).
+async function apiSaveProfile(payload) {
+  if (MODE !== "firebase") return { ok: true };   // sheet/demo: hồ sơ đã ở localStorage, không có bảng admin
+  const pid  = String(payload.playerId || "").trim();
+  const f    = payload.fields || {};
+  const name = String(f.name || "").trim();
+  if (!pid || !name) return { ok: false, reason: "missing" };   // chưa đủ thông tin → chưa ghi
+  try {
+    await col("signups").doc(pid).set(
+      { ...f, playerId: pid, at: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge: true }                              // merge: KHÔNG đè icon nếu đã join trước đó
+    );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: "error", detail: String(e) };
+  }
+}
+
 async function apiClaim(payload) {
   if (MODE === "firebase") {
     const icon     = String(payload.icon     || "").trim();
@@ -90,7 +112,7 @@ async function apiClaim(payload) {
       tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
       tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
       if (dedupRef) tx.set(dedupRef, { at });                                    // guard: chỉ tồn-tại
-      tx.set(signupRef, { ...f, playerId: pid, icon, at });                      // PII (khoá đọc, ghi đủ field)
+      tx.set(signupRef, { ...f, playerId: pid, icon, at }, { merge: true });     // PII: merge để GIỮ hồ sơ đã ghi lúc điền xong, chỉ gắn thêm icon
       return { ok: true };
     });
 

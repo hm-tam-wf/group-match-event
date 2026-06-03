@@ -1,88 +1,68 @@
 rules_version = '2';
-// Security Rules cho mô hình ĐỘI, NAMESPACE theo sự kiện: mọi doc nằm dưới events/{eventId}/...
-// Dán nội dung này vào: Firebase Console → Firestore Database → Rules → Publish.
-// Triết lý: client ghi thẳng nên rules là tuyến phòng thủ — ép sĩ số, khoá PII, chống sửa/cướp suất.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Admin check: dùng cho config write, meta write, signups read ─────────
-    // Thêm nhiều UID bằng cách liệt kê trong mảng: ["uid1", "uid2", ...].
-    // Để nguyên placeholder thì CHƯA ai có quyền admin (an toàn mặc định).
     function isAdmin() {
-      return request.auth != null
-          && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2", "tHN0gED97nS6KEmDBKO0SgJOiWJ3"];
+      return request.auth != null && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2", "tHN0gED97nS6KEmDBKO0SgJOiWJ3"];
     }
 
-    // ── Bảng hiệu: sự kiện đang mở ──────────────────────────────────────────
-    // config/active = { eventId: "..." }  — đọc công khai để client biết sự kiện nào đang mở.
     match /config/{doc} {
-      allow read:  if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Mỗi sự kiện = 1 không gian riêng. Đổi EVENT_ID ở client là sang sự kiện mới.
+    // Cho dashboard liệt kê sự kiện qua collection group trên "meta"
+    match /{path=**}/meta/{doc} {
+      allow read: if isAdmin();
+    }
+
     match /events/{eventId} {
-
-      // ── Cấu hình sự kiện — KHÔNG chứa PII, đọc công khai ─────────────────
-      // events/{eventId}/meta/config = { title, subtitle, fields, icons, capacity, dedupField, blockDup, ... }
-      match /meta/{doc} {
-        allow read:  if true;
-        allow write: if isAdmin();
-      }
-
-      // Cap động: đọc từ meta/config thay vì hằng số cứng.
-      // ⚠️ Nếu doc meta/config chưa tồn tại, cap() lỗi → update bị deny (hành vi an toàn).
-      function cfg() {
-        return get(/databases/$(database)/documents/events/$(eventId)/meta/config).data;
-      }
+      function cfg() { return get(/databases/$(database)/documents/events/$(eventId)/meta/config).data; }
       function cap() { return cfg().capacity; }
 
-      // ── Đội: công khai count + danh sách TÊN (để hiển thị realtime). Không chứa PII. ──
-      // count chỉ được tăng đúng 1 mỗi lần, không bao giờ vượt cap(), và độ dài names luôn = count.
-      // create chỉ cho phép khi meta/config tồn tại → không ai tạo đội cho sự kiện chưa cấu hình.
+      match /meta/{doc} {
+        allow read: if true;              // trang công khai cần đọc cấu hình sự kiện đang mở
+        allow write: if isAdmin();        // write gồm cả delete -> admin xoá được khi xoá event
+      }
+
       match /teams/{icon} {
         allow read: if true;
         allow create: if exists(/databases/$(database)/documents/events/$(eventId)/meta/config)
-                      && request.resource.data.icon is string
                       && request.resource.data.count == 1
                       && request.resource.data.names.size() == 1;
         allow update: if request.resource.data.icon == resource.data.icon
                       && request.resource.data.count == resource.data.count + 1
                       && request.resource.data.count <= cap()
                       && request.resource.data.names.size() == request.resource.data.count;
-        allow delete: if isAdmin();   // admin xoá đội khi "Xoá dữ liệu" / "Xoá sự kiện"
+        allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
-      // ── Guard "1 người 1 đội": chỉ {icon}. Cho ĐỌC 1 doc (transaction cần), CẤM liệt kê cả bảng. ──
       match /members/{pid} {
-        allow get: if true;
-        allow list: if false;
+        allow get:    if true;
+        allow list:   if isAdmin();       // <-- cần để admin liệt kê khi clear
         allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
         allow update: if false;
-        allow delete: if isAdmin();   // admin xoá khi "Xoá dữ liệu" / "Xoá sự kiện"
+        allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
-      // ── Guard chống trùng (theo DEDUP_FIELD): KHÔNG chứa PII, chỉ để biết "đã tồn tại hay chưa". ──
       match /dedup_keys/{key} {
-        allow get: if true;
-        allow list: if false;
+        allow get:    if true;
+        allow list:   if isAdmin();       // <-- cần để admin liệt kê khi clear
         allow create: if request.resource.data.keys().hasOnly(['at']);
         allow update: if false;
-        allow delete: if isAdmin();   // admin xoá khi "Xoá dữ liệu" / "Xoá sự kiện"
+        allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
-      // ── Hồ sơ đầy đủ (tên/MSNV…) — chứa PII. Khách CHỈ GHI, KHÔNG đọc được. ──
-      // CHỈ admin đã đăng nhập (Firebase Auth) & UID nằm trong isAdmin() mới đọc/liệt kê được.
-      //   → dùng cho trang docs/admin.html. Để nguyên placeholder trong isAdmin() thì CHƯA ai đọc được.
       match /signups/{pid} {
-        allow read:          if isAdmin();
-        allow create:        if true;
-        allow update:        if false;
-        allow delete:        if isAdmin();   // admin xoá PII khi "Xoá dữ liệu" / "Xoá sự kiện" (mất tính bất biến — cố ý)
+        allow read:   if isAdmin();       // (list/count cho admin)
+        allow create: if true;            // ghi hồ sơ NGAY khi điền xong (kể cả CHƯA chọn đội)
+        // update: gắn đội khi join / sửa lại hồ sơ của chính mình. Chỉ cho khi GIỮ NGUYÊN playerId
+        // (không đổi danh tính bản ghi). pid là token ngẫu nhiên, signups khoá đọc → không enumerate được.
+        allow update: if request.resource.data.playerId == resource.data.playerId;
+        allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
     }
 
-    // Mọi thứ khác (kể cả dữ liệu cũ ở GỐC): cấm với client.
     match /{document=**} { allow read, write: if false; }
   }
 }

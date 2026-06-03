@@ -9,7 +9,7 @@ updated: 2026-06-03
 # API Layer
 
 ## Overview
-`api.js` là data layer duy nhất. Expose 4 functions global: `apiState()`, `apiClaim()`, `apiDedupTaken()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
+`api.js` là data layer duy nhất. Expose 5 functions global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiDedupTaken()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
 
 ## Backend auto-detection
 ```javascript
@@ -34,6 +34,13 @@ Claim 1 slot trong 1 team:
 Math.random() * back  // NOT fixed delay
 ```
 Jitter là bắt buộc — khi 500 người join cùng đội cùng lúc, jitter phá synchrony, tránh thundering herd. Nếu bỏ jitter → tất cả retry đồng thời → deadlock liên tục.
+
+## apiSaveProfile() — lưu hồ sơ MỌI người (kể cả chưa chọn đội)
+Ghi `signups/{pid}` (merge) NGAY khi điền xong thông tin, KHÔNG cần join đội → admin thấy toàn bộ
+người đã nhập thông tin. Gọi từ: profile modal save (`ui-render.js`) + `init()` (`app.js`, đồng bộ
+người đã điền từ trước). Best-effort (try/catch, không await chặn UX; firebase-only, sheet/demo no-op).
+`merge:true` → không đè `icon` đã gắn lúc join. Sau đó join thì `apiClaim` transaction merge thêm `icon`.
+→ xem [[firestore-schema]] (signups update rule giữ nguyên playerId).
 
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).
