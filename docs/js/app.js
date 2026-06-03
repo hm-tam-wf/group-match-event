@@ -34,7 +34,7 @@ async function doClaim(g) {
       const r = res && res.reason;
       if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
       else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
-      else if (r === "dup")     { dupBlocked = true; toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }
+      else if (r === "dup")     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
       else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
     }
@@ -94,9 +94,15 @@ async function init() {
     dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
   }
 
-  // Người đã điền thông tin từ trước (kể cả CHƯA/không chọn đội) → đồng bộ lên server để admin có data.
-  if (MODE === "firebase" && profileComplete() && typeof apiSaveProfile === "function") {
-    apiSaveProfile({ playerId: me.id, fields: me.fields });
+  // Đồng bộ hồ sơ lên server để admin có data (kể cả CHƯA chọn đội). NHƯNG nếu MSNV bị chặn trùng
+  // (người khác đã join với mã này) thì KHÔNG lưu — và DỌN bản ghi của mình nếu đã lỡ lưu ở phiên
+  // trước (lúc MSNV còn trống, sau đó mới có người khác join). Khớp với cổng chặn ở save()/doClaim.
+  if (MODE === "firebase" && profileComplete()) {
+    if (!dupBlocked && typeof apiSaveProfile === "function") {
+      apiSaveProfile({ playerId: me.id, fields: me.fields });
+    } else if (dupBlocked && typeof apiRemoveProfile === "function") {
+      apiRemoveProfile(me.id);
+    }
   }
 
   renderProfile();         // token mới → bật popup; đã thông tin → tóm tắt / banner; trùng MSNV → modal chặn

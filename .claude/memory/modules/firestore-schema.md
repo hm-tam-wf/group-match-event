@@ -27,6 +27,8 @@ signups/{playerId}
   name, empId, playerId, icon?, at — full PII của MỌI người đã NHẬP THÔNG TIN
   — WRITE: client GHI NGAY khi điền xong hồ sơ (KHÔNG cần chọn đội) qua apiSaveProfile();
            join thì transaction merge thêm `icon`. → admin thấy cả người chưa chọn đội.
+  — NGOẠI LỆ (fix 2026-06-03): MSNV bị chặn trùng thì KHÔNG ghi (apiSaveProfile gọi SAU cổng
+    dedup, không phải trước) → tránh lưu hồ sơ trùng. Xem [[api-layer]] phần THỨ TỰ GỌI.
   — `icon` CHỈ có sau khi join (trống/“—” nếu mới điền thông tin).
   — READ: admin UID only (Firestore rules)
   — UPDATE: cho phép nếu GIỮ NGUYÊN playerId (gắn đội / sửa lại hồ sơ của chính mình)
@@ -41,14 +43,18 @@ meta/config
 1. **Capacity check:** `teams/{icon}.count < cap()` — `cap()` đọc `meta/config.capacity`
 2. **Admin UID hardcoded:** `function isAdmin() { return request.auth.uid in ['UID1', 'UID2'] }`
 3. **1-person-1-team:** Dùng `getAfter()` trong transaction để verify atomically
-4. **Admin delete (từ 2026-06-03):** `teams/members/dedup_keys/signups` đều có
-   `allow delete: if isAdmin()` → admin xóa được từ browser (cho tính năng Xóa dữ liệu / Xóa
-   sự kiện). `members/dedup_keys` thêm `list: if isAdmin()` (admin cần liệt kê khi clear).
+4. **Admin delete (từ 2026-06-03):** `teams/members/dedup_keys` có `allow delete: if isAdmin()`
+   → admin xóa được từ browser (cho tính năng Xóa dữ liệu / Xóa sự kiện). `members/dedup_keys`
+   thêm `list: if isAdmin()` (admin cần liệt kê khi clear). **`signups` delete xem điểm 7.**
 5. **collectionGroup meta read (từ 2026-06-03):** `match /{path=**}/meta/{doc} { allow read: if isAdmin() }`
    để dashboard liệt kê mọi sự kiện. (Trước đây note ghi "không có collectionGroup" — đã đổi.)
 6. **signups update (từ 2026-06-03):** `allow update: if request.resource.data.playerId == resource.data.playerId`.
    Cần để: (a) gắn `icon` khi join (transaction `set` merge), (b) người dùng sửa lại hồ sơ của chính
    mình. Đánh đổi: bản ghi PII KHÔNG còn bất biến — rủi ro thấp vì pid là token ngẫu nhiên & signups khoá đọc.
+7. **signups delete = `if true` (từ 2026-06-03):** cho chủ bản ghi TỰ DỌN signup trùng của mình khi
+   đụng độ pre-join (xem `apiRemoveProfile` trong [[api-layer]]). An toàn vì signups KHOÁ ĐỌC + pid là
+   token ngẫu nhiên → chỉ chủ (biết pid của mình) xoá được, không enumerate/đoán pid người khác.
+   Admin vẫn xoá được (`if true` bao trùm). Client `apiRemoveProfile` chỉ gọi với `me.id`.
 
 ## Registry & event-list (config docs ngoài namespace)
 - `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.

@@ -79,6 +79,23 @@ async function apiSaveProfile(payload) {
   }
 }
 
+// Xoá hồ sơ của CHÍNH MÌNH khỏi signups (best-effort). Dùng khi MSNV của mình hoá ra TRÙNG
+// (người khác đã JOIN trước) → bản ghi của mình là rác trùng, dọn đi để admin không thấy data trùng.
+// CHỈ gọi với playerId = me.id (pid của mình); chỉ xoá đúng doc signups/{me.id}, KHÔNG đụng bản
+// ghi của người thắng (pid khác). Rule cho delete tự do vẫn an toàn: signups khoá đọc + pid là
+// token ngẫu nhiên ("u"+8) nên không ai đoán/enumerate được pid của người khác để xoá bừa.
+async function apiRemoveProfile(playerId) {
+  if (MODE !== "firebase") return { ok: true };   // sheet/demo: không có bảng signups trên server
+  const pid = String(playerId || "").trim();
+  if (!pid) return { ok: false, reason: "missing" };
+  try {
+    await col("signups").doc(pid).delete();        // xoá không tồn tại = no-op, không lỗi
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: "error", detail: String(e) };
+  }
+}
+
 async function apiClaim(payload) {
   if (MODE === "firebase") {
     const icon     = String(payload.icon     || "").trim();
