@@ -36,10 +36,10 @@ function renderProfile() {
           <span class="meta">${esc(metaBits)}</span>
         </div>
         <div class="s-spacer"></div>
-        ${myIcon ? "" : `<button class="linkbtn" id="editBtn">Sửa thông tin</button>`}
       </div>`;
-    const eb = $("editBtn");
-    if (eb) eb.onclick = () => { editing = true; renderProfile(); };
+    // Tính năng "Sửa thông tin" đã TẮT theo yêu cầu: điền xong là KHOÁ hồ sơ, không cho sửa nữa.
+    // (Ngoại lệ: bị chặn trùng MSNV vẫn còn "Nhập mã khác" trong showDupBlockedModal để nhập lại,
+    //  nếu không người gõ nhầm mã sẽ bị kẹt vĩnh viễn ở màn hình chặn.)
     return;
   }
 
