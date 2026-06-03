@@ -9,7 +9,7 @@ updated: 2026-06-03
 # API Layer
 
 ## Overview
-`api.js` là data layer duy nhất. Expose 5 functions global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiDedupTaken()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
+`api.js` là data layer duy nhất. Expose 6 functions global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiRemoveProfile()`, `apiDedupTaken()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
 
 ## Backend auto-detection
 ```javascript
@@ -35,12 +35,27 @@ Math.random() * back  // NOT fixed delay
 ```
 Jitter là bắt buộc — khi 500 người join cùng đội cùng lúc, jitter phá synchrony, tránh thundering herd. Nếu bỏ jitter → tất cả retry đồng thời → deadlock liên tục.
 
-## apiSaveProfile() — lưu hồ sơ MỌI người (kể cả chưa chọn đội)
+## apiSaveProfile() — lưu hồ sơ MỌI người (CHƯA chọn đội cũng lưu, NHƯNG trùng thì KHÔNG)
 Ghi `signups/{pid}` (merge) NGAY khi điền xong thông tin, KHÔNG cần join đội → admin thấy toàn bộ
 người đã nhập thông tin. Gọi từ: profile modal save (`ui-render.js`) + `init()` (`app.js`, đồng bộ
 người đã điền từ trước). Best-effort (try/catch, không await chặn UX; firebase-only, sheet/demo no-op).
 `merge:true` → không đè `icon` đã gắn lúc join. Sau đó join thì `apiClaim` transaction merge thêm `icon`.
 → xem [[firestore-schema]] (signups update rule giữ nguyên playerId).
+
+**THỨ TỰ GỌI (quan trọng — fix bug 2026-06-03):** phải gọi apiSaveProfile **SAU** cổng chống trùng,
+KHÔNG được gọi trước. Trong `save()` (ui-render): kiểm tra `apiDedupTaken()` trước → nếu `taken` thì
+return (không ghi). Trong `init()` (app.js): chỉ gọi khi `!dupBlocked`. Lý do: trước đây ghi data
+trước cổng → người cố nhập lại đúng MSNV đã đăng ký vẫn lưu được hồ sơ trùng vào signups.
+(Dedup chỉ khoá tại JOIN qua `dedup_keys`; apiDedupTaken chỉ bắt được mã đã có người JOIN.)
+
+## apiRemoveProfile() — tự dọn signup TRÙNG của chính mình (đụng độ pre-join, 2026-06-03)
+Xoá `signups/{pid}` của chính mình (best-effort, firebase-only). Gọi khi phát hiện MSNV của mình
+hoá ra TRÙNG (người khác đã JOIN trước): `doClaim` nhánh `"dup"`, `save()` nhánh `taken`, và `init()`
+khi `dupBlocked`. Lý do: hồ sơ lưu ở save-time (lúc MSNV còn trống) có thể trở thành rác trùng sau
+khi người khác join → dọn để admin không thấy data trùng. CHỈ xoá đúng `signups/{me.id}`, không đụng
+bản ghi người thắng (pid khác). → Rule `signups allow delete: if true` (xem [[firestore-schema]]).
+**Giới hạn:** nếu 2 người cùng nhập 1 MSNV mà CẢ HAI đều không join thì vẫn còn 2 dòng (chưa ai
+"thua" để dọn) — đúng kiểu "lưu mọi người điền form"; admin có cảnh báo trùng để nhận diện.
 
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).

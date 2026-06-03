@@ -59,7 +59,10 @@ service cloud.firestore {
         // update: gắn đội khi join / sửa lại hồ sơ của chính mình. Chỉ cho khi GIỮ NGUYÊN playerId
         // (không đổi danh tính bản ghi). pid là token ngẫu nhiên, signups khoá đọc → không enumerate được.
         allow update: if request.resource.data.playerId == resource.data.playerId;
-        allow delete: if isAdmin();       // <-- cần để clear / xoá
+        // delete tự do: chủ bản ghi TỰ DỌN signup trùng của mình khi MSNV hoá ra đã có người join
+        // (đụng độ pre-join). An toàn: signups KHOÁ ĐỌC + pid là token ngẫu nhiên → chỉ chủ (biết
+        // pid của chính mình) mới xoá được, không ai enumerate/đoán pid người khác. Admin vẫn xoá được.
+        allow delete: if true;
       }
     }
 

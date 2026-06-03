@@ -95,9 +95,9 @@ function showProfileModal() {
     FIELDS.forEach(f => me.fields[f.key] = $("f_" + f.key).value.trim());
     editing = false;
     await saveMe();
-    apiSaveProfile({ playerId: me.id, fields: me.fields });   // đồng bộ hồ sơ lên server NGAY (kể cả khi chưa chọn đội / bị chặn trùng)
 
-    // CỔNG chống trùng: MSNV đã được đăng ký rồi → KHÔNG cho vào trang chọn linh thú.
+    // CỔNG chống trùng — KIỂM TRA TRƯỚC KHI GHI: MSNV đã đăng ký rồi → chặn & KHÔNG ghi signups.
+    // (Trước đây ghi data trước cổng → cố nhập lại đúng mã đã có vẫn lưu được hồ sơ trùng → bug.)
     const btn = $("pmSave");
     if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
     let taken = false;
@@ -107,11 +107,14 @@ function showProfileModal() {
     if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
     if (taken) {
       dupBlocked = true;
-      renderProfile();            // dupBlocked && !myIcon && !editing → hiện modal chặn
+      if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn signup trùng nếu lỡ lưu ở phiên trước (lúc MSNV còn trống)
+      renderProfile();            // dupBlocked && !myIcon && !editing → hiện modal chặn (KHÔNG ghi data)
       return;
     }
     dupBlocked = false;
 
+    // Chỉ ghi khi MSNV hợp lệ (không trùng); đồng bộ ngay cả khi CHƯA chọn đội để admin có data.
+    apiSaveProfile({ playerId: me.id, fields: me.fields });
     closeDupBlockedModal();
     closeProfileModal();
     renderProfile();
