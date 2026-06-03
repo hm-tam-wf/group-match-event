@@ -4,91 +4,214 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin — Linh Thú</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#f4f7fb; --card:#fff; --line:#e4e9f2; --ink:#1f2a44; --mut:#6b7790; --pri:#3b6cff; --bad:#d92d4b; --ok:#16a34a; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 "Segoe UI",system-ui,sans-serif; }
-  .wrap { max-width:1040px; margin:0 auto; padding:24px 16px 64px; }
-  h1 { font-size:22px; margin:0 0 16px; }
-  h2 { font-size:17px; margin:0 0 14px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 1px 3px rgba(20,40,90,.05); margin-bottom:16px; }
-  /* login */
-  #loginView { max-width:380px; margin:48px auto; }
-  #loginView input { width:100%; padding:11px 12px; margin:8px 0; border:1px solid var(--line); border-radius:10px; font-size:15px; }
-  button { cursor:pointer; border:0; border-radius:10px; padding:10px 16px; font-size:15px; font-weight:600; }
-  .btn-pri  { background:var(--pri); color:#fff; }
-  .btn-pri:hover  { filter:brightness(.92); }
-  .btn-ghost { background:#eef2fb; color:var(--ink); }
-  .btn-ghost:hover { background:#e4eaf7; }
-  .btn-ok   { background:#dcfce7; color:#15803d; }
-  .btn-ok:hover   { background:#bbf7d0; }
-  .btn-del  { background:#fee2e2; color:#b91c1c; padding:6px 10px; font-size:13px; }
-  .btn-del:hover  { background:#fecaca; }
-  .btn-sm   { padding:6px 12px; font-size:13px; }
-  button:disabled { opacity:.55; cursor:not-allowed; }
-  .err    { color:var(--bad); min-height:20px; margin:6px 0 0; font-size:14px; }
-  .ok-msg { color:var(--ok); min-height:20px; margin:6px 0 0; font-size:14px; }
-  /* top bar */
-  .bar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
-  .bar .who { color:var(--mut); font-size:14px; }
-  /* tabs */
-  .tabs { display:flex; border-bottom:2px solid var(--line); margin-bottom:20px; }
-  .tab { background:none; border:0; border-bottom:2px solid transparent; margin-bottom:-2px; padding:10px 20px; font-size:15px; font-weight:600; color:var(--mut); cursor:pointer; border-radius:0; }
-  .tab.active { color:var(--pri); border-bottom-color:var(--pri); }
-  .tab-panel { display:none; }
-  .tab-panel.active { display:block; }
-  /* event list */
-  .ev-list { display:flex; flex-direction:column; gap:10px; }
-  .ev-row { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; flex-wrap:wrap; }
-  .ev-row.is-active { border-color:var(--pri); background:#f0f4ff; }
-  .ev-info { flex:1; min-width:180px; }
-  .ev-title { font-weight:600; }
-  .ev-meta  { font-size:13px; color:var(--mut); }
-  .ev-actions { display:flex; gap:8px; flex-wrap:wrap; }
-  .badge { display:inline-block; background:var(--pri); color:#fff; border-radius:999px; padding:2px 9px; font-size:12px; font-weight:700; vertical-align:middle; }
-  /* create form */
-  .form-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; align-items:flex-start; }
-  .form-row > label { font-weight:600; font-size:14px; min-width:130px; padding-top:10px; }
-  .form-col { display:flex; flex-direction:column; gap:4px; flex:1; min-width:180px; }
-  input[type=text],input[type=number],select,textarea {
-    padding:9px 11px; border:1px solid var(--line); border-radius:10px; font-size:15px; width:100%; font-family:inherit;
+  :root{
+    /* ── Cloud Candy back-office: nền trung tính + nhấn tím "Linh Thú" ── */
+    --bg:#F4F2FB; --card:#FFFFFF; --card-2:#FBFAFE; --line:#E9E6F2;
+    --ink:#352F4D; --mut:#7B7497; --mut-2:#A9A2C2;
+    --pri:#7857E6;            /* tím đậm — chữ trắng đọc rõ (AA) */
+    --accent:#A98CFF;         /* nhấn brand: highlight / viền / active */
+    --accent-soft:#F1ECFE;    /* nền tím rất nhạt */
+    --bad:#E5484D; --danger:#F5476B; --danger-soft:#FFEEF1; --ok:#16A34A; --ok-soft:#E7F8EE;
+    --ring:0 0 0 3px rgba(169,140,255,.40);
+    /* spacing 4 / 8 / 12 / 16 / 24 / 32 */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+    /* radius */
+    --r-sm:10px; --r:14px; --r-lg:18px; --pill:999px;
+    /* shadow — diffuse, không gắt */
+    --sh:0 1px 2px rgba(53,47,77,.05),0 10px 26px -18px rgba(53,47,77,.22);
+    --sh-lg:0 22px 50px -24px rgba(120,87,230,.34),0 6px 16px -10px rgba(53,47,77,.16);
+    --grad:linear-gradient(135deg,#A488F7 0%,#7857E6 100%);
+    --display:'Baloo 2',system-ui,sans-serif;
+    --body:'Nunito',system-ui,sans-serif;
   }
-  input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus { outline:none; border-color:var(--pri); }
-  .hint { font-size:12px; color:var(--mut); }
-  /* dynamic rows */
-  .dyn-list { display:flex; flex-direction:column; gap:8px; }
-  .dyn-row { display:flex; gap:8px; align-items:center; padding:10px; background:#fafbfe; border:1px solid var(--line); border-radius:10px; flex-wrap:wrap; }
-  .inp-key   { max-width:120px; font-family:monospace; }
-  .inp-emoji { max-width:58px; text-align:center; font-size:20px; }
-  .inp-color { width:42px; height:36px; padding:2px 4px; cursor:pointer; border:1px solid var(--line); border-radius:8px; }
-  .cb-wrap   { display:flex; align-items:center; gap:5px; cursor:pointer; font-size:13px; white-space:nowrap; }
-  .cb-wrap input { width:auto; padding:0; }
-  /* signups */
-  .row-sig { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px; }
-  .row-sig label { font-weight:600; }
-  .row-sig select { min-width:260px; }
-  .summary { color:var(--mut); margin:0 0 14px; }
-  .summary b { color:var(--ink); }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
-  .chip { background:#eef2fb; border-radius:999px; padding:4px 12px; font-size:14px; }
-  table { width:100%; border-collapse:collapse; margin-top:6px; font-size:14px; }
-  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); }
-  th { color:var(--mut); font-weight:600; white-space:nowrap; background:#fafbfe; position:sticky; top:0; }
-  tbody tr:hover { background:#fafbfe; }
-  .num { color:var(--mut); width:46px; }
-  [hidden] { display:none !important; }
-  /* Modal xác nhận dùng chung */
-  .cm-bg{position:fixed;inset:0;z-index:1000;background:rgba(40,30,60,.38);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}
-  .cm-box{width:100%;max-width:420px;background:#fff;border-radius:20px;padding:26px 24px;box-shadow:0 24px 60px -20px rgba(80,60,120,.5);text-align:left;font-family:inherit}
-  .cm-title{margin:0 0 10px;font-size:19px;font-weight:700;color:#3a3350}
-  .cm-msg{margin:0 0 22px;font-size:14.5px;line-height:1.55;color:#6a6388}
-  .cm-row{display:flex;gap:10px;justify-content:flex-end}
-  .cm-row button{border:0;border-radius:12px;padding:11px 18px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit}
-  .cm-cancel{background:#efeaf6;color:#6a6388}.cm-cancel:hover{background:#e6dff2}
-  .cm-confirm{background:#a98cff;color:#fff}.cm-confirm:hover{filter:brightness(1.05)}
-  .cm-confirm.danger{background:#ff5a78}
-  .ev-live{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#16a34a;background:#dcfce7;padding:4px 10px;border-radius:999px}
-  .ev-end{background:#ff5a78;color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer}.ev-end:hover{filter:brightness(1.05)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;font-weight:500;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(900px 480px at 100% -8%,#EFE9FD 0%,transparent 60%),radial-gradient(720px 420px at -5% 0%,#FCEAF3 0%,transparent 55%)}
+  .wrap{max-width:none;margin:0 auto;padding:clamp(16px,4vw,32px) clamp(16px,4vw,28px) 72px}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,28px);letter-spacing:-.01em;margin:0 0 var(--s4);color:var(--ink)}
+  h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0 0 var(--s3);letter-spacing:-.01em;color:var(--ink)}
+  code{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:.88em;background:var(--accent-soft);color:#6A4FD0;padding:1px 6px;border-radius:6px}
+
+  /* ── card ── */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(16px,3vw,24px);box-shadow:var(--sh);margin-bottom:var(--s4);animation:rise .4s cubic-bezier(.2,.7,.3,1) both}
+  .card-head{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+  .card-head h2{margin:0}
+
+  /* ── buttons (primary / secondary / ok / danger / delete) ── */
+  button{cursor:pointer;border:0;border-radius:var(--r-sm);padding:10px 16px;font-family:var(--body);font-size:14.5px;font-weight:700;line-height:1;color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .15s,filter .15s,background .15s,box-shadow .15s}
+  button:active{transform:translateY(1px)}
+  .btn-pri{background:var(--grad);color:#fff;box-shadow:0 10px 22px -12px rgba(120,87,230,.7)}
+  .btn-pri:hover{filter:brightness(1.06)}
+  .btn-ghost{background:#F1EFF8;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  .btn-ghost:hover{background:#E9E5F5}
+  .btn-ok{background:var(--ok-soft);color:#15803D;box-shadow:inset 0 0 0 1px #BBE9CC}
+  .btn-ok:hover{background:#D6F3E0}
+  .btn-del{background:var(--danger-soft);color:#C42A4E;padding:7px 10px;font-size:13px;box-shadow:inset 0 0 0 1px #F8CDD7}
+  .btn-del:hover{background:#FFD9E0}
+  .btn-sm{padding:7px 13px;font-size:13px}
+  button:disabled{opacity:.5;cursor:not-allowed;filter:none;transform:none}
+  button:focus-visible,select:focus-visible,.tab:focus-visible{outline:none;box-shadow:var(--ring)}
+
+  /* ── messages ── */
+  .err{color:var(--bad);min-height:20px;margin:6px 0 0;font-size:14px;font-weight:600}
+  .ok-msg{color:var(--ok);min-height:20px;margin:6px 0 0;font-size:14px;font-weight:700}
+
+  /* ── login ── */
+  #loginView{max-width:400px;margin:8vh auto 0}
+  #loginView input{width:100%;padding:12px 13px;margin:8px 0;border:1.5px solid var(--line);border-radius:var(--r-sm);font-size:15px;font-family:var(--body);font-weight:600;background:var(--card-2)}
+  #loginView input:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring);background:#fff}
+
+  /* ── header bar ── */
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+  .bar h1{margin:0}
+  .bar .who{color:var(--mut);font-size:13.5px;font-weight:600;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── tabs ── */
+  .tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:var(--s5);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{background:none;border:0;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;padding:11px 18px;font-size:15px;font-weight:700;color:var(--mut);border-radius:0;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--pri);border-bottom-color:var(--pri)}
+  .tab-panel{display:none;animation:fade .3s ease both}
+  .tab-panel.active{display:block}
+
+  /* ── event list ── */
+  .ev-list{display:flex;flex-direction:column;gap:var(--s2)}
+  .ev-row{display:flex;align-items:center;gap:var(--s3);padding:14px 16px;background:var(--card-2);border:1.5px solid var(--line);border-radius:var(--r);flex-wrap:wrap;transition:border-color .2s,box-shadow .2s}
+  .ev-row:hover{box-shadow:var(--sh)}
+  .ev-row.is-active{border-color:var(--accent);background:linear-gradient(120deg,var(--accent-soft),var(--card))}
+  .ev-info{flex:1;min-width:200px}
+  .ev-title{font-family:var(--display);font-weight:600;font-size:16.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .ev-meta{font-size:13px;color:var(--mut);margin-top:3px}
+  .ev-actions{display:flex;gap:var(--s2);flex-wrap:wrap}
+  .badge{display:inline-block;background:var(--grad);color:#fff;border-radius:var(--pill);padding:2px 10px;font-size:12px;font-weight:800}
+  .ev-live{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#15803D;background:var(--ok-soft);padding:4px 11px;border-radius:var(--pill);box-shadow:inset 0 0 0 1px #BBE9CC}
+  .ev-live .dot{width:7px;height:7px;border-radius:50%;background:#16A34A;box-shadow:0 0 0 3px rgba(22,163,74,.18);animation:pulse 1.8s ease infinite}
+  .ev-end{background:var(--danger);color:#fff;border-radius:var(--r-sm);padding:7px 13px;font-weight:700;font-size:13px;box-shadow:0 8px 18px -10px rgba(245,71,107,.7)}
+  .ev-end:hover{filter:brightness(1.05)}
+
+  /* ── create form ── */
+  .form-row{display:flex;flex-wrap:wrap;gap:var(--s3);margin-bottom:var(--s4);align-items:flex-start}
+  .form-row > label{font-weight:700;font-size:13.5px;min-width:140px;padding-top:10px;color:var(--ink)}
+  .form-col{display:flex;flex-direction:column;gap:5px;flex:1;min-width:200px}
+  input[type=text],input[type=number],input[type=email],input[type=password],select,textarea{
+    padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-sm);font-size:14.5px;width:100%;font-family:var(--body);font-weight:600;color:var(--ink);background:var(--card-2);
+    transition:border-color .15s,box-shadow .15s,background .15s}
+  input::placeholder,textarea::placeholder{color:var(--mut-2);font-weight:500}
+  input[type=text]:focus,input[type=number]:focus,input[type=email]:focus,input[type=password]:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring);background:#fff}
+  .hint{font-size:12px;color:var(--mut);line-height:1.5}
+
+  /* ── dynamic rows ── */
+  .dyn-list{display:flex;flex-direction:column;gap:var(--s2)}
+  .dyn-row{display:flex;gap:var(--s2);align-items:center;padding:11px;background:var(--card-2);border:1.5px solid var(--line);border-radius:var(--r);flex-wrap:wrap}
+  .inp-key{max-width:130px;font-family:ui-monospace,Consolas,monospace}
+  .inp-emoji{max-width:60px;text-align:center;font-size:20px}
+  .inp-color{width:44px;height:38px;padding:2px 4px;cursor:pointer;border:1.5px solid var(--line);border-radius:8px;background:#fff}
+  .cb-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
+  .cb-wrap input{width:auto;padding:0;accent-color:var(--pri)}
+  .cb-wrap input:disabled{cursor:not-allowed}
+
+  /* ── signups controls ── */
+  .row-sig{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin-bottom:var(--s3)}
+  .row-sig label{font-weight:700}
+  .row-sig select{min-width:240px;flex:1}
+  .summary{color:var(--mut);margin:0 0 var(--s3);font-weight:600}
+  .summary b{color:var(--ink);font-weight:800}
+  .chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s2) 0 0}
+  .chip{background:var(--accent-soft);color:#5B4BA6;border-radius:var(--pill);padding:5px 13px;font-size:13.5px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(169,140,255,.25)}
+  .chip b{color:var(--pri)}
+
+  /* ── data table ── */
+  .table-wrap{overflow:auto;max-height:64vh;border:1px solid var(--line);border-radius:var(--r);margin-top:var(--s3);background:var(--card)}
+  .reg-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+  .reg-table th,.reg-table td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .reg-table thead th{color:var(--mut);font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;background:var(--card-2);position:sticky;top:0;z-index:1;box-shadow:0 1px 0 var(--line)}
+  .reg-table tbody tr{transition:background .12s}
+  .reg-table tbody tr:nth-child(even){background:var(--card-2)}
+  .reg-table tbody tr:hover{background:var(--accent-soft)}
+  .reg-table tbody tr:last-child td{border-bottom:0}
+  .reg-table td{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .reg-table .num{color:var(--mut-2);width:48px;font-weight:700}
+  .reg-table .td-team{font-weight:700}
+  .reg-table .td-time{color:var(--mut);font-size:13px}
+  .reg-table tbody tr.is-dup{background:var(--danger-soft)}
+  .reg-table tbody tr.is-dup:hover{background:#FFE2E8}
+  .dup-tag{display:inline-block;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:var(--pill);margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
+
+  /* ── duplicate warning ── */
+  .dup-warn{margin:var(--s3) 0;border:1.5px solid #F8C9D4;background:linear-gradient(120deg,var(--danger-soft),#fff);border-radius:var(--r);padding:14px 16px}
+  .dw-head{display:flex;align-items:center;gap:8px;color:#C42A4E;font-family:var(--display);font-weight:600;font-size:15.5px}
+  .dw-head svg{flex:0 0 auto}
+  .dw-list{margin:10px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+  .dw-list li{font-size:13.5px;color:var(--ink);font-weight:600;background:rgba(255,255,255,.7);border-radius:8px;padding:6px 10px}
+  .dw-list b{font-family:ui-monospace,Consolas,monospace;color:#C42A4E}
+  .dw-note{font-size:12.5px;color:var(--mut);line-height:1.5}
+
+  /* ── empty & loading states ── */
+  .empty-state{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:var(--mut);font-weight:600;font-size:14px;padding:30px 16px;line-height:1.5}
+  .empty-state svg{opacity:.9}
+  .reg-table .empty-tr td,.reg-table .empty-tr:hover td{display:block;width:100%;max-width:none;text-align:center;background:transparent;border:0;white-space:normal}
+  .reg-table .empty-tr td::before{display:none}
+  .loading-row{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:14px;font-weight:600;padding:6px 2px}
+  .spinner{width:18px;height:18px;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex:0 0 auto}
+  .skeleton{height:62px;border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(90deg,var(--card-2) 25%,#F0EDF8 37%,var(--card-2) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite}
+  .skeleton + .skeleton{margin-top:var(--s2)}
+
+  [hidden]{display:none!important}
+
+  /* ── confirm modal (dùng chung) ── */
+  .cm-bg{position:fixed;inset:0;z-index:1000;background:rgba(40,30,60,.42);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px;animation:fade .2s ease}
+  .cm-box{width:100%;max-width:420px;background:#fff;border-radius:var(--r-lg);padding:26px 24px;box-shadow:var(--sh-lg);text-align:left;font-family:var(--body);animation:pop .3s cubic-bezier(.2,.8,.3,1) both}
+  .cm-title{margin:0 0 10px;font-family:var(--display);font-size:19px;font-weight:600;color:var(--ink)}
+  .cm-msg{margin:0 0 22px;font-size:14.5px;line-height:1.55;color:var(--mut)}
+  .cm-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  .cm-row button{border:0;border-radius:var(--r-sm);padding:11px 18px;font-size:14.5px;font-weight:700;font-family:var(--body)}
+  .cm-cancel{background:#F1EFF8;color:var(--mut)}.cm-cancel:hover{background:#E9E5F5}
+  .cm-confirm{background:var(--grad);color:#fff}.cm-confirm:hover{filter:brightness(1.06)}
+  .cm-confirm.danger{background:var(--danger)}
+
+  /* ── animations ── */
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.18)}50%{box-shadow:0 0 0 5px rgba(22,163,74,.06)}}
+
+  /* ── responsive ── */
+  @media(max-width:640px){
+    .card{padding:16px;border-radius:var(--r)}
+    .bar .who{max-width:42vw}
+    .tab{padding:10px 14px;font-size:14px}
+    button{min-height:44px}
+    .btn-sm,.btn-del{min-height:40px}
+    .form-row{flex-direction:column;gap:6px}
+    .form-row > label{min-width:0;padding-top:0}
+    .form-col{min-width:0;width:100%;max-width:none!important}
+    .row-sig{align-items:stretch}
+    .row-sig select{min-width:0;width:100%;flex:none}
+    .row-sig button{flex:1}
+    .ev-actions{width:100%}
+    .ev-actions button{flex:1}
+    /* bảng nhiều cột → thẻ dọc (nhãn : giá trị) */
+    .table-wrap{max-height:none;overflow:visible;border:0;background:transparent;border-radius:0}
+    .reg-table thead{display:none}
+    .reg-table,.reg-table tbody,.reg-table tr,.reg-table td{display:block;width:100%}
+    .reg-table tr{border:1.5px solid var(--line);border-radius:var(--r);padding:6px 14px;margin-bottom:10px;background:var(--card);box-shadow:var(--sh)}
+    .reg-table tbody tr:nth-child(even),.reg-table tbody tr:hover{background:var(--card)}
+    .reg-table tbody tr.is-dup{border-color:#F2A9B8;background:var(--danger-soft)}
+    .reg-table td{display:flex;justify-content:space-between;gap:14px;align-items:baseline;border:0;border-bottom:1px solid var(--line);padding:9px 0;max-width:none;white-space:normal;text-align:right}
+    .reg-table tr td:last-child{border-bottom:0}
+    .reg-table td::before{content:attr(data-label);font-weight:800;color:var(--mut);text-align:left;flex:0 0 auto;white-space:nowrap}
+    .reg-table .num{width:auto}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
 </style>
 </head>
 <body>
@@ -110,7 +233,7 @@
   <!-- B) ĐÃ ĐĂNG NHẬP -->
   <div id="adminView" hidden>
     <div class="bar">
-      <h1 style="margin:0;">Quản trị Linh Thú</h1>
+      <h1 style="margin:0;">ADMIN</h1>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="who" id="who"></span>
         <button id="btnLogout" class="btn-ghost">Đăng xuất</button>
@@ -126,11 +249,11 @@
     <div id="tabEvents" class="tab-panel active">
 
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <h2 style="margin:0;">Danh sách sự kiện</h2>
+        <div class="card-head">
+          <h2>Danh sách sự kiện</h2>
           <button id="btnRefresh" class="btn-ghost btn-sm">↻ Làm mới</button>
         </div>
-        <div id="evListWrap"><p style="color:var(--mut);font-size:14px;">Đang tải…</p></div>
+        <div id="evListWrap"><div class="loading-row"><span class="spinner"></span>Đang tải…</div></div>
       </div>
 
       <div class="card" id="createCard">
@@ -222,8 +345,9 @@
         <p id="loadErr" class="err"></p>
         <p id="summary" class="summary"></p>
         <div id="chips" class="chips"></div>
-        <div style="overflow:auto;max-height:64vh;margin-top:12px;">
-          <table id="tbl">
+        <div id="dupWarn"></div>
+        <div class="table-wrap">
+          <table id="tbl" class="reg-table">
             <thead id="thead"></thead>
             <tbody id="tbody"></tbody>
           </table>
@@ -290,6 +414,25 @@
   const fmtTime = at => {
     try { return at && at.toDate ? at.toDate().toLocaleString("vi-VN") : ""; } catch(e) { return ""; }
   };
+  // Chuẩn hoá khóa chống trùng — GIỐNG HỆT _dedupKey trong js/api.js (trim + UPPER + bỏ khoảng trắng)
+  // để admin phát hiện trùng đúng theo cách backend đã/đang chặn.
+  const _dedupKey = v => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+  // Icon cảnh báo (SVG → luôn hiển thị, không phụ thuộc font emoji).
+  const dupIconSvg = () =>
+    "<svg viewBox='0 0 24 24' width='20' height='20' aria-hidden='true' fill='none'>" +
+    "<path d='M12 3 1.7 21h20.6L12 3Z' fill='#FFF1F3' stroke='currentColor' stroke-width='1.8' stroke-linejoin='round'/>" +
+    "<path d='M12 9.5v4.5' stroke='currentColor' stroke-width='1.8' stroke-linecap='round'/>" +
+    "<circle cx='12' cy='17.4' r='1.1' fill='currentColor'/></svg>";
+
+  // Trạng thái rỗng / đang tải dùng chung (SVG, không emoji mới dễ lỗi).
+  const emptySvg = () =>
+    "<svg width='56' height='56' viewBox='0 0 48 48' fill='none' aria-hidden='true'>" +
+    "<rect x='8' y='11' width='32' height='28' rx='5' fill='#F1ECFE' stroke='#C9B4FF' stroke-width='2'/>" +
+    "<path d='M8 18h32' stroke='#C9B4FF' stroke-width='2'/>" +
+    "<circle cx='14' cy='14.5' r='1.4' fill='#A98CFF'/><circle cx='19' cy='14.5' r='1.4' fill='#A98CFF'/>" +
+    "<path d='M18 28h12M18 33h8' stroke='#C9B4FF' stroke-width='2.4' stroke-linecap='round'/></svg>";
+  const emptyState   = txt => "<div class='empty-state'>" + emptySvg() + "<div>" + txt + "</div></div>";
+  const loadingState = txt => "<div class='loading-row'><span class='spinner'></span>" + esc(txt) + "</div>";
 
   function slugify(s) {
     const map = {
@@ -367,7 +510,7 @@
   $("btnRefresh").addEventListener("click", loadEventList);
 
   async function loadEventList() {
-    $("evListWrap").innerHTML = "<p style='color:var(--mut);font-size:14px;'>Đang tải…</p>";
+    $("evListWrap").innerHTML = loadingState("Đang tải danh sách sự kiện…");
     try {
       const [listSnap, activeSnap] = await Promise.all([
         db.collection("config").doc("eventList").get(),
@@ -377,7 +520,7 @@
       const ids = listSnap.exists && Array.isArray(listSnap.data().ids) ? listSnap.data().ids : [];
 
       if (!ids.length) {
-        $("evListWrap").innerHTML = "<p style='color:var(--mut);font-size:14px;'>Chưa có sự kiện nào. Tạo sự kiện đầu tiên bên dưới.</p>";
+        $("evListWrap").innerHTML = emptyState("Chưa có sự kiện nào.<br>Tạo sự kiện đầu tiên trong thẻ bên dưới.");
         syncSigSelect([]);
         return;
       }
@@ -392,13 +535,13 @@
       syncSigSelect(cachedEvents);
     } catch (err) {
       $("evListWrap").innerHTML =
-        "<p style='color:var(--bad);font-size:14px;'>Lỗi tải danh sách: " + esc(err.message || String(err)) + "</p>";
+        "<p class='err' style='font-size:14px;'>Lỗi tải danh sách: " + esc(err.message || String(err)) + "</p>";
     }
   }
 
   function renderEvList(events) {
     if (!events.length) {
-      $("evListWrap").innerHTML = "<p style='color:var(--mut);font-size:14px;'>Chưa có sự kiện nào.</p>";
+      $("evListWrap").innerHTML = emptyState("Chưa có sự kiện nào.");
       return;
     }
     $("evListWrap").innerHTML = '<div class="ev-list">'
@@ -407,7 +550,7 @@
           const title    = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
           const cap      = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
           const nTeam    = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
-          const badge    = isActive ? `<span class="ev-live">● Đang chạy</span>` : "";
+          const badge    = isActive ? `<span class="ev-live"><span class="dot"></span>Đang chạy</span>` : "";
           const controls = isActive
             ? `<button class="ev-end btn-sm" data-action="end" data-id="${esc(ev.id)}" data-name="${esc(title)}">Kết thúc</button>
                <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>`
@@ -523,6 +666,18 @@
   $("btnAddField").addEventListener("click", () => addFieldRow());
   $("btnAddIcon").addEventListener("click",  () => addIconRow());
 
+  // Đổi dropdown → đánh dấu admin đã tự chọn (tắt autopick) + đồng bộ checkbox.
+  $("fDedupField").addEventListener("change", () => {
+    $("fDedupField").dataset.manual = "1";
+    syncDedupControls();
+  });
+  // Admin tự bật/tắt checkbox → tôn trọng lựa chọn, không tự tích lại.
+  $("fBlockDup").addEventListener("change", () => { $("fBlockDup").dataset.touched = "1"; });
+  syncDedupControls();   // form trống lúc đầu: chưa có field ⇒ checkbox disable + bỏ tích
+
+  // Key field nào trông giống "mã nhân viên" → ứng viên mặc định cho chống trùng.
+  const EMP_ID_RE = /(employe?e?id|msnv|manv|nhanvien|staff|empid)/i;
+
   function syncDedupSelect() {
     const cur  = $("fDedupField").value;
     const keys = Array.from($("fieldsList").querySelectorAll(".inp-key"))
@@ -530,6 +685,27 @@
     $("fDedupField").innerHTML =
       '<option value="">Không chống trùng</option>' +
       keys.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join("");
+    autoPickDedup();        // tạo mới: tự chọn field mã NV nếu có
+    syncDedupControls();    // giữ checkbox "Chặn" đồng bộ với dropdown
+  }
+
+  // Dropdown = nguồn sự thật. "" (Không chống trùng) ⇒ disable + bỏ tích checkbox.
+  // Đã chọn field ⇒ cho phép; mặc định tích cho tới khi admin tự đụng vào checkbox.
+  function syncDedupControls() {
+    const hasField = $("fDedupField").value !== "";
+    $("fBlockDup").disabled = !hasField;
+    if (!hasField) $("fBlockDup").checked = false;
+    else if (!$("fBlockDup").dataset.touched) $("fBlockDup").checked = true;
+  }
+
+  // Khi TẠO MỚI (admin chưa tự chọn dropdown) và đang để "Không chống trùng":
+  // nếu có field key dạng mã nhân viên thì tự chọn nó làm dedupField (để admin khỏi quên).
+  function autoPickDedup() {
+    if ($("fDedupField").dataset.manual === "1" || $("fDedupField").value !== "") return;
+    const keys = Array.from($("fieldsList").querySelectorAll(".inp-key"))
+                      .map(i => i.value.trim()).filter(Boolean);
+    const match = keys.find(k => EMP_ID_RE.test(k));
+    if (match) $("fDedupField").value = match;
   }
 
   function readForm() {
@@ -582,6 +758,11 @@
     }
     const emojis = d.icons.map(ic => ic.icon);
     if (new Set(emojis).size !== emojis.length) return "Có emoji đội bị trùng — mỗi đội cần một emoji duy nhất.";
+    // Không cho lưu cấu hình vô hiệu: chặn trùng bật nhưng chưa chọn field nào.
+    if (d.blockDup && !d.dedupField)
+      return "Hãy chọn field để chống trùng (vd: Mã nhân viên), hoặc đặt 'Không chống trùng' rồi bỏ tích chặn.";
+    if (d.dedupField && !d.fields.some(f => f.key === d.dedupField))
+      return `Field chống trùng "${d.dedupField}" không nằm trong danh sách ô nhập.`;
     return null;
   }
 
@@ -636,9 +817,13 @@
     $("fSubtitle").value   = "";
     $("fCapacity").value   = "10";
     $("fBlockDup").checked = true;
+    $("fBlockDup").disabled = false;
+    $("fBlockDup").dataset.touched = "";
     $("fieldsList").innerHTML = "";
     $("iconsList").innerHTML  = "";
     $("fDedupField").innerHTML = '<option value="">Không chống trùng</option>';
+    $("fDedupField").dataset.manual = "";
+    syncDedupControls();
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
     $("btnCancel").hidden    = true;
@@ -654,10 +839,17 @@
     $("fSubtitle").value = cfg.subtitle || "";
     $("fCapacity").value = cfg.capacity != null ? cfg.capacity : 10;
     $("fBlockDup").checked = cfg.blockDup !== false;
+    // Nhân bản: giữ đúng cấu hình bản gốc (kể cả "" hợp lệ) → tắt autopick, tôn trọng checkbox gốc.
+    // Đặt cờ TRƯỚC khi thêm field rows để autopick/syncDedupControls trong vòng lặp không ghi đè cfg.blockDup.
+    $("fDedupField").dataset.manual = "1";
+    $("fBlockDup").dataset.touched  = "1";
     if (Array.isArray(cfg.fields)) cfg.fields.forEach(f  => addFieldRow(f));
     if (Array.isArray(cfg.icons))  cfg.icons.forEach(ic => addIconRow(ic));
-    // syncDedupSelect đã gọi trong addFieldRow; gán value sau 1 tick
-    setTimeout(() => { $("fDedupField").value = cfg.dedupField || ""; }, 0);
+    // syncDedupSelect đã gọi trong addFieldRow; gán value sau 1 tick rồi đồng bộ lại control.
+    setTimeout(() => {
+      $("fDedupField").value = cfg.dedupField || "";
+      syncDedupControls();   // dedupField="" (vd sự kiện lỗi) ⇒ tự disable+bỏ tích, không lưu lại tổ hợp xấu
+    }, 0);
   }
 
   // ── Tab Đăng ký ───────────────────────────────────────────────────────────
@@ -674,9 +866,10 @@
         }).join("");
   }
 
-  let sigRows   = [];
-  let sigFields = [];
-  let sigIcons  = {};
+  let sigRows       = [];
+  let sigFields     = [];
+  let sigIcons      = {};
+  let sigDedupField = "";   // field dùng để phát hiện trùng (đọc từ meta/config của sự kiện đang xem)
 
   $("btnLoad").addEventListener("click", () => {
     const eid = $("sigSelect").value;
@@ -695,6 +888,7 @@
       sigFields = cfgSnap.exists && Array.isArray(cfgSnap.data().fields)
         ? cfgSnap.data().fields
         : (typeof FIELDS !== "undefined" ? FIELDS : []);
+      sigDedupField = (cfgSnap.exists && cfgSnap.data().dedupField) || "";
       const icArr = cfgSnap.exists && Array.isArray(cfgSnap.data().icons)
         ? cfgSnap.data().icons
         : (typeof ICONS !== "undefined" ? ICONS : []);
@@ -712,11 +906,12 @@
       });
       renderSigTable(eid, teamLabel);
     } catch (err) {
-      sigRows = []; sigFields = [];
+      sigRows = []; sigFields = []; sigDedupField = "";
       $("thead").innerHTML = "";
       $("tbody").innerHTML = "";
       $("summary").innerHTML = "";
       $("chips").innerHTML = "";
+      if ($("dupWarn")) $("dupWarn").innerHTML = "";
       const msg = String(err && (err.code || err.message) || err);
       $("loadErr").textContent = /permission|insufficient/i.test(msg)
         ? "Tài khoản này chưa có quyền xem. Dán UID vào mảng admin trong firestore.rules rồi Publish lại."
@@ -725,14 +920,41 @@
   }
 
   function renderSigTable(eid, teamLabel) {
+    if (!sigRows.length) {
+      $("thead").innerHTML = "";
+      $("tbody").innerHTML = "<tr class='empty-tr'><td colspan='99'>" +
+        emptyState("Sự kiện <b>" + esc(eid) + "</b> chưa có ai đăng ký.") + "</td></tr>";
+      $("summary").innerHTML = "";
+      $("chips").innerHTML = "";
+      if ($("dupWarn")) $("dupWarn").innerHTML = "";
+      return;
+    }
+    // ── Phát hiện bản trùng theo field chống trùng (vd Mã nhân viên) ──
+    const dupGroups = {};            // normKey → [rows]
+    if (sigDedupField) {
+      sigRows.forEach(r => {
+        const k = _dedupKey(r[sigDedupField]);
+        if (k) (dupGroups[k] = dupGroups[k] || []).push(r);
+      });
+    }
+    const dupKeys = new Set(Object.keys(dupGroups).filter(k => dupGroups[k].length > 1));
+
+    // data-label trên mỗi <td> → trên điện thoại bảng biến thành thẻ "nhãn : giá trị".
     $("thead").innerHTML = "<tr><th class='num'>#</th><th>Đội</th>"
       + sigFields.map(f => "<th>" + esc(f.label) + "</th>").join("")
       + "<th>Thời gian</th></tr>";
-    $("tbody").innerHTML = sigRows.map((r, i) =>
-      "<tr><td class='num'>" + (i+1) + "</td><td>" + esc(teamLabel(r.icon)) + "</td>"
-      + sigFields.map(f => "<td>" + esc(r[f.key]) + "</td>").join("")
-      + "<td>" + esc(fmtTime(r.at)) + "</td></tr>"
-    ).join("");
+    $("tbody").innerHTML = sigRows.map((r, i) => {
+      const isDup = sigDedupField && dupKeys.has(_dedupKey(r[sigDedupField]));
+      return "<tr" + (isDup ? " class='is-dup'" : "") + ">"
+        + "<td class='num' data-label='#'>" + (i+1) + "</td>"
+        + "<td class='td-team' data-label='Đội'>" + esc(teamLabel(r.icon)) + "</td>"
+        + sigFields.map(f => {
+            const dupMark = (f.key === sigDedupField && isDup) ? " <span class='dup-tag'>trùng</span>" : "";
+            return "<td data-label=\"" + esc(f.label) + "\">" + esc(r[f.key]) + dupMark + "</td>";
+          }).join("")
+        + "<td class='td-time' data-label='Thời gian'>" + esc(fmtTime(r.at)) + "</td></tr>";
+    }).join("");
+
     const per = {};
     sigRows.forEach(r => { per[r.icon] = (per[r.icon] || 0) + 1; });
     $("summary").innerHTML = "Tổng số người đăng ký: <b>" + sigRows.length + "</b>"
@@ -740,6 +962,32 @@
     $("chips").innerHTML = Object.keys(per).sort((a, b) => per[b] - per[a])
       .map(ic => "<span class='chip'>" + esc(teamLabel(ic)) + ": <b>" + per[ic] + "</b></span>")
       .join("");
+
+    renderDupWarn(dupGroups, dupKeys, teamLabel);
+  }
+
+  // Hộp cảnh báo: liệt kê các giá trị (vd MSNV) bị trùng để admin xử lý thủ công.
+  function renderDupWarn(dupGroups, dupKeys, teamLabel) {
+    const box = $("dupWarn");
+    if (!box) return;
+    if (!sigDedupField || !dupKeys.size) { box.innerHTML = ""; return; }
+    const label = (sigFields.find(f => f.key === sigDedupField) || {}).label || sigDedupField;
+    const items = Array.from(dupKeys)
+      .sort((a, b) => dupGroups[b].length - dupGroups[a].length)
+      .map(k => {
+        const arr   = dupGroups[k];
+        const raw   = arr[0][sigDedupField] || k;
+        const teams = arr.map(r => teamLabel(r.icon)).join(", ");
+        return "<li><b>" + esc(raw) + "</b> — " + arr.length + " lần · đội: " + esc(teams) + "</li>";
+      }).join("");
+    box.innerHTML =
+      "<div class='dup-warn'>" +
+        "<div class='dw-head'>" + dupIconSvg() + "<span>Phát hiện <b>" + dupKeys.size + "</b> " +
+          esc(label) + " bị trùng đăng ký</span></div>" +
+        "<ul class='dw-list'>" + items + "</ul>" +
+        "<div class='dw-note'>Các bản trùng này đã tồn tại từ trước (đăng ký trước khi bật chống trùng). " +
+          "Hãy xử lý thủ công — giữ lại một, xoá phần thừa. Lượt đăng ký trùng MỚI từ giờ đã bị hệ thống chặn.</div>" +
+      "</div>";
   }
 
   function exportExcel() {

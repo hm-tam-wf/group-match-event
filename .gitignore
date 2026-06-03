@@ -6,3 +6,10 @@ test-firebase.html
 serviceAccountKey*.json
 *firebase-adminsdk*.json
 signups-*.csv
+
+# Công cụ dev / chẩn đoán & preview chụp ảnh (không phải sản phẩm)
+diag-dedup.js
+fix-dedup.js
+make-preview.js
+preview-*.html
+shot-*.png

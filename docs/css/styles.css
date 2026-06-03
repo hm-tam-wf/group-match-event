@@ -23,7 +23,10 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:
   radial-gradient(720px 680px at 50% 118%, #D7F5E6 0%, transparent 60%),
   radial-gradient(600px 480px at 92% 92%, #FFF1D6 0%, transparent 62%),
   var(--bg)}
-.wrap{max-width:1020px;margin:0 auto;padding:46px 22px 96px}
+/* Container căn giữa, giới hạn ~1200px: trên màn hình rộng nội dung không bị kéo
+   giãn sát mép (lưới đội gọn 5–6 cột, tiêu đề/đoạn giới thiệu dễ đọc); laptop vẫn
+   gần như full vì padding co giãn theo viewport. */
+.wrap{max-width:1200px;margin:0 auto;padding:46px clamp(22px,4vw,56px) 96px}
 
 /* header */
 h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:1.02;font-size:clamp(40px,8vw,72px);margin:0;
@@ -59,7 +62,10 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .hr{height:2px;background:var(--line);flex:1;border-radius:2px}
 
 /* grid đội còn chỗ */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:16px}
+/* --min-tile = bề ngang tối thiểu 1 tile (nguồn sự thật chung cho JS chia đều cột).
+   grid-template-columns ở đây chỉ là fallback nếu JS chưa chạy; layoutFreeGrid() sẽ
+   ghi đè bằng số cột chia đều (vd 10 đội → 5/5 thay vì 6/4). */
+.grid{display:grid;--min-tile:168px;grid-template-columns:repeat(auto-fill,minmax(var(--min-tile),1fr));gap:16px}
 .tile{position:relative;border:1.5px solid var(--line);border-radius:var(--r-lg);padding:22px 16px 16px;text-align:center;overflow:hidden;
   background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,#fff) 0%,#fff 70%);
   box-shadow:0 14px 34px -20px rgba(124,115,150,.38),inset 0 1px 0 rgba(255,255,255,.9);
@@ -175,7 +181,7 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
 
 @media(max-width:560px){
   .wrap{padding:34px 16px 80px}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .grid{--min-tile:140px;grid-template-columns:repeat(auto-fill,minmax(var(--min-tile),1fr));gap:12px}
   .taken-grid{grid-template-columns:1fr}
   /* popup chúc mừng: vẫn to & nổi bật nhưng thu lại cho vừa khít màn hình điện thoại */
   .joined-modal{padding:40px 20px}

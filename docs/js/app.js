@@ -34,7 +34,7 @@ async function doClaim(g) {
       const r = res && res.reason;
       if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
       else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
-      else if (r === "dup")       toast(`${labelOf(DEDUP_FIELD)} này đã được dùng để tham gia rồi.`);
+      else if (r === "dup")     { dupBlocked = true; toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
       else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
     }
@@ -87,7 +87,14 @@ async function init() {
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); }
 
-  renderProfile();         // token mới → bật popup; đã có thông tin → tóm tắt / banner đội
+  // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
+  // → chặn vào lưới chọn linh thú (kể cả khi đăng ký ở thiết bị khác). apiClaim vẫn là chốt cuối.
+  if (MODE === "firebase" && !myIcon && profileComplete()
+      && BLOCK_DUP && DEDUP_FIELD && typeof apiDedupTaken === "function") {
+    dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
+  }
+
+  renderProfile();         // token mới → bật popup; đã thông tin → tóm tắt / banner; trùng MSNV → modal chặn
   await refresh(true);
   if (MODE === "firebase" && typeof apiSubscribe === "function") {
     // realtime: server tự ĐẨY thay đổi của các đội → KHÔNG poll. onSnapshot tự kết nối lại

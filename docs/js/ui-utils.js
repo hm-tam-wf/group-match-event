@@ -18,6 +18,7 @@ let stateLoaded = false; // đã NHẬN được state thật từ server lần 
 let busy    = false;
 let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
 let _skipSelfHeal = false; // true trong window vừa tham gia → chặn self-heal stale-state
+let dupBlocked = false; // true khi MSNV đã đăng ký rồi → chặn vào lưới chọn đội (cổng chống trùng)
 
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };

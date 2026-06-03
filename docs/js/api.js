@@ -19,6 +19,22 @@ const col = name => db.collection("events").doc(EVENT_ID).collection(name);
 
 function _dedupKey(v) { return String(v || "").trim().toUpperCase().replace(/\s+/g, ""); }
 
+// Kiểm tra NHANH một giá trị dedup (vd MSNV) ĐÃ được đăng ký chưa — để CHẶN NGAY ở cổng vào
+// (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc dedup_keys (rules cho phép get).
+// Trả false khi: không bật chống trùng / không firebase / lỗi mạng → KHÔNG chặn nhầm
+// (transaction trong apiClaim vẫn là tuyến chặn cuối, an toàn trước tranh chấp).
+async function apiDedupTaken(value) {
+  if (MODE !== "firebase" || !BLOCK_DUP || !DEDUP_FIELD) return false;
+  const key = _dedupKey(value);
+  if (!key) return false;
+  try {
+    const snap = await col("dedup_keys").doc(key).get();
+    return snap.exists;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function apiState() {
   if (MODE === "firebase") {
     const snap  = await col("teams").get();
