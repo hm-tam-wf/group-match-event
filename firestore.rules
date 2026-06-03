@@ -10,7 +10,7 @@ service cloud.firestore {
     // Để nguyên placeholder thì CHƯA ai có quyền admin (an toàn mặc định).
     function isAdmin() {
       return request.auth != null
-          && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2"];
+          && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2", "wzfNEcIXNrhNC1tKtlUQ8OOX9Tq2"];
     }
 
     // ── Bảng hiệu: sự kiện đang mở ──────────────────────────────────────────
