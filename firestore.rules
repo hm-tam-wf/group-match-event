@@ -50,7 +50,7 @@ service cloud.firestore {
                       && request.resource.data.count == resource.data.count + 1
                       && request.resource.data.count <= cap()
                       && request.resource.data.names.size() == request.resource.data.count;
-        allow delete: if false;
+        allow delete: if isAdmin();   // admin xoá đội khi "Xoá dữ liệu" / "Xoá sự kiện"
       }
 
       // ── Guard "1 người 1 đội": chỉ {icon}. Cho ĐỌC 1 doc (transaction cần), CẤM liệt kê cả bảng. ──
@@ -58,7 +58,8 @@ service cloud.firestore {
         allow get: if true;
         allow list: if false;
         allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isAdmin();   // admin xoá khi "Xoá dữ liệu" / "Xoá sự kiện"
       }
 
       // ── Guard chống trùng (theo DEDUP_FIELD): KHÔNG chứa PII, chỉ để biết "đã tồn tại hay chưa". ──
@@ -66,7 +67,8 @@ service cloud.firestore {
         allow get: if true;
         allow list: if false;
         allow create: if request.resource.data.keys().hasOnly(['at']);
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isAdmin();   // admin xoá khi "Xoá dữ liệu" / "Xoá sự kiện"
       }
 
       // ── Hồ sơ đầy đủ (tên/MSNV…) — chứa PII. Khách CHỈ GHI, KHÔNG đọc được. ──
@@ -75,7 +77,8 @@ service cloud.firestore {
       match /signups/{pid} {
         allow read:          if isAdmin();
         allow create:        if true;
-        allow update, delete: if false;
+        allow update:        if false;
+        allow delete:        if isAdmin();   // admin xoá PII khi "Xoá dữ liệu" / "Xoá sự kiện" (mất tính bất biến — cố ý)
       }
     }
 

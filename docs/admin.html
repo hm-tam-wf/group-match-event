@@ -93,6 +93,9 @@
   .ev-live .dot{width:7px;height:7px;border-radius:50%;background:#16A34A;box-shadow:0 0 0 3px rgba(22,163,74,.18);animation:pulse 1.8s ease infinite}
   .ev-end{background:var(--danger);color:#fff;border-radius:var(--r-sm);padding:7px 13px;font-weight:700;font-size:13px;box-shadow:0 8px 18px -10px rgba(245,71,107,.7)}
   .ev-end:hover{filter:brightness(1.05)}
+  .ev-status{display:inline-block;font-size:12px;font-weight:800;color:var(--mut);background:#F1EFF8;padding:4px 11px;border-radius:var(--pill);box-shadow:inset 0 0 0 1px var(--line)}
+  .ev-stats{margin-top:5px;font-variant-numeric:tabular-nums}
+  .ev-stats b{color:var(--ink);font-weight:800}
 
   /* ── create form ── */
   .form-row{display:flex;flex-wrap:wrap;gap:var(--s3);margin-bottom:var(--s4);align-items:flex-start}
@@ -103,6 +106,7 @@
     transition:border-color .15s,box-shadow .15s,background .15s}
   input::placeholder,textarea::placeholder{color:var(--mut-2);font-weight:500}
   input[type=text]:focus,input[type=number]:focus,input[type=email]:focus,input[type=password]:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring);background:#fff}
+  #fId[readonly]{background:#EFECF8;color:var(--mut);cursor:not-allowed;box-shadow:inset 0 0 0 1px var(--line)}
   .hint{font-size:12px;color:var(--mut);line-height:1.5}
 
   /* ── dynamic rows ── */
@@ -173,6 +177,8 @@
   .cm-cancel{background:#F1EFF8;color:var(--mut)}.cm-cancel:hover{background:#E9E5F5}
   .cm-confirm{background:var(--grad);color:#fff}.cm-confirm:hover{filter:brightness(1.06)}
   .cm-confirm.danger{background:var(--danger)}
+  .cm-input{width:100%;margin:0 0 16px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-sm);font-size:14.5px;font-family:ui-monospace,Consolas,monospace;font-weight:700;color:var(--ink);background:var(--card-2)}
+  .cm-input:focus{outline:none;border-color:var(--danger);box-shadow:0 0 0 3px rgba(245,71,107,.22);background:#fff}
 
   /* ── animations ── */
   @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -381,7 +387,8 @@
   const auth = firebase.auth();
   const FV   = firebase.firestore.FieldValue;
 
-  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false }) {
+  // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
+  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "" }) {
     return new Promise(resolve => {
       const bg = document.createElement("div");
       bg.className = "cm-bg";
@@ -389,6 +396,7 @@
         <div class="cm-box" role="dialog" aria-modal="true">
           <h3 class="cm-title"></h3>
           <p class="cm-msg"></p>
+          ${requireText ? `<input class="cm-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />` : ""}
           <div class="cm-row">
             <button class="cm-cancel"></button>
             <button class="cm-confirm${danger ? " danger" : ""}"></button>
@@ -399,14 +407,24 @@
       bg.querySelector(".cm-cancel").textContent  = cancelText;
       bg.querySelector(".cm-confirm").textContent = confirmText;
       if (!cancelText) bg.querySelector(".cm-cancel").hidden = true;
+      const confirmBtn = bg.querySelector(".cm-confirm");
+      const input      = bg.querySelector(".cm-input");
+      if (input) {
+        input.placeholder = "Gõ lại: " + requireText;
+        confirmBtn.disabled = true;
+        input.addEventListener("input", () => { confirmBtn.disabled = input.value.trim() !== requireText; });
+      }
       document.body.appendChild(bg);
       const close = val => { bg.remove(); document.removeEventListener("keydown", onKey); resolve(val); };
-      const onKey = e => { if (e.key === "Escape") close(false); if (e.key === "Enter") close(true); };
-      bg.querySelector(".cm-cancel").onclick  = () => close(false);
-      bg.querySelector(".cm-confirm").onclick = () => close(true);
+      const onKey = e => {
+        if (e.key === "Escape") close(false);
+        if (e.key === "Enter" && !confirmBtn.disabled) close(true);
+      };
+      bg.querySelector(".cm-cancel").onclick = () => close(false);
+      confirmBtn.onclick = () => { if (!confirmBtn.disabled) close(true); };
       bg.addEventListener("click", e => { if (e.target === bg) close(false); });
       document.addEventListener("keydown", onKey);
-      setTimeout(() => bg.querySelector(".cm-confirm").focus(), 30);
+      setTimeout(() => (input || confirmBtn).focus(), 30);
     });
   }
 
@@ -468,7 +486,9 @@
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   let activeEventId = "";
-  let cachedEvents  = [];   // { id, exists, cfg }
+  let cachedEvents  = [];   // { id, exists, cfg, metrics }
+  let editingId     = "";   // "" = đang TẠO mới; có giá trị = đang SỬA sự kiện này
+  let editOriginal  = null; // cfg gốc của sự kiện đang sửa (để so sánh dedup/field)
 
   auth.onAuthStateChanged(user => {
     if (user) {
@@ -529,8 +549,32 @@
         db.collection("events").doc(id).collection("meta").doc("config").get()
       ));
       cachedEvents = snaps.map((snap, i) => ({
-        id: ids[i], exists: snap.exists, cfg: snap.exists ? snap.data() : null
+        id: ids[i], exists: snap.exists, cfg: snap.exists ? snap.data() : null, metrics: null
       }));
+
+      // Chỉ số dashboard: đọc teams mỗi sự kiện (1 read/sự kiện, công khai) →
+      //   số người = Σ count (1 người 1 đội), số đội đầy, tỉ lệ lấp đầy.
+      const teamSnaps = await Promise.all(cachedEvents.map(ev =>
+        ev.exists ? db.collection("events").doc(ev.id).collection("teams").get() : Promise.resolve(null)
+      ));
+      cachedEvents.forEach((ev, i) => {
+        const cap    = ev.cfg && ev.cfg.capacity ? ev.cfg.capacity : 0;
+        const nTeams = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : 0;
+        let registrations = 0, teamsFull = 0;
+        if (teamSnaps[i]) teamSnaps[i].docs.forEach(t => {
+          const c = (t.data().count) || 0;
+          registrations += c;
+          if (cap && c >= cap) teamsFull++;
+        });
+        const totalCap = nTeams * cap;
+        ev.metrics = { registrations, teamsFull, totalCap, fillRate: totalCap ? Math.round(registrations / totalCap * 100) : 0 };
+      });
+
+      // Mới nhất lên đầu (theo createdAt; sự kiện thiếu createdAt rơi xuống cuối).
+      cachedEvents.sort((a, b) =>
+        (((b.cfg && b.cfg.createdAt && b.cfg.createdAt.seconds) || 0) -
+         ((a.cfg && a.cfg.createdAt && a.cfg.createdAt.seconds) || 0)));
+
       renderEvList(cachedEvents);
       syncSigSelect(cachedEvents);
     } catch (err) {
@@ -550,16 +594,34 @@
           const title    = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
           const cap      = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
           const nTeam    = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
-          const badge    = isActive ? `<span class="ev-live"><span class="dot"></span>Đang chạy</span>` : "";
-          const controls = isActive
-            ? `<button class="ev-end btn-sm" data-action="end" data-id="${esc(ev.id)}" data-name="${esc(title)}">Kết thúc</button>
-               <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>`
-            : `<button class="btn-ok btn-sm" data-action="open" data-id="${esc(ev.id)}" data-name="${esc(title)}">Mở sự kiện này</button>
-               <button class="btn-ghost btn-sm" data-action="clone" data-id="${esc(ev.id)}">Nhân bản</button>`;
+          const m        = ev.metrics || { registrations: 0, teamsFull: 0, totalCap: 0, fillRate: 0 };
+          const created  = ev.cfg && ev.cfg.createdAt ? fmtTime(ev.cfg.createdAt) : "—";
+          const badge    = isActive
+            ? `<span class="ev-live"><span class="dot"></span>Đang chạy</span>`
+            : `<span class="ev-status">Đã kết thúc</span>`;
+          // Nút "Xóa sự kiện" chỉ bật khi KHÔNG đang chạy và đã sạch dữ liệu.
+          const canDelete = !isActive && m.registrations === 0;
+          const delTitle  = isActive ? "Đang chạy — kết thúc trước"
+                          : (m.registrations > 0 ? "Còn dữ liệu — xóa dữ liệu trước" : "Xóa hẳn sự kiện");
+          const openCtl   = isActive
+            ? `<button class="ev-end btn-sm" data-action="end" data-id="${esc(ev.id)}" data-name="${esc(title)}">Kết thúc</button>`
+            : `<button class="btn-ok btn-sm" data-action="open" data-id="${esc(ev.id)}" data-name="${esc(title)}">Mở</button>`;
+          const controls = ev.exists
+            ? `${openCtl}
+               <button class="btn-ghost btn-sm" data-action="edit"   data-id="${esc(ev.id)}">Sửa</button>
+               <button class="btn-ghost btn-sm" data-action="clone"  data-id="${esc(ev.id)}">Nhân bản</button>
+               <button class="btn-del   btn-sm" data-action="clear"  data-id="${esc(ev.id)}" data-name="${esc(title)}">Xóa dữ liệu</button>
+               <button class="btn-del   btn-sm" data-action="delete" data-id="${esc(ev.id)}" data-name="${esc(title)}"${canDelete ? "" : " disabled"} title="${esc(delTitle)}">Xóa sự kiện</button>`
+            : `<button class="btn-del btn-sm" data-action="delete" data-id="${esc(ev.id)}" data-name="${esc(title)}" title="Gỡ mục hỏng khỏi danh sách">Gỡ khỏi danh sách</button>`;
+          const stats = ev.exists
+            ? `<b>${m.registrations}</b> người &nbsp;·&nbsp; ${nTeam} đội × ${cap} &nbsp;·&nbsp; `
+              + `${m.teamsFull} đội đầy &nbsp;·&nbsp; lấp đầy ${m.fillRate}% &nbsp;·&nbsp; tạo ${esc(created)}`
+            : `<span style="color:var(--danger)">Thiếu cấu hình (mục hỏng)</span>`;
           return `<div class="ev-row${isActive ? " is-active" : ""}">
             <div class="ev-info">
               <div class="ev-title">${esc(title)} ${badge}</div>
-              <div class="ev-meta">ID: <code>${esc(ev.id)}</code> &nbsp;·&nbsp; ${nTeam} đội &nbsp;·&nbsp; ${cap} người/đội</div>
+              <div class="ev-meta">ID: <code>${esc(ev.id)}</code></div>
+              <div class="ev-meta ev-stats">${stats}</div>
             </div>
             <div class="ev-actions">${controls}</div>
           </div>`;
@@ -570,9 +632,14 @@
       btn.addEventListener("click", () => {
         const id   = btn.dataset.id;
         const name = btn.dataset.name || id;
-        if (btn.dataset.action === "open")  openEvent(id, name);
-        if (btn.dataset.action === "end")   endEvent(id, name);
-        if (btn.dataset.action === "clone") cloneEvent(id);
+        switch (btn.dataset.action) {
+          case "open":   openEvent(id, name);   break;
+          case "end":    endEvent(id, name);    break;
+          case "edit":   editEvent(id);         break;
+          case "clone":  cloneEvent(id);        break;
+          case "clear":  clearEvent(id, name);  break;
+          case "delete": deleteEvent(id, name); break;
+        }
       });
     });
   }
@@ -617,6 +684,115 @@
     if (!ev || !ev.cfg) { alert("Không tìm thấy cấu hình sự kiện."); return; }
     populateForm(ev.cfg, "");
     $("formHeading").textContent = `Nhân bản từ "${ev.cfg.title || eid}"`;
+    $("btnCancel").hidden = false;
+    $("createCard").scrollIntoView({ behavior: "smooth" });
+  }
+
+  // ── Quản lý dữ liệu: xóa dữ liệu · xóa sự kiện · sửa ───────────────────────
+  // Xóa hết doc trong một subcollection theo lô (≤400 op/batch); lặp lại tới khi rỗng.
+  // Giới hạn số vòng để KHÔNG treo vô hạn nếu sự kiện đang chạy và liên tục nhận đăng ký mới
+  // (200 vòng × 400 = 80.000 doc — vượt xa mọi sự kiện thực tế; load test chỉ 500).
+  async function deleteAll(path) {
+    for (let pass = 0; ; pass++) {
+      if (pass >= 200) throw new Error("Vẫn đang nhận đăng ký liên tục — hãy 'Kết thúc' sự kiện rồi xóa lại.");
+      const snap = await db.collection(path).limit(400).get();
+      if (snap.empty) break;
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+  // Reset sự kiện về 0 người, GIỮ meta/config. Xóa cả teams để count/names về 0.
+  async function clearEventData(eid) {
+    for (const c of ["signups", "members", "dedup_keys", "teams"]) {
+      await deleteAll(`events/${eid}/${c}`);
+    }
+  }
+
+  // Việc 1 — Xóa toàn bộ dữ liệu đăng ký của một sự kiện (giữ sự kiện).
+  async function clearEvent(eid, name) {
+    const isActive = eid === activeEventId;
+    const ok = await confirmModal({
+      title: "Xóa toàn bộ dữ liệu đăng ký?",
+      message: (isActive
+        ? `⚠️ "${name}" ĐANG MỞ — xóa dữ liệu sẽ reset người đăng ký về 0 NGAY trên trang công khai, và mỗi người đang mở trang sẽ bị bỏ chọn đội. Khuyến nghị "Kết thúc" sự kiện trước. `
+        : `Reset "${name}" về 0 người. `)
+        + `Giữ nguyên cấu hình. Hành động KHÔNG hồi phục được. Gõ lại ID để xác nhận.`,
+      confirmText: "Xóa dữ liệu", danger: true, requireText: eid,
+    });
+    if (!ok) return;
+    try {
+      await clearEventData(eid);
+      await loadEventList();
+      await confirmModal({ title: "Đã xóa dữ liệu", message: `"${name}" đã được reset về 0 người.`, confirmText: "OK", cancelText: "" });
+    } catch (err) {
+      await confirmModal({ title: "Lỗi", message: err.message || String(err), confirmText: "Đóng", cancelText: "" });
+    }
+  }
+
+  // Việc 2 — Xóa hẳn một sự kiện (chỉ khi KHÔNG đang chạy và đã sạch dữ liệu).
+  async function deleteEvent(eid, name) {
+    const ev = cachedEvents.find(e => e.id === eid);
+    // Mục hỏng (id nằm trong eventList nhưng KHÔNG có meta/config): chỉ gỡ id khỏi danh sách.
+    if (ev && !ev.exists) {
+      const ok = await confirmModal({
+        title: "Gỡ mục hỏng?",
+        message: `"${eid}" không có cấu hình — gỡ khỏi danh sách. Gõ lại ID để xác nhận.`,
+        confirmText: "Gỡ", danger: true, requireText: eid,
+      });
+      if (!ok) return;
+      try {
+        await db.collection("config").doc("eventList").set({ ids: FV.arrayRemove(eid) }, { merge: true });
+        await loadEventList();
+      } catch (err) {
+        await confirmModal({ title: "Lỗi", message: err.message || String(err), confirmText: "Đóng", cancelText: "" });
+      }
+      return;
+    }
+    if (eid === activeEventId) {
+      return confirmModal({ title: "Không thể xóa", message: `"${name}" đang chạy — hãy "Kết thúc" trước khi xóa.`, confirmText: "Đóng", cancelText: "" });
+    }
+    // Xác minh lại còn dữ liệu hay không (limit(1) rẻ hơn count()).
+    let hasData = false;
+    try { hasData = !(await db.collection(`events/${eid}/signups`).limit(1).get()).empty; }
+    catch (err) {
+      return confirmModal({ title: "Lỗi", message: "Không kiểm tra được dữ liệu: " + (err.message || err), confirmText: "Đóng", cancelText: "" });
+    }
+    if (hasData) {
+      return confirmModal({ title: "Còn dữ liệu", message: `"${name}" còn người đăng ký — hãy "Xóa dữ liệu" trước, rồi mới xóa sự kiện.`, confirmText: "Đóng", cancelText: "" });
+    }
+    const ok = await confirmModal({
+      title: "Xóa hẳn sự kiện?",
+      message: `Xóa vĩnh viễn cấu hình sự kiện "${name}" (${eid}). KHÔNG hồi phục được. Gõ lại ID để xác nhận.`,
+      confirmText: "Xóa sự kiện", danger: true, requireText: eid,
+    });
+    if (!ok) return;
+    try {
+      await clearEventData(eid);                       // dọn nốt teams/dedup còn rơi rớt (nếu có)
+      const batch = db.batch();
+      batch.set(db.collection("config").doc("eventList"), { ids: FV.arrayRemove(eid) }, { merge: true });
+      batch.delete(db.collection("events").doc(eid).collection("meta").doc("config"));
+      await batch.commit();
+      await loadEventList();
+      await confirmModal({ title: "Đã xóa sự kiện", message: `Đã xóa "${name}".`, confirmText: "OK", cancelText: "" });
+    } catch (err) {
+      await confirmModal({ title: "Lỗi", message: err.message || String(err), confirmText: "Đóng", cancelText: "" });
+    }
+  }
+
+  // Việc 3 — Mở form ở chế độ SỬA: dùng lại form tạo, giữ nguyên ID (khóa), nhãn nút "Lưu thay đổi".
+  function editEvent(eid) {
+    const ev = cachedEvents.find(e => e.id === eid);
+    if (!ev || !ev.cfg) {
+      confirmModal({ title: "Không sửa được", message: "Không tìm thấy cấu hình sự kiện.", confirmText: "Đóng", cancelText: "" });
+      return;
+    }
+    populateForm(ev.cfg, eid);     // gọi resetForm bên trong → đặt editingId SAU đó
+    editingId    = eid;
+    editOriginal = ev.cfg;
+    $("fId").readOnly = true;
+    $("formHeading").textContent = `Sửa "${ev.cfg.title || eid}"` + (eid === activeEventId ? " (đang chạy)" : "");
+    $("btnSave").textContent = "Lưu thay đổi";
     $("btnCancel").hidden = false;
     $("createCard").scrollIntoView({ behavior: "smooth" });
   }
@@ -773,6 +949,8 @@
     const err = validateForm(d);
     if (err) { $("formErr").textContent = err; return; }
 
+    if (editingId) { saveEdit(d); return; }   // ── chế độ SỬA (Việc 3) ──
+
     // Kiểm tra trùng ID
     try {
       const ex = await db.collection("events").doc(d.eventId).collection("meta").doc("config").get();
@@ -808,9 +986,85 @@
     }
   });
 
+  // Lưu khi SỬA (Việc 3): ghi đè meta/config nhưng GIỮ createdAt (merge), kèm các luật an toàn theo sĩ số đội.
+  async function saveEdit(d) {
+    // Đọc sĩ số đội hiện tại để áp luật. Nếu đọc lỗi → HỦY lưu (không fall-through như luồng tạo).
+    let tSnap;
+    try {
+      tSnap = await db.collection("events").doc(editingId).collection("teams").get();
+    } catch (e) {
+      $("formErr").textContent = "Không đọc được sĩ số đội để kiểm tra an toàn — hủy lưu. " + (e.message || e);
+      return;
+    }
+
+    // ① CHẶN CỨNG: emoji của đội đang có người (count>0) không được xóa/đổi (emoji = khóa định danh đội).
+    const occupied  = tSnap.docs.filter(x => ((x.data().count) || 0) > 0).map(x => x.id);   // doc id === emoji
+    const newEmojis = new Set(d.icons.map(i => i.icon));
+    const missing   = occupied.filter(em => !newEmojis.has(em));
+    if (missing.length) {
+      $("formErr").textContent =
+        `Không thể xóa hoặc đổi emoji của đội đang có người: ${missing.join(" ")}. ` +
+        `Emoji là khóa định danh đội — chỉ đổi/xóa được đội có 0 người (tên & màu thì vẫn sửa thoải mái).`;
+      return;
+    }
+
+    // ② Giảm sĩ số xuống dưới đội đông nhất → CẢNH BÁO (không chặn; không ai bị đẩy ra).
+    const maxCount = tSnap.docs.reduce((m, x) => Math.max(m, (x.data().count) || 0), 0);
+    if (d.capacity < maxCount) {
+      const ok = await confirmModal({
+        title: "Giảm sĩ số mỗi đội?",
+        message: `Đội đông nhất đang có ${maxCount} người, vượt sĩ số mới (${d.capacity}). Các đội vượt mức sẽ hiển thị "đầy" và không nhận thêm — không ai bị đẩy ra. Vẫn lưu?`,
+        confirmText: "Vẫn lưu", danger: true,
+      });
+      if (!ok) return;
+    }
+
+    // ③ Đổi/bật chống trùng giữa chừng → THÔNG BÁO (chỉ áp dụng lượt đăng ký MỚI).
+    const dedupChanged =
+      d.dedupField !== ((editOriginal && editOriginal.dedupField) || "") ||
+      d.blockDup   !== ((editOriginal && editOriginal.blockDup) !== false);
+    if (dedupChanged) {
+      const ok = await confirmModal({
+        title: "Đổi chống trùng?",
+        message: `Thay đổi chống trùng chỉ áp dụng cho lượt đăng ký MỚI. Bản trùng cũ KHÔNG bị xóa và khóa chống trùng cũ vẫn giữ nguyên. Tiếp tục?`,
+        confirmText: "Tiếp tục",
+      });
+      if (!ok) return;
+    }
+
+    $("btnSave").disabled    = true;
+    $("btnSave").textContent = "Đang lưu…";
+    try {
+      // merge:true + KHÔNG ghi createdAt ⇒ giữ createdAt gốc và mọi key chưa biết. Ghi đè vào ID GỐC (editingId).
+      await db.collection("events").doc(editingId).collection("meta").doc("config").set({
+        title:      d.title,
+        subtitle:   d.subtitle,
+        fields:     d.fields,
+        icons:      d.icons,
+        capacity:   d.capacity,
+        dedupField: d.dedupField,
+        blockDup:   d.blockDup,
+        updatedAt:  FV.serverTimestamp()
+      }, { merge: true });
+      const wasActive = editingId === activeEventId;
+      const savedId   = editingId;
+      resetForm();                 // xóa editingId, mở khóa fId, đổi nhãn nút về "Tạo sự kiện" (cũng xóa formOk)
+      $("formOk").textContent = `Đã lưu thay đổi cho "${savedId}".` +
+        (wasActive ? " Người đang mở trang công khai cần TẢI LẠI trang để thấy thay đổi." : "");
+      await loadEventList();
+    } catch (err) {
+      $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
+      $("btnSave").disabled    = false;
+      $("btnSave").textContent = "Lưu thay đổi";
+    }
+  }
+
   $("btnCancel").addEventListener("click", () => { resetForm(); });
 
   function resetForm() {
+    editingId    = "";
+    editOriginal = null;
+    $("fId").readOnly      = false;
     $("fId").value         = "";
     $("fId").dataset.manual = "";
     $("fTitle").value      = "";
@@ -827,6 +1081,7 @@
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
     $("btnCancel").hidden    = true;
+    $("btnSave").disabled    = false;
     $("btnSave").textContent = "Tạo sự kiện";
     $("formHeading").textContent = "Tạo sự kiện mới";
   }
