@@ -14,6 +14,15 @@ const EMPTY_SVG = `<svg class="empty-ic" viewBox="0 0 80 56" fill="none" xmlns="
 // Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
   const box  = $("profile");
+
+  // CỔNG chống trùng: MSNV đã đăng ký & chưa vào đội & không đang sửa → chặn cứng, không cho vào lưới.
+  if (dupBlocked && !myIcon && !editing) {
+    closeProfileModal();
+    box.innerHTML = "";
+    showDupBlockedModal();
+    return;
+  }
+
   const done = profileComplete() && !editing;
 
   if (done) {
@@ -86,6 +95,23 @@ function showProfileModal() {
     FIELDS.forEach(f => me.fields[f.key] = $("f_" + f.key).value.trim());
     editing = false;
     await saveMe();
+
+    // CỔNG chống trùng: MSNV đã được đăng ký rồi → KHÔNG cho vào trang chọn linh thú.
+    const btn = $("pmSave");
+    if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
+    let taken = false;
+    if (typeof apiDedupTaken === "function") {
+      try { taken = await apiDedupTaken(me.fields[DEDUP_FIELD]); } catch (e) {}
+    }
+    if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
+    if (taken) {
+      dupBlocked = true;
+      renderProfile();            // dupBlocked && !myIcon && !editing → hiện modal chặn
+      return;
+    }
+    dupBlocked = false;
+
+    closeDupBlockedModal();
     closeProfileModal();
     renderProfile();
     renderStateIfChanged(true);
@@ -103,6 +129,31 @@ function showProfileModal() {
   });
   const first = $("f_" + FIELDS[0].key);
   if (first) setTimeout(() => first.focus(), 40);
+}
+
+// Modal CHẶN khi MSNV đã đăng ký rồi — không thể bỏ qua (không click nền/Esc), chỉ cho "Nhập mã khác".
+// Đây là cổng chặn vào trang chọn đội: trùng MSNV ⇒ không vào được lưới linh thú.
+function showDupBlockedModal() {
+  if ($("dupBlockedModal")) return;
+  const lbl = labelOf(DEDUP_FIELD);
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.id = "dupBlockedModal";
+  bg.innerHTML = `
+    <div class="modal">
+      <div class="mic">🔒</div>
+      <h3>Mã này đã đăng ký rồi</h3>
+      <p><b>${esc(lbl)}</b> bạn nhập đã được dùng để tham gia một đội (kể cả trên thiết bị khác).<br>
+         Mỗi mã chỉ tham gia <b>một lần</b>.</p>
+      <div class="row"><button class="confirm" id="dupBack">Nhập mã khác</button></div>
+    </div>`;
+  document.body.appendChild(bg);
+  $("dupBack").onclick = () => { bg.remove(); editing = true; renderProfile(); };
+}
+
+function closeDupBlockedModal() {
+  const m = $("dupBlockedModal");
+  if (m) m.remove();
 }
 
 // ── Popup chúc mừng sau khi vào đội thành công ─────────────────────
@@ -143,6 +194,49 @@ function showJoinedModal(g) {
 // ── Bảng đội (vẽ lại mỗi khi dữ liệu đổi) ──────────────────────────
 function teamOf(icon) { return state[icon] || { count: 0, names: [] }; }
 
+// Chọn SỐ CỘT để chia đều tile thành các hàng cân nhau (vd 10 → 5/5, không phải 6/4).
+// maxFit = số cột nhiều nhất còn vừa bề ngang. Duyệt mọi số cột ≤ maxFit, chấm điểm theo:
+//   • ô trống ở HÀNG CUỐI (0 = hàng cuối đầy, đẹp nhất — tránh kiểu 6/4 hay lẻ loi 1 ô)
+//   • "phình" = maxFit − cột (ít cột hơn mức khít → tile to ra; phạt để tile không quá to)
+// Điểm thấp nhất thắng; hoà thì ưu tiên NHIỀU cột (ít hàng, tile vừa). Tự cân lại khi đổi số đội.
+function balancedColumns(count, maxFit) {
+  if (count <= 1) return 1;
+  const hi = Math.min(Math.max(1, maxFit), count);
+  let best = hi, bestScore = Infinity;
+  for (let c = hi; c >= 1; c--) {
+    const rows    = Math.ceil(count / c);
+    const lastRow = count - (rows - 1) * c;   // số tile ở hàng cuối (1..c)
+    const score   = (c - lastRow) + (hi - c); // ô trống hàng cuối + độ phình
+    if (score < bestScore) { bestScore = score; best = c; }
+  }
+  return best;
+}
+
+// Ghi số cột chia đều lên lưới "Đội còn chỗ". Đọc --min-tile + gap thật từ CSS (đổi theo
+// breakpoint) nên điện thoại/laptop/desktop đều tính đúng. Gọi sau mỗi lần render & khi resize.
+function layoutFreeGrid() {
+  const grid = $("grid");
+  if (!grid) return;
+  const n = grid.children.length;
+  const cs      = getComputedStyle(grid);
+  const minTile = parseFloat(cs.getPropertyValue("--min-tile")) || 168;
+  const gap     = parseFloat(cs.columnGap) || 16;
+  const w       = grid.clientWidth;
+  const maxFit  = Math.max(1, Math.floor((w + gap) / (minTile + gap)));
+  // ≤ 1 hàng (n ≤ maxFit) → để CSS auto-fill: tile giữ bề ngang tự nhiên, canh trái — KHÔNG
+  // kéo giãn 1–2 đội còn lại chiếm cả chiều ngang. Chỉ chia đều khi tràn sang nhiều hàng.
+  if (n === 0 || n <= maxFit) { grid.style.gridTemplateColumns = ""; return; }
+  const cols = balancedColumns(n, maxFit);
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+}
+
+// Co giãn cửa sổ → tính lại số cột (debounce nhẹ). Số tile lấy từ DOM nên không cần state.
+let _layoutTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(_layoutTimer);
+  _layoutTimer = setTimeout(layoutFreeGrid, 120);
+});
+
 function renderState() {
   // myIcon còn hợp lệ? Chỉ mở khoá khi ĐÃ tải được state thật từ server và đội đó thực sự rỗng
   // (tránh xoá nhầm khi state chưa tải xong / fetch lỗi lúc mới vào trang).
@@ -172,7 +266,7 @@ function renderState() {
     if (tm.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
     open++;
     const mine    = g.icon === myIcon;
-    const canJoin = ready && !myIcon;        // chưa có đội mới được tham gia
+    const canJoin = ready && !myIcon && !dupBlocked; // chưa có đội & không bị chặn trùng mới được tham gia
     const pct     = Math.round(tm.count / CAPACITY * 100);
     const avas    = tm.names.slice(0, 5).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
                   + (tm.count > 5 ? `<span class="mini more">+${tm.count - 5}</span>` : "")
@@ -196,6 +290,7 @@ function renderState() {
     }
     grid.appendChild(t);
   });
+  layoutFreeGrid();   // chia đều số cột theo số đội còn chỗ hiện tại (vd 10 → 5/5)
   $("freeCount").textContent = `${open}/${ICONS.length} đội`;
   $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">→ Điền thông tin để mở khoá việc tham gia đội.</div>` : "";
   $("freeEmpty").innerHTML   = open === 0 ? `<div class="empty-note">${EMPTY_SVG}Tất cả các đội đều đã đủ người 🎉</div>` : "";
