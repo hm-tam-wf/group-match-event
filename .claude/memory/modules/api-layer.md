@@ -9,7 +9,7 @@ updated: 2026-06-04
 # API Layer
 
 ## Overview
-`api.js` là data layer duy nhất. Expose các hàm global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiRemoveProfile()`, `apiDedupTaken()`, `apiAllowlistAllowed()`/`apiAllowlistInfo()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
+`api.js` là data layer duy nhất. Expose các hàm global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiRemoveProfile()`, `apiDedupTaken()`, `apiRegReserve()`/`apiRegTaken()`, `apiAllowlistAllowed()`/`apiAllowlistInfo()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
 
 ## Backend auto-detection
 ```javascript
@@ -58,8 +58,33 @@ hoá ra TRÙNG (người khác đã JOIN trước): `doClaim` nhánh `"dup"`, `s
 khi `dupBlocked`. Lý do: hồ sơ lưu ở save-time (lúc MSNV còn trống) có thể trở thành rác trùng sau
 khi người khác join → dọn để admin không thấy data trùng. CHỈ xoá đúng `signups/{me.id}`, không đụng
 bản ghi người thắng (pid khác). → Rule `signups allow delete: if true` (xem [[firestore-schema]]).
-**Giới hạn:** nếu 2 người cùng nhập 1 MSNV mà CẢ HAI đều không join thì vẫn còn 2 dòng (chưa ai
-"thua" để dọn) — đúng kiểu "lưu mọi người điền form"; admin có cảnh báo trùng để nhận diện.
+
+## apiRegReserve() / apiRegTaken() — ĐẶT-CHỖ TIỀN-JOIN (reg_keys, 2026-06-04)
+Khắc phục giới hạn cũ: dedup_keys chỉ ghi lúc JOIN nên 2 người nhập CÙNG MSNV mà chưa ai join đều tạo
+signup → admin thấy 2 dòng trùng. signups KHOÁ ĐỌC → client không tự dò được. Giải pháp: **giữ chỗ công
+khai `reg_keys/{key}` NGAY khi điền form** (key = `_dedupKey(MSNV)`, giống dedup_keys; doc chỉ `{at}`,
+KHÔNG chứa pid → không lộ token).
+- **`apiRegReserve(value)`** — transaction: reg_keys/{key} đã có & KHÔNG phải chỗ mình ⇒ `{ok:false,
+  reason:"dup"}`; chưa có ⇒ `set {at}` + nhớ `reservedKey` (localStorage per-event, `sSet`). Đổi MSNV
+  (typo) ⇒ tự `delete` chỗ cũ để không khoá nhầm mã người khác. Fail-open (lỗi mạng/không bật ⇒ `{ok:true}`).
+- **PHẢI gọi apiRegReserve TRƯỚC MỌI apiSaveProfile** — có 2 chỗ ghi signups: `save()` (ui-render, sau
+  các cổng dedup/allowlist/namecheck) VÀ `init()` (app.js, đồng bộ hồ sơ phiên trước). **Bug 2026-06-04:**
+  ban đầu chỉ `save()` đặt-chỗ; `init()` ghi signup KHÔNG đặt-chỗ → hồ sơ điền phiên trước (localStorage)
+  được ghi lại không có reg_keys → người trùng MSNV sau đó KHÔNG bị chặn (2 dòng signup, chỉ 1 reg_key,
+  reg_key sinh ở thời điểm người THỨ HAI). Fix: `init()` cũng `apiRegReserve` trước `apiSaveProfile` (chỉ
+  khi `!myIcon`); trùng ⇒ dupBlocked + apiRemoveProfile (tự dọn bản thua khi reload).
+- **`apiRegTaken(value)`** — cổng VÀO TRANG (`init()` app.js, sau `apiDedupTaken`): reg_keys/{key} tồn tại
+  & KHÔNG phải chỗ mình ⇒ chặn. Bịt lỗ "bị chặn ở save() rồi reload để vào lưới" (người bị chặn không có
+  `reservedKey` → vẫn chặn). Chủ sở hữu (`reservedKey===key`) KHÔNG bị chặn.
+- **"Chỗ của mình"** = localStorage `reservedKey` (per-event, `shared:false`), KHÔNG phải pid-trong-doc →
+  doc reg_keys không lộ gì. Hệ quả CHỦ ĐÍCH: cùng người đổi THIẾT BỊ (pid mới, reservedKey trống) trước khi
+  join ⇒ bị chặn ở thiết bị thứ 2 ("1 MSNV = 1 đăng ký"). Chốt CỨNG vẫn là dedup_keys lúc JOIN (apiClaim).
+- **Giới hạn di trú:** reg_keys bắt đầu RỖNG → chỉ bảo vệ đăng ký MỚI (sau deploy). Signup CŨ (trước feature)
+  chưa có đặt-chỗ → newcomer cùng MSNV vẫn tạo được dòng trùng tới khi backfill. Backfill = admin (đọc được
+  signups) ghi reg_keys — CHƯA làm (kế hoạch duyệt: "reg_keys rỗng, dọn trùng cũ bằng tay").
+- Demo/sheet: no-op (`{ok:true}`/`false`) — không có signups trên server nên không có vấn đề dòng-trùng.
+→ Rule `reg_keys` (get:true, create hasOnly['at'], **delete:if true** cho typo-recovery) xem [[firestore-schema]].
+clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
 
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).

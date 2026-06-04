@@ -92,9 +92,12 @@ async function init() {
 
   // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
   // → chặn vào lưới chọn linh thú (kể cả khi đăng ký ở thiết bị khác). apiClaim vẫn là chốt cuối.
-  if (MODE === "firebase" && !myIcon && profileComplete()
-      && BLOCK_DUP && DEDUP_FIELD && typeof apiDedupTaken === "function") {
-    dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
+  // Hai lớp: dedup_keys (đã JOIN) HOẶC reg_keys (đã GIỮ CHỖ lúc điền form, không phải chỗ của mình).
+  if (MODE === "firebase" && !myIcon && profileComplete() && BLOCK_DUP && DEDUP_FIELD) {
+    if (typeof apiDedupTaken === "function")
+      dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
+    if (!dupBlocked && typeof apiRegTaken === "function")
+      dupBlocked = await apiRegTaken(me.fields[DEDUP_FIELD]);
   }
 
   // CỔNG danh sách cho phép NGAY KHI VÀO TRANG: bật allowlist & MSNV KHÔNG nằm trong danh sách
@@ -108,10 +111,22 @@ async function init() {
   // hoặc ngoài danh sách cho phép) thì KHÔNG lưu — và DỌN bản ghi của mình nếu đã lỡ lưu ở phiên
   // trước. Khớp với cổng chặn ở save()/doClaim.
   if (MODE === "firebase" && profileComplete()) {
-    if (!dupBlocked && !allowBlocked && typeof apiSaveProfile === "function") {
-      apiSaveProfile({ playerId: me.id, fields: me.fields });
-    } else if ((dupBlocked || allowBlocked) && typeof apiRemoveProfile === "function") {
-      apiRemoveProfile(me.id);
+    if (dupBlocked || allowBlocked) {
+      if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+    } else {
+      // ĐẶT-CHỖ TRƯỚC KHI GHI (giống save()) — đóng lỗ: trước đây init() ghi signup qua apiSaveProfile
+      // mà KHÔNG đặt-chỗ → hồ sơ điền ở phiên trước (vd trước khi deploy) được ghi lại không có reg_keys
+      // → người trùng MSNV sau đó không bị chặn. Đã join (myIcon) thì bỏ qua, chỉ đồng bộ lại hồ sơ.
+      let reserved = { ok: true };
+      if (!myIcon && BLOCK_DUP && DEDUP_FIELD && typeof apiRegReserve === "function") {
+        try { reserved = await apiRegReserve(me.fields[DEDUP_FIELD]); } catch (e) {}
+      }
+      if (reserved && reserved.ok === false) {
+        dupBlocked = true;                                                  // người khác đã giữ MSNV này
+        if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+      } else if (typeof apiSaveProfile === "function") {
+        apiSaveProfile({ playerId: me.id, fields: me.fields });
+      }
     }
   }
 

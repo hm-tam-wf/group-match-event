@@ -149,6 +149,21 @@ function showProfileModal() {
       return;
     }
 
+    // CỔNG đặt-chỗ TIỀN-JOIN — SAU mọi cổng trên, TRƯỚC khi ghi signups: giữ MSNV để KHÔNG ai tạo
+    // dòng signup thứ hai cùng mã (kể cả khi chưa ai join). Người khác đã giữ ⇒ chặn như trùng MSNV.
+    if (typeof apiRegReserve === "function") {
+      if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
+      let reserved = { ok: true };
+      try { reserved = await apiRegReserve(me.fields[DEDUP_FIELD]); } catch (e) {}
+      if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
+      if (reserved && reserved.ok === false) {
+        dupBlocked = true;
+        if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn signup trùng nếu lỡ lưu trước đó
+        renderProfile();            // dupBlocked && !myIcon && !editing → hiện modal chặn (KHÔNG ghi data)
+        return;
+      }
+    }
+
     // Chỉ ghi khi MSNV hợp lệ (không trùng, có trong danh sách); đồng bộ ngay cả khi CHƯA chọn đội để admin có data.
     apiSaveProfile({ playerId: me.id, fields: me.fields });
     closeDupBlockedModal();

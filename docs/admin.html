@@ -825,7 +825,7 @@
   }
   // Reset sự kiện về 0 người, GIỮ meta/config. Xóa cả teams để count/names về 0.
   async function clearEventData(eid) {
-    for (const c of ["signups", "members", "dedup_keys", "teams"]) {
+    for (const c of ["signups", "members", "dedup_keys", "reg_keys", "teams"]) {
       await deleteAll(`events/${eid}/${c}`);
     }
   }

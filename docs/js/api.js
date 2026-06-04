@@ -46,6 +46,55 @@ async function apiDedupTaken(value) {
   }
 }
 
+// ── ĐẶT-CHỖ TIỀN-JOIN (reg_keys) ─────────────────────────────────────────────
+// Vấn đề: dedup_keys chỉ được ghi lúc JOIN, nên 2 người điền CÙNG MSNV (trước khi ai join) đều tạo được
+// signup → admin thấy 2 dòng trùng. signups KHOÁ ĐỌC nên client không thể tự dò trùng. Giải pháp: giữ chỗ
+// công khai (reg_keys, get:true) keyed theo MSNV NGAY lúc điền form. Doc chỉ { at } — KHÔNG chứa pid (tránh
+// lộ token vì key = MSNV dễ đoán). "Chỗ của mình" theo dõi bằng localStorage reservedKey (per-event).
+//
+// apiRegReserve: transaction — nếu reg_keys/{key} đã có & KHÔNG phải chỗ mình ⇒ {ok:false,reason:"dup"};
+// chưa có ⇒ set {at} + nhớ reservedKey. Lỗi mạng/không bật ⇒ {ok:true} (fail-open; JOIN vẫn là chốt cuối).
+async function apiRegReserve(value) {
+  if (MODE !== "firebase" || !BLOCK_DUP || !DEDUP_FIELD) return { ok: true };
+  const key = _dedupKey(value);
+  if (!key) return { ok: true };                          // không có MSNV ⇒ không đặt chỗ (như dedupVal rỗng)
+  const mineKey = await sGet("reservedKey", false);
+  if (mineKey === key) return { ok: true };               // đúng chỗ mình đã giữ ⇒ cho qua (sửa lại hồ sơ)
+  try {
+    const ref = col("reg_keys").doc(key);
+    const res = await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      if (snap.exists) return { ok: false, reason: "dup" }; // người khác đã giữ chỗ MSNV này
+      tx.set(ref, { at: firebase.firestore.FieldValue.serverTimestamp() });
+      return { ok: true };
+    });
+    if (res.ok) {
+      // Đổi MSNV (gõ nhầm rồi sửa) ⇒ NHẢ chỗ cũ, tránh khoá vĩnh viễn mã của người khác.
+      if (mineKey && mineKey !== key) { try { await col("reg_keys").doc(mineKey).delete(); } catch (e) {} }
+      await sSet("reservedKey", key, false);
+    }
+    return res;
+  } catch (e) {
+    return { ok: true };                                  // lỗi mạng ⇒ KHÔNG chặn nhầm (JOIN là chốt cuối)
+  }
+}
+
+// Cổng VÀO TRANG: MSNV đã được người KHÁC giữ chỗ chưa? (chỗ của mình ⇒ không chặn). Chỉ đọc 1 doc reg_keys.
+// Bịt lỗ "bị chặn ở save() rồi reload để vào lưới": người bị chặn không có reservedKey ⇒ vẫn bị chặn ở cổng.
+async function apiRegTaken(value) {
+  if (MODE !== "firebase" || !BLOCK_DUP || !DEDUP_FIELD) return false;
+  const key = _dedupKey(value);
+  if (!key) return false;
+  const mineKey = await sGet("reservedKey", false);
+  if (mineKey === key) return false;                      // chỗ của mình ⇒ KHÔNG chặn
+  try {
+    const snap = await col("reg_keys").doc(key).get();
+    return snap.exists;
+  } catch (e) {
+    return false;
+  }
+}
+
 // Khi ALLOWLIST_MODE bật: kiểm tra định danh (DEDUP_FIELD) có nằm trong allowlist chưa — để CHẶN NGAY
 // ở cổng vào (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc allowlist (rules cho phép get).
 // Trả {allowed, name}: allowed=TRUE (cho qua) khi không bật chế độ / không firebase / lỗi mạng → KHÔNG
