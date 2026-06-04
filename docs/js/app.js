@@ -32,12 +32,12 @@ async function doClaim(g) {
       renderStateIfChanged(true); // khoá toàn bộ tile ngay lập tức
     } else {
       const r = res && res.reason;
-      if      (r === "full")      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
-      else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
-      else if (r === "dup")     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
-      else if (r === "notAllowed") { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast("Bạn không có trong danh sách được phép tham gia sự kiện này. Vui lòng liên hệ ban tổ chức."); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
-      else if (r === "nameMismatch") { editing = true; toast("Họ tên không khớp với danh sách được phép. Vui lòng nhập đúng họ tên đã đăng ký."); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
-      else if (r === "missing")   toast("Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.");   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
+      if      (r === REASON.FULL)      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
+      else if (r === REASON.ALREADY)   toast("Bạn đã tham gia một đội rồi.");
+      else if (r === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
+      else if (r === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast("Bạn không có trong danh sách được phép tham gia sự kiện này. Vui lòng liên hệ ban tổ chức."); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
+      else if (r === REASON.NAME_MISMATCH) { editing = true; toast("Họ tên không khớp với danh sách được phép. Vui lòng nhập đúng họ tên đã đăng ký."); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
+      else if (r === REASON.MISSING)   toast("Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.");   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
       else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
     }
@@ -75,25 +75,25 @@ async function refresh(force) {
 
 async function loadMe() {
   try {
-    const raw = await sGet("me", false);
+    const raw = await sGet(SK.ME, false);
     if (raw) { const o = JSON.parse(raw); me = o.me || me; myIcon = o.myIcon || null; }
   } catch (e) {}
 }
 
 async function saveMe() {
-  await sSet("me", JSON.stringify({ me, myIcon }), false);
+  await sSet(SK.ME, JSON.stringify({ me, myIcon }), false);
 }
 
 // ── Hàm init(): chạy SAU KHI boot() đã nạp xong config từ Firestore ──────────
 async function init() {
   await loadMe();
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
-  if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); await sDel("reservedKey", false); }   // danh tính MỚI ⇒ NHẢ reservedKey cũ (bịt lỗ H2: nếu "me" bị xoá nhưng reservedKey còn sót → cổng trùng short-circuit "chỗ của mình" cho qua nhầm)
+  if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); await sDel(SK.RESERVED_KEY, false); }   // danh tính MỚI ⇒ NHẢ reservedKey cũ (bịt lỗ H2: nếu "me" bị xoá nhưng reservedKey còn sót → cổng trùng short-circuit "chỗ của mình" cho qua nhầm)
 
   // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
   // → chặn vào lưới chọn linh thú (kể cả khi đăng ký ở thiết bị khác). apiClaim vẫn là chốt cuối.
   // Hai lớp: dedup_keys (đã JOIN) HOẶC reg_keys (đã GIỮ CHỖ lúc điền form, không phải chỗ của mình).
-  if (MODE === "firebase" && !myIcon && profileComplete() && BLOCK_DUP && DEDUP_FIELD) {
+  if (MODE === MODE_FIREBASE && !myIcon && profileComplete() && BLOCK_DUP && DEDUP_FIELD) {
     if (typeof apiDedupTaken === "function")
       dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
     if (!dupBlocked && typeof apiRegTaken === "function")
@@ -102,7 +102,7 @@ async function init() {
 
   // CỔNG danh sách cho phép NGAY KHI VÀO TRANG: bật allowlist & MSNV KHÔNG nằm trong danh sách
   // → chặn vào lưới chọn đội (giống cổng chống trùng). apiClaim vẫn là chốt cuối.
-  if (MODE === "firebase" && !myIcon && !dupBlocked && profileComplete()
+  if (MODE === MODE_FIREBASE && !myIcon && !dupBlocked && profileComplete()
       && ALLOWLIST_MODE && DEDUP_FIELD && typeof apiAllowlistAllowed === "function") {
     allowBlocked = !(await apiAllowlistAllowed(me.fields[DEDUP_FIELD]));
   }
@@ -110,7 +110,7 @@ async function init() {
   // Đồng bộ hồ sơ lên server để admin có data (kể cả CHƯA chọn đội). NHƯNG nếu bị chặn (trùng MSNV
   // hoặc ngoài danh sách cho phép) thì KHÔNG lưu — và DỌN bản ghi của mình nếu đã lỡ lưu ở phiên
   // trước. Khớp với cổng chặn ở save()/doClaim.
-  if (MODE === "firebase" && profileComplete()) {
+  if (MODE === MODE_FIREBASE && profileComplete()) {
     if (dupBlocked || allowBlocked) {
       if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
     } else {
@@ -132,7 +132,7 @@ async function init() {
 
   renderProfile();         // token mới → bật popup; đã thông tin → tóm tắt / banner; trùng MSNV → modal chặn
   await refresh(true);
-  if (MODE === "firebase" && typeof apiSubscribe === "function") {
+  if (MODE === MODE_FIREBASE && typeof apiSubscribe === "function") {
     // realtime: server tự ĐẨY thay đổi của các đội → KHÔNG poll. onSnapshot tự kết nối lại
     // và đồng bộ khi online trở lại, nên rẻ nhất mà vẫn tức thì.
     apiSubscribe(teams => { if (busy) return; state = teams; stateLoaded = true; renderStateIfChanged(false); });
@@ -143,7 +143,7 @@ async function init() {
 
 // ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
 (async function boot() {
-  if (MODE !== "firebase") {
+  if (MODE !== MODE_FIREBASE) {
     // Demo/sheet: dùng DEFAULT_* đã có sẵn, chạy thẳng
     rebuildByEmoji();
     await init();

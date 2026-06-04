@@ -7,6 +7,15 @@ try { localStorage.setItem("__lt_probe", "1"); localStorage.removeItem("__lt_pro
 const LS_PREFIX = "linhthu:";
 const sk = key => key + ":" + EVENT_ID;   // namespace dữ liệu cục bộ theo sự kiện
 
+// Khoá lưu trữ cục bộ ở tầng app (CONTRACT — đổi VALUE = mất trạng thái người dùng cũ; chỉ gom một nơi — §4).
+const SK = {
+  ME:             "me",
+  CLAIMS:         "claims",
+  RESERVED_KEY:   "reservedKey",
+  ALLOWLIST_MODE: "allowlistMode",
+  ALLOWLIST:      "allowlist",
+};
+
 async function sGet(key, shared) {
   try {
     if (REAL)  { const r = await window.storage.get(sk(key), shared); return r ? r.value : null; }

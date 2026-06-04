@@ -1,4 +1,4 @@
-const MODE    = (typeof FIREBASE_ON !== "undefined" && FIREBASE_ON) ? "firebase" : (SCRIPT_URL ? "sheet" : "demo");
+const MODE    = (typeof FIREBASE_ON !== "undefined" && FIREBASE_ON) ? MODE_FIREBASE : (SCRIPT_URL ? MODE_SHEET : MODE_DEMO);
 const REAL    = !!(window.storage && typeof window.storage.get === "function");
 const $       = id => document.getElementById(id);
 const byEmoji = {};
@@ -31,13 +31,14 @@ const labelOf = key => (FIELDS.find(f => f.key === key) || {}).label || key;
 const esc = s => (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 let toastTimer;
+const TOAST_HIDE_MS = 2400;   // thời gian tự ẩn toast (ms) khi không sticky
 // sticky=true → giữ toast cho tới khi gọi toast() kế tiếp (dùng cho trạng thái "đang ghi nhận…").
 function toast(msg, sticky) {
   const el = $("toast");
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  if (!sticky) toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
+  if (!sticky) toastTimer = setTimeout(() => el.classList.remove("show"), TOAST_HIDE_MS);
 }
 
 function validEmployeeId(v) { return /^[A-Za-z0-9]{3,20}$/.test((v || "").trim()); }

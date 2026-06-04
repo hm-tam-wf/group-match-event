@@ -10,6 +10,11 @@ const EMPTY_SVG = `<svg class="empty-ic" viewBox="0 0 80 56" fill="none" xmlns="
   <circle cx="55" cy="38" r="2.4" fill="#FFB3D1"/>
 </svg>`;
 
+// Hằng số hiển thị (§4 — chống magic number)
+const AVATAR_PREVIEW_MAX = 5;     // số avatar hiện ở mỗi tile trước khi gộp thành "+N"
+const CONFETTI_COUNT     = 28;    // số mảnh confetti trong popup chúc mừng
+const RESIZE_DEBOUNCE_MS = 120;   // debounce tính lại số cột lưới khi resize cửa sổ
+
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
 // Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
@@ -250,7 +255,7 @@ function showJoinedModal(g) {
   bg.className = "modal-bg";
   bg.innerHTML = `
     <div class="modal joined-modal" style="--c:${g.color}">
-      <div class="confetti">${"<i></i>".repeat(28)}</div>
+      <div class="confetti">${"<i></i>".repeat(CONFETTI_COUNT)}</div>
       <div class="jm-icon">${g.icon}</div>
       <h3>Chúc mừng! 🎉</h3>
       <p>Bạn đã tham gia <b>đội ${esc(g.name)}</b>.<br>Hẹn gặp bạn cùng đồng đội nhé!</p>
@@ -318,7 +323,7 @@ function layoutFreeGrid() {
 let _layoutTimer;
 window.addEventListener("resize", () => {
   clearTimeout(_layoutTimer);
-  _layoutTimer = setTimeout(layoutFreeGrid, 120);
+  _layoutTimer = setTimeout(layoutFreeGrid, RESIZE_DEBOUNCE_MS);
 });
 
 function renderState() {
@@ -352,8 +357,8 @@ function renderState() {
     const mine    = g.icon === myIcon;
     const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách) mới được tham gia
     const pct     = Math.round(tm.count / CAPACITY * 100);
-    const avas    = tm.names.slice(0, 5).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
-                  + (tm.count > 5 ? `<span class="mini more">+${tm.count - 5}</span>` : "")
+    const avas    = tm.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
+                  + (tm.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${tm.count - AVATAR_PREVIEW_MAX}</span>` : "")
                   || `<span class="mini empty">·</span>`;
     const label   = !ready ? "Điền thông tin" : (myIcon ? (mine ? "Đội của bạn" : "Đã có đội") : "Tham gia");
 
