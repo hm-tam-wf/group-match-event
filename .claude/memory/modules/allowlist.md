@@ -1,7 +1,7 @@
 ---
 title: allowlist
 tags: [module, feature]
-code: [docs/admin.html, docs/js/api.js, docs/js/app.js, docs/js/ui-render.js, docs/js/ui-utils.js, firestore.rules, sample-allowlist/]
+code: [docs/admin.html, docs/js/data/api.js, docs/js/app.js, docs/js/ui/ui-render.js, docs/js/ui/ui-utils.js, backend/firestore.rules, sample-allowlist/]
 related: [[index]], [[api-layer]], [[admin-panel]], [[firestore-schema]], [[ui-pipeline]]
 updated: 2026-06-04
 ---

@@ -1,7 +1,7 @@
 ---
 title: firestore-schema
 tags: [module, backend, data]
-code: [firestore.rules, docs/js/api.js, docs/js/config.js]
+code: [backend/firestore.rules, docs/js/data/api.js, docs/js/config/config.js]
 related: [[index]], [[architecture]], [[api-layer]]
 updated: 2026-06-04
 ---
@@ -95,7 +95,7 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 `CAPACITY` xuất hiện ở 2 nơi:
 | File | Role |
 |------|------|
-| `docs/js/config.js` | Frontend default hiển thị |
+| `docs/js/config/config.js` | Frontend default hiển thị |
 | `firestore.rules` `cap()` | Server-side enforcement |
 
 **Luôn cập nhật cả 2 cùng lúc.** Nếu rules có capacity 10 nhưng config.js hiển thị 15 → UI cho join nhưng rules reject → confusing error.

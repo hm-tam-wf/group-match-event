@@ -10,7 +10,7 @@ updated: 2026-06-03
 ## Commands
 - Dev: `npx serve docs` hoặc VS Code Live Server trên `docs/index.html`
 - Export signups: `npm run export` (cần `serviceAccountKey.json`)
-- Load test: `node loadtest.js` (500 concurrent signups)
+- Load test: `node backend/scripts/loadtest.js` (500 concurrent signups)
 - Deploy: `git push` — GitHub Pages tự serve `docs/` (không có build step)
 
 ## Code style
