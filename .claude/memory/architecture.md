@@ -14,8 +14,8 @@ updated: 2026-06-03
 - **Frontend (`docs/`)** — Static HTML/CSS/JS, không build, ship thẳng lên GitHub Pages. Tất cả logic ở browser-side.
 - **Firestore** — Primary database. Realtime push (onSnapshot). Client ghi trực tiếp qua SDK (rules bảo vệ).
 - **Firebase Auth** — Chỉ dùng cho admin panel. Người dùng thường không cần auth.
-- **Google Apps Script** (`legacy-apps-script/`) — Backend cũ, archived. Không còn dùng.
-- **Admin tools** (`export.js`, `loadtest.js`) — Node.js scripts chạy local, dùng firebase-admin.
+- **Google Apps Script** (`legacy/apps-script/`) — Backend cũ, archived. Không còn dùng.
+- **Admin tools** (`backend/scripts/export.js`, `backend/scripts/loadtest.js`) — Node.js scripts chạy local, dùng firebase-admin.
 
 ## How they connect
 1. Browser load `docs/index.html` → scripts load theo thứ tự cố định (xem [[conventions]])
@@ -36,8 +36,8 @@ meta/config          — event config: title, fields, icons, capacity (admin-wri
 
 ## Capacity management — critical sync point
 `CAPACITY` phải nhất quán ở 2 nơi:
-1. `docs/js/config.js` — frontend default
-2. `firestore.rules` function `cap()` — hoặc đọc từ `meta/config.capacity` (dynamic)
+1. `docs/js/config/config.js` — frontend default
+2. `backend/firestore.rules` function `cap()` — hoặc đọc từ `meta/config.capacity` (dynamic)
 
 Xem chi tiết: [[firestore-schema]]
 

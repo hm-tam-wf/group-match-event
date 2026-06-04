@@ -1,7 +1,7 @@
 ---
 title: design-tokens
 tags: [ui, component]
-code: [docs/css/styles.css, docs/admin.html]
+code: [docs/assets/styles.css, docs/admin.html]
 related: [[index]], [[ui-pipeline]]
 updated: 2026-06-03
 ---

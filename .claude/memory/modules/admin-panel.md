@@ -1,7 +1,7 @@
 ---
 title: admin-panel
 tags: [module, admin]
-code: [docs/admin.html, docs/js/api.js, export.js]
+code: [docs/admin.html, docs/js/data/api.js, backend/scripts/export.js]
 related: [[index]], [[architecture]], [[firestore-schema]]
 updated: 2026-06-04
 ---

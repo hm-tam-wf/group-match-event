@@ -1,7 +1,7 @@
 ---
 title: allowlist
 tags: [module, feature]
-code: [docs/admin.html, docs/js/api.js, docs/js/app.js, docs/js/ui-render.js, docs/js/ui-utils.js, firestore.rules, sample-allowlist/]
+code: [docs/admin.html, docs/js/data/api.js, docs/js/app.js, docs/js/ui/ui-render.js, docs/js/ui/ui-utils.js, backend/firestore.rules, sample-allowlist/]
 related: [[index]], [[api-layer]], [[admin-panel]], [[firestore-schema]], [[ui-pipeline]]
 updated: 2026-06-04
 ---
@@ -69,6 +69,25 @@ Toggle `fAllowlistMode` trong form phụ thuộc `dedupField` (`syncAllowlistTog
 - **Bật mode + danh sách RỖNG = khoá tất cả**. Tab có cảnh báo đỏ `alWarnEmpty`.
 - Xoá hẳn sự kiện có `deleteAll(events/{id}/allowlist)`; "Xóa dữ liệu" (`clearEventData`) KHÔNG đụng allowlist.
 - JSON mẫu (A/B/C) KHÔNG được importer dùng (importer là tabular CSV/XLSX) — chỉ để tham khảo.
+
+## Sửa sau review (2026-06-04) — 4 bug do feature gây ra
+Review phản biện đa-lens phát hiện & vá (commit sau merge feat):
+- **Bẫy popup cho người ĐÃ join** (`ui-render.js` renderProfile): feature đổi cổng lưới
+  `profileComplete()`→`profileValid()` (chặt hơn: ép `name` required + `validName` + format). Người join
+  ở phiên CŨ có hồ sơ không qua validate mới (vd tên 1 ký tự / sự kiện cũ để name không bắt buộc) bị đẩy
+  ngược vào popup KHÔNG-huỷ-được dù đã ở trong đội. Fix: `done = (myIcon || profileValid()) && !editing`
+  — đã join thì luôn hiện tóm tắt. (`ready`/`canJoin` GIỮ `profileValid && !myIcon` để người chưa join vẫn bị chặn.)
+- **Tự xoá signup của chính mình** (`ui-render.js` save()): cổng `apiDedupTaken`/`apiRegReserve` thiếu
+  `!myIcon` → người đã join sửa lại hồ sơ → `dedup_keys/{key}` của CHÍNH MÌNH tồn tại → bị coi là trùng →
+  `apiRemoveProfile(me.id)` xoá signup (mất `icon`+`at` gốc). Fix: thêm `!myIcon &&` vào cả 2 cổng (khớp init()/doClaim).
+- **Import nhầm cột 0** (`admin.html` onFile): khi không tìm thấy cột định danh, `apply()` vẫn chạy ngay với
+  cột 0 + báo "Đọc được N… hợp lệ" (xanh) đè cảnh báo đỏ → admin import nhầm cột STT làm khoá → mọi người
+  `notAllowed`. Fix: `if (colIdx >= 0) apply()` — không thấy cột thì chờ admin chọn.
+- **Regex cột tên bắt nhầm `username`** (`admin.html` nameIdx): `…|name|…` không neo → "username/lastname/
+  displayName" đứng trước cột tên thật bị nhận là cột tên → poison NAMECHECK (mọi người `nameMismatch`).
+  Fix: neo `^(full\s*)?name$`. Test 8 ca pass.
+- (False-positive đã loại: `_dedupKey` lệch `v==null?"":v` (admin) vs `v||""` (api) cho 0/false — vô hại
+  vì phía claim luôn nhận STRING; chỉ là chú thích "GIỐNG HỆT" hơi quá, KHÔNG sửa.)
 
 ## Fixtures (`sample-allowlist/`, đã commit) — 20 MSNV `NV2026001…020`
 `-A.json` mảng string · `-B.json` mảng object `{employeeId,hoTen}` · `-C.json` map · `.csv` header

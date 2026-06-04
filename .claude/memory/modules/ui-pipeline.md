@@ -1,7 +1,7 @@
 ---
 title: ui-pipeline
 tags: [module, ui]
-code: [docs/js/app.js, docs/js/ui-render.js, docs/js/ui-utils.js, docs/index.html]
+code: [docs/js/app.js, docs/js/ui/ui-render.js, docs/js/ui/ui-utils.js, docs/index.html]
 related: [[index]], [[architecture]], [[design-tokens]]
 updated: 2026-06-03
 ---

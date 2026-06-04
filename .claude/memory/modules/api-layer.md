@@ -1,7 +1,7 @@
 ---
 title: api-layer
 tags: [module]
-code: [docs/js/api.js, docs/js/config.js, docs/js/firebase-config.js]
+code: [docs/js/data/api.js, docs/js/config/config.js, docs/js/config/firebase-config.js]
 related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]]
 updated: 2026-06-04
 ---

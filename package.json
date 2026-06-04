@@ -4,6 +4,6 @@
     "firebase-admin": "^13.0.0"
   },
   "scripts": {
-    "export": "node export.js"
+    "export": "node backend/scripts/export.js"
   }
 }

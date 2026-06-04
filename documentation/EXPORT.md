@@ -7,7 +7,7 @@ Công cụ `export.js` đọc collection `signups` trên Firestore (dự án **i
 1. Mở **Firebase Console** của dự án `icon-picker`.
 2. Vào **Project settings** (biểu tượng bánh răng) → tab **Service accounts**.
 3. Bấm **Generate new private key** → xác nhận để tải file JSON về.
-4. Lưu file đó với tên **`serviceAccountKey.json`** ở **thư mục gốc của dự án** (cùng cấp với `export.js`).
+4. Lưu file đó với tên **`serviceAccountKey.json`** ở **thư mục gốc của dự án** (nơi chạy `npm run export`).
 
 > ⚠️ KHÔNG chia sẻ và KHÔNG commit file khóa này lên git. Đây là khóa bí mật có toàn quyền truy cập dự án. File đã được thêm vào `.gitignore`.
 
@@ -28,19 +28,19 @@ npm run export
 hoặc tương đương:
 
 ```bash
-node export.js
+node backend/scripts/export.js
 ```
 
 ### Tùy chọn (không bắt buộc, không phụ thuộc thứ tự)
 
 - Dùng khóa ở đường dẫn khác:
   ```bash
-  node export.js --key C:\duong-dan\key.json
+  node backend/scripts/export.js --key C:\duong-dan\key.json
   ```
   (cũng chấp nhận dạng `--key=C:\duong-dan\key.json`)
 - Đặt tên/đường dẫn file CSV theo ý muốn:
   ```bash
-  node export.js --out danh-sach.csv
+  node backend/scripts/export.js --out danh-sach.csv
   ```
 - Hoặc dùng biến môi trường `GOOGLE_APPLICATION_CREDENTIALS` trỏ tới file khóa.
 
