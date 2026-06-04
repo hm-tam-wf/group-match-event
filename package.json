@@ -4,6 +4,7 @@
     "firebase-admin": "^13.0.0"
   },
   "scripts": {
-    "export": "node backend/scripts/export.js"
+    "export": "node backend/scripts/export.js",
+    "dedup:signups": "node backend/scripts/dedup-signups.js"
   }
 }
