@@ -100,7 +100,18 @@ function showProfileModal() {
     </div>`;
   document.body.appendChild(modalBgEl);
 
+  // Chống tái-nhập: giữ phím Enter (auto-repeat) hoặc submit dồn sẽ chạy 2 luồng save() SONG SONG →
+  // cả hai cùng vào apiRegReserve khi reservedKey CHƯA kịp ghi (đều thấy "chỗ mới") → 1 luồng bị
+  // transaction retry thấy 'exists' → trả dup → tự chặn "trùng MSNV" CHÍNH MÌNH + xoá signup của mình.
+  // Bọc 1 lớp khoá quanh logic lưu: chỉ cho 1 luồng chạy, finally nhả khoá ở MỌI lối thoát (gồm
+  // name-mismatch giữ popup mở để sửa). Khoá đặt SAU khi đã có doSave để tránh TDZ ở lần gọi.
+  let saving = false;
   const save = async () => {
+    if (saving) return;                 // đã có 1 luồng save() đang chạy → bỏ lần gọi dồn
+    saving = true;
+    try { await doSave(); } finally { saving = false; }
+  };
+  const doSave = async () => {
     let ok = true;
     FIELDS.forEach(f => {
       const inp = $("f_" + f.key), msg = $("m_" + f.key);

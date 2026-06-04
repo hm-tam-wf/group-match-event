@@ -83,6 +83,14 @@ KHÔNG chứa pid → không lộ token).
   `await sDel("reservedKey")` → nhả reservedKey cũ. Bịt lỗ: trước đây `me` bị xoá nhưng reservedKey còn sót
   → `apiRegReserve`/`apiRegTaken` short-circuit "chỗ của mình" cho qua nhầm. Returning user còn `me.id` ⇒
   không chạy ⇒ giữ reservation. Không đổi hành vi cổng.
+- **Fix race tái-nhập `save()` (2026-06-04, ui-render.js):** `save()` (popup hồ sơ) trước đây KHÔNG có
+  khoá tái-nhập như `doClaim` (cờ `busy`), và handler Enter gọi thẳng `save()` không xét `btn.disabled`
+  → giữ phím Enter (auto-repeat) / submit dồn chạy 2 luồng SONG SONG, cả hai vào `apiRegReserve` khi
+  `reservedKey` chưa kịp ghi → 1 luồng bị transaction retry thấy `exists` → `dup` → tự chặn "trùng MSNV"
+  CHÍNH MÌNH + xoá signup của mình (recoverable: "Nhập mã khác" → reservedKey đã set → cho qua). Vá: bọc
+  `save` quanh `doSave` bằng cờ `saving` (chỉ 1 luồng; `finally` nhả khoá ở MỌI lối thoát, gồm
+  name-mismatch giữ popup mở). Bất biến CỨNG (capacity / 1-đội / dedup lúc JOIN) vốn đã an toàn nhờ
+  transaction đọc-trước-ghi — đây chỉ là race MỀM (cosmetic signups + UX).
 - **Giới hạn di trú + vì sao KHÔNG backfill (2026-06-04):** reg_keys bắt đầu RỖNG → chỉ bảo vệ đăng ký MỚI.
   Signup CŨ (trước deploy `e92ffef` 14:14) chưa có đặt-chỗ. **Backfill reg_keys ĐÃ BỊ LOẠI** vì nó KHOÁ NHẦM
   chính chủ: ownership chỉ theo `reservedKey` (localStorage per-browser, server KHÔNG set được) → backfill xong,
