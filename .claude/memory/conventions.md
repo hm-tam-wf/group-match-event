@@ -21,6 +21,16 @@ updated: 2026-06-03
   — Sai thứ tự = undefined reference errors ngay lập tức
 - **CSS variables** cho toàn bộ design tokens (xem [[design-tokens]])
 - **Không có linting** — code style maintain thủ công
+- **Chống hardcode (một nguồn sự thật):** KHÔNG nhúng magic value rải rác. Dùng hằng số đặt tên,
+  khai báo ĐÚNG MỘT nơi (file nạp trước nơi dùng) rồi tham chiếu lại:
+  - `MODE_FIREBASE/SHEET/DEMO` (api.js) — thay literal `"firebase"/"sheet"/"demo"`
+  - `COL.*` (api.js) — tên collection Firestore (`teams/members/dedup_keys/signups/reg_keys/allowlist`)
+  - `REASON.*` (api.js) — mã lý do apiClaim/apiReg* trả về (`dup/full/already/notAllowed/...`)
+  - `SK.*` (storage.js) — khoá localStorage tầng app (`me/claims/reservedKey/allowlistMode/allowlist`)
+  - Magic number UI: `AVATAR_PREVIEW_MAX/CONFETTI_COUNT/RESIZE_DEBOUNCE_MS` (ui-render.js), `TOAST_HIDE_MS` (ui-utils.js)
+  - **CONTRACT** (giữ VALUE cố định): tên field/collection Firestore, khoá localStorage, prefix `linhthu:`,
+    CSS id/class HTML tham chiếu — đổi tên là migration, KHÔNG phải refactor. Chỉ được gom về hằng, không đổi value.
+  - `admin.html` có bản copy literal RIÊNG (inline JS, không share global) — sửa đồng bộ thủ công nếu đổi.
 
 ## Git
 - **Branch naming:** `feat/<feature>`, `fix/<bug>`, `chore/<task>`, `refactor/<scope>`
