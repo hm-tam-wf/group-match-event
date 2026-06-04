@@ -252,7 +252,7 @@ async function apiClaim(payload) {
       tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
       tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
       if (dedupRef) tx.set(dedupRef, { at });                                    // guard: chỉ tồn-tại
-      tx.set(signupRef, { ...f, playerId: pid, icon, at }, { merge: true });     // PII: merge để GIỮ hồ sơ đã ghi lúc điền xong, chỉ gắn thêm icon
+      tx.set(signupRef, { ...fields, playerId: pid, icon, at }, { merge: true });     // PII: merge để GIỮ hồ sơ đã ghi lúc điền xong, chỉ gắn thêm icon
       return { ok: true };
     });
 
