@@ -16,3 +16,6 @@ fix-dedup.js
 make-preview.js
 preview-*.html
 shot-*.png
+
+# Log chẩn đoán của Firebase CLI (sinh khi deploy) — không commit
+*-debug.log

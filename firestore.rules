@@ -53,6 +53,19 @@ service cloud.firestore {
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
+      // Đặt-chỗ TIỀN-JOIN: giữ MSNV NGAY khi điền form để KHÔNG tạo signup thứ hai cùng mã (trước cả khi
+      // join). key = _dedupKey(<dedupField>) — chuẩn hoá GIỐNG dedup_keys. Doc chỉ { at } (KHÔNG chứa pid
+      // → không lộ token dù key = MSNV dễ đoán). Chốt CỨNG vẫn là dedup_keys (ghi lúc JOIN); đây là chốt mềm.
+      match /reg_keys/{key} {
+        allow get:    if true;            // client transaction + cổng vào đọc theo key đã biết
+        allow list:   if isAdmin();       // chỉ admin liệt kê khi clear; KHÔNG mở cho client (chống enumerate)
+        allow create: if request.resource.data.keys().hasOnly(['at']);
+        allow update: if false;
+        // delete tự do: chủ đặt-chỗ TỰ NHẢ khi đổi/sửa MSNV (typo) để không khoá nhầm mã người khác. Stakes
+        // thấp: chỉ chốt tiền-join; xoá chỗ chỉ "mở lại" mã (= như chưa giữ), không đụng dedup_keys/signups.
+        allow delete: if true;
+      }
+
       // Danh sách cho phép (allowlist): chỉ key có trong đây mới claim được khi meta/config.allowlistMode = true.
       // key = _dedupKey(<giá trị dedupField>) — chuẩn hoá GIỐNG HỆT dedup_keys để import & claim khớp tuyệt đối.
       match /allowlist/{key} {

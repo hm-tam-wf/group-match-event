@@ -22,6 +22,14 @@ members/{playerId}
 
 dedup_keys/{empId_hashed}
   ts: timestamp         — thời điểm đăng ký (privacy: không store value)
+  — GHI lúc JOIN (apiClaim transaction). Chốt CỨNG chống trùng. delete = admin only.
+
+reg_keys/{empId_hashed}   — ĐẶT-CHỖ TIỀN-JOIN (2026-06-04)
+  at: timestamp         — giữ MSNV NGAY khi điền form (trước cả khi join) để KHÔNG tạo signup thứ 2 cùng mã.
+  — key = _dedupKey(MSNV) (giống dedup_keys); doc chỉ { at } (KHÔNG chứa pid → không lộ token).
+  — GET: public (cổng vào + transaction đọc). LIST: admin. CREATE: hasOnly(['at']). UPDATE: false.
+  — DELETE: if true (chủ tự nhả khi đổi/sửa MSNV — typo-recovery; stakes thấp, chốt cứng là dedup_keys).
+  — "Chỗ của mình" theo dõi bằng localStorage reservedKey, KHÔNG ở trong doc. Xem apiRegReserve [[api-layer]].
 
 signups/{playerId}
   name, empId, playerId, icon?, at — full PII của MỌI người đã NHẬP THÔNG TIN
@@ -70,6 +78,10 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
    đụng độ pre-join (xem `apiRemoveProfile` trong [[api-layer]]). An toàn vì signups KHOÁ ĐỌC + pid là
    token ngẫu nhiên → chỉ chủ (biết pid của mình) xoá được, không enumerate/đoán pid người khác.
    Admin vẫn xoá được (`if true` bao trùm). Client `apiRemoveProfile` chỉ gọi với `me.id`.
+8. **reg_keys delete = `if true` (từ 2026-06-04):** đặt-chỗ tiền-join (xem điểm collection ở trên +
+   `apiRegReserve` [[api-layer]]). delete mở để chủ TỰ NHẢ chỗ khi đổi/sửa MSNV (typo) — không để mã
+   người khác bị khoá vĩnh viễn. Stakes thấp: reg_keys chỉ là chốt MỀM tiền-join, xoá chỉ "mở lại" mã
+   (= như chưa giữ), KHÔNG đụng dedup_keys (chốt cứng, delete=admin) hay signups. `clearEventData` clear nó.
 
 ## Registry & event-list (config docs ngoài namespace)
 - `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.

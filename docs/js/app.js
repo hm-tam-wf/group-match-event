@@ -92,9 +92,12 @@ async function init() {
 
   // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
   // → chặn vào lưới chọn linh thú (kể cả khi đăng ký ở thiết bị khác). apiClaim vẫn là chốt cuối.
-  if (MODE === "firebase" && !myIcon && profileComplete()
-      && BLOCK_DUP && DEDUP_FIELD && typeof apiDedupTaken === "function") {
-    dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
+  // Hai lớp: dedup_keys (đã JOIN) HOẶC reg_keys (đã GIỮ CHỖ lúc điền form, không phải chỗ của mình).
+  if (MODE === "firebase" && !myIcon && profileComplete() && BLOCK_DUP && DEDUP_FIELD) {
+    if (typeof apiDedupTaken === "function")
+      dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
+    if (!dupBlocked && typeof apiRegTaken === "function")
+      dupBlocked = await apiRegTaken(me.fields[DEDUP_FIELD]);
   }
 
   // CỔNG danh sách cho phép NGAY KHI VÀO TRANG: bật allowlist & MSNV KHÔNG nằm trong danh sách
