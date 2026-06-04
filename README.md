@@ -1,6 +1,6 @@
-# Linh Thú Của Bạn — đăng ký chia đội
+# Icon Match — Thành lập đội
 
-Web app cho sự kiện: mỗi **linh thú (icon) = 1 đội**, tối đa `CAPACITY` (mặc định **10**) thành viên.
+Web app cho sự kiện: mỗi **icon = 1 đội**, tối đa `CAPACITY` (mặc định **10**) thành viên.
 Người chơi điền thông tin → tham gia 1 đội; đội đủ người thì chốt danh sách. Mỗi người chỉ vào **1 đội**.
 
 Frontend là **web tĩnh** (HTML + CSS + JS thường), deploy trên **GitHub Pages** (thư mục `docs/`).

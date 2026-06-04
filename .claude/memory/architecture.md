@@ -8,7 +8,7 @@ updated: 2026-06-03
 # Architecture
 
 ## Overview
-**Linh Thú Của Bạn** là app đăng ký sự kiện theo team, dành cho sự kiện nội bộ (~500 người đồng thời). Mỗi icon/emoji đại diện cho 1 đội. Người dùng điền tên + mã nhân viên → chọn đội → join. Đội tự khoá khi đầy (mặc định 10 người). Mỗi người chỉ join được 1 đội. Không cần đăng nhập để tham gia.
+**Icon Match** là app đăng ký sự kiện theo team, dành cho sự kiện nội bộ (~500 người đồng thời). Mỗi icon/emoji đại diện cho 1 đội. Người dùng điền tên + mã nhân viên → chọn đội → join. Đội tự khoá khi đầy (mặc định 10 người). Mỗi người chỉ join được 1 đội. Không cần đăng nhập để tham gia.
 
 ## Big pieces
 - **Frontend (`docs/`)** — Static HTML/CSS/JS, không build, ship thẳng lên GitHub Pages. Tất cả logic ở browser-side.
