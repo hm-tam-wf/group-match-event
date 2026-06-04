@@ -48,8 +48,10 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
   với key `"hoten"` thay vì `"name"` (config.fields lấy từ admin, không bị ép key).
 - Ép phía admin: `validateForm` bắt buộc field key "name" (required) + chặn key trùng;
   `resetForm` seed sẵn `DEFAULT_FIELDS` (name+employeeId) cho form tạo mới — xem [[admin-panel]].
-- Chốt phía client: `boot()` thiếu key "name" → hiện lỗi cấu hình, KHÔNG vào lưới; cổng vào
-  trang dùng `profileValid()` (đủ + đúng định dạng qua `fieldError`) — xem [[api-layer]].
+- Chốt phía client: `boot()` thiếu key "name" → hiện lỗi cấu hình, KHÔNG vào lưới; cổng vào trang
+  dùng `profileValid()` (đủ + đúng định dạng qua `fieldError`). `fieldError` còn **ép `name` luôn
+  required** (dù config để required:false) + `validName` chặn tên rác (≥2 ký tự, có chữ cái) — xem
+  [[api-layer]], [[allowlist]].
 - (config còn có `subtitle`, `dedupField`, `blockDup`, `allowlistMode` — xem [[api-layer]], [[allowlist]].)
 
 ## Security rules — critical points

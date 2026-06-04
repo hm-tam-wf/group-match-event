@@ -2,14 +2,14 @@
 title: api-layer
 tags: [module]
 code: [docs/js/api.js, docs/js/config.js, docs/js/firebase-config.js]
-related: [[index]], [[architecture]], [[firestore-schema]]
-updated: 2026-06-03
+related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]]
+updated: 2026-06-04
 ---
 
 # API Layer
 
 ## Overview
-`api.js` là data layer duy nhất. Expose 6 functions global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiRemoveProfile()`, `apiDedupTaken()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
+`api.js` là data layer duy nhất. Expose các hàm global: `apiState()`, `apiClaim()`, `apiSaveProfile()`, `apiRemoveProfile()`, `apiDedupTaken()`, `apiAllowlistAllowed()`/`apiAllowlistInfo()`, `apiSubscribe()`. Hỗ trợ 3 backends pluggable.
 
 ## Backend auto-detection
 ```javascript
@@ -27,6 +27,10 @@ Claim 1 slot trong 1 team:
 2. Kiểm tra `members/{playerId}` — đã join team nào chưa?
 3. Kiểm tra `teams/{icon}.count < CAPACITY`
 4. Nếu tất cả pass → ghi atomically: teams, members, dedup_keys, signups
+
+Khi `ALLOWLIST_MODE`: đọc thêm `allowlist/{key}` trong CÙNG `Promise.all` → `reason:"notAllowed"` (ngoài
+danh sách) hoặc `reason:"nameMismatch"` (doc có `name` & tên nhập lệch sau `_normName`). So trên doc ĐÃ
+đọc — KHÔNG thêm read, KHÔNG đổi thứ tự đọc-ghi. Xem [[allowlist]].
 
 ## Retry logic (load-bearing!)
 8 retries × exponential backoff (150ms base, max 2.5s) + **random jitter**:
@@ -60,9 +64,10 @@ bản ghi người thắng (pid khác). → Rule `signups allow delete: if true`
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).
 
-## Sắp tới
-- [[allowlist]] (WIP) — cổng "chỉ MSNV trong danh sách mới được join" sẽ chặn trước/trong
-  `apiClaim`; bổ sung cho cổng chống trùng `apiDedupTaken` hiện có. Code chưa tồn tại.
+## Allowlist (đã có — xem [[allowlist]])
+- Cổng "chỉ MSNV trong danh sách mới được join": `apiAllowlistAllowed`/`apiAllowlistInfo` (cổng vào)
+  + `apiClaim` đọc `allowlist/{key}` (chốt) → `notAllowed`/`nameMismatch`. `_normName` chuẩn hoá tên
+  (bỏ dấu tiếng Việt, gộp trắng, IN HOA) để khớp họ tên. Bổ sung cho cổng chống trùng `apiDedupTaken`.
 
 ## Gotchas
 - Script loading order: `config.js` và `firebase-config.js` phải load TRƯỚC `api.js` (global scope dependency)

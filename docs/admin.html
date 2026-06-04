@@ -354,6 +354,8 @@
           <div class="form-col">
             <label class="cb-wrap"><input type="checkbox" id="fAllowlistMode" /> Chỉ cho người trong danh sách (Excel) được tham gia</label>
             <span class="hint" id="fAllowlistHint">Cần chọn <b>field chống trùng</b> ở trên. Sau khi tạo, vào tab <b>Danh sách cho phép</b> để nạp file Excel.</span>
+            <label class="cb-wrap" style="margin-top:8px;"><input type="checkbox" id="fAllowlistNameCheck" /> Đối chiếu <b>họ tên</b> với danh sách (chặn nếu tên không khớp)</label>
+            <span class="hint" id="fNameCheckHint">Chỉ áp dụng khi <b>Danh sách cho phép</b> bật và dòng có cột tên. Khớp khoan dung (bỏ dấu, không phân biệt hoa/thường). Bỏ tích = chỉ kiểm có trong danh sách, không xét tên.</span>
           </div>
         </div>
 
@@ -428,6 +430,10 @@
           <label class="cb-wrap al-toggle">
             <input type="checkbox" id="alMode" />
             Chỉ cho người trong danh sách được tham gia
+          </label>
+          <label class="cb-wrap al-toggle">
+            <input type="checkbox" id="alNameCheck" />
+            Đối chiếu họ tên với danh sách (chặn nếu tên không khớp)
           </label>
         </div>
 
@@ -969,6 +975,8 @@
   });
   // Admin tự bật/tắt checkbox → tôn trọng lựa chọn, không tự tích lại.
   $("fBlockDup").addEventListener("change", () => { $("fBlockDup").dataset.touched = "1"; });
+  // Bật/tắt "Danh sách cho phép" → xám/khoá "Đối chiếu họ tên" ngay (tính năng con).
+  $("fAllowlistMode").addEventListener("change", syncNameCheckToggle);
   syncDedupControls();   // form trống lúc đầu: chưa có field ⇒ checkbox disable + bỏ tích
 
   // Key field nào trông giống "mã nhân viên" → ứng viên mặc định cho chống trùng.
@@ -1002,6 +1010,18 @@
     cb.disabled = off;
     if (off) cb.checked = false;
     $("fAllowlistHint").style.color = off ? "var(--bad)" : "";
+    syncNameCheckToggle();   // "Đối chiếu họ tên" là tính năng con của allowlist → đồng bộ theo
+  }
+
+  // Toggle "Đối chiếu họ tên" là tính năng CON của allowlist: chỉ bật được khi allowlist đang bật.
+  // allowlist tắt/khoá ⇒ khoá + bỏ tích (cờ allowlistNameCheck dù lưu true cũng vô tác dụng lúc claim).
+  function syncNameCheckToggle() {
+    const am = $("fAllowlistMode");
+    const nc = $("fAllowlistNameCheck");
+    if (!nc) return;
+    const off = am.disabled || !am.checked;
+    nc.disabled = off;
+    if (off) nc.checked = false;
   }
 
   // Khi TẠO MỚI (admin chưa tự chọn dropdown) và đang để "Không chống trùng":
@@ -1041,6 +1061,7 @@
       dedupField: $("fDedupField").value,
       blockDup:   $("fBlockDup").checked,
       allowlistMode: $("fAllowlistMode").checked,
+      allowlistNameCheck: $("fAllowlistNameCheck").checked,
       fields, icons
     };
   }
@@ -1084,6 +1105,9 @@
     // Danh sách cho phép đối chiếu theo field chống trùng → bật mà chưa chọn field thì cấu hình vô nghĩa.
     if (d.allowlistMode && !d.dedupField)
       return "Bật 'Danh sách cho phép' thì phải chọn field chống trùng — danh sách đối chiếu theo field này.";
+    // "Đối chiếu họ tên" là tính năng con của allowlist → bật namecheck mà tắt allowlist là vô nghĩa.
+    if (d.allowlistNameCheck && !d.allowlistMode)
+      return "Bật 'Đối chiếu họ tên' thì phải bật 'Danh sách cho phép' — khớp tên dựa trên danh sách.";
     return null;
   }
 
@@ -1117,6 +1141,7 @@
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
+        allowlistNameCheck: d.allowlistNameCheck,
         createdAt:  FV.serverTimestamp()
       });
       await db.collection("config").doc("eventList")
@@ -1191,6 +1216,7 @@
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
+        allowlistNameCheck: d.allowlistNameCheck,
         updatedAt:  FV.serverTimestamp()
       }, { merge: true });
       const wasActive = editingId === activeEventId;
@@ -1221,6 +1247,7 @@
     $("fBlockDup").disabled = false;
     $("fBlockDup").dataset.touched = "";
     $("fAllowlistMode").checked = false;
+    $("fAllowlistNameCheck").checked = false;
     $("fieldsList").innerHTML = "";
     $("iconsList").innerHTML  = "";
     $("fDedupField").innerHTML = '<option value="">Không chống trùng</option>';
@@ -1273,6 +1300,9 @@
       if ($("fDedupField").value !== "") $("fBlockDup").checked = cfg.blockDup !== false;
       // Tương tự "chặn trùng": khôi phục allowlistMode sau khi gán dropdown (vòng addFieldRow đã bỏ tích).
       if ($("fDedupField").value !== "") $("fAllowlistMode").checked = !!cfg.allowlistMode;
+      // Khôi phục "Đối chiếu họ tên" (chỉ ý nghĩa khi allowlist bật) rồi đồng bộ trạng thái xám/khoá.
+      $("fAllowlistNameCheck").checked = !!cfg.allowlistMode && !!cfg.allowlistNameCheck;
+      syncNameCheckToggle();
     }, 0);
   }
 
@@ -1438,7 +1468,7 @@
   (function () {
     const el = {
       event:$('alEvent'), reload:$('alReload'), dedup:$('alDedupField'), count:$('alCount'),
-      mode:$('alMode'), warnNoField:$('alWarnNoField'), warnEmpty:$('alWarnEmpty'),
+      mode:$('alMode'), nameCheck:$('alNameCheck'), warnNoField:$('alWarnNoField'), warnEmpty:$('alWarnEmpty'),
       import:$('alImport'), file:$('alFile'), col:$('alCol'), add:$('alAdd'),
       replace:$('alReplace'), result:$('alResult'), search:$('alSearch'),
       download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
@@ -1449,6 +1479,7 @@
     const data = {
       async config(eid){ return (await db.collection('events').doc(eid).collection('meta').doc('config').get()).data() || {}; },
       async setMode(eid, on){ return db.collection('events').doc(eid).collection('meta').doc('config').set({ allowlistMode:on }, { merge:true }); },
+      async setNameCheck(eid, on){ return db.collection('events').doc(eid).collection('meta').doc('config').set({ allowlistNameCheck:on }, { merge:true }); },
       async list(eid){
         const s = await db.collection('events').doc(eid).collection('allowlist').get();
         return s.docs.map(d => ({ key:d.id, name:(d.data()||{}).name||'' }));
@@ -1481,6 +1512,7 @@
       el.warnNoField.hidden = !noField;
       el.import.classList.toggle('is-disabled', noField);
       el.warnEmpty.hidden = !(el.mode.checked && cur.rows.length === 0);
+      el.nameCheck.disabled = !el.mode.checked;   // "Đối chiếu họ tên" chỉ dùng được khi allowlist bật
     }
 
     function renderList(){
@@ -1497,11 +1529,12 @@
     async function loadEvent(eid){
       cur.eid = eid; cur.parsed = null; el.result.hidden = true;
       el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
-      if (!eid){ cur.dedupField=''; el.dedup.textContent='—'; el.mode.checked=false; cur.rows=[]; renderList(); return; }
+      if (!eid){ cur.dedupField=''; el.dedup.textContent='—'; el.mode.checked=false; el.nameCheck.checked=false; cur.rows=[]; renderList(); return; }
       const cfg = await data.config(eid);
       cur.dedupField = (cfg.dedupField||'').trim();
       el.dedup.textContent = cur.dedupField || '(chưa đặt)';
       el.mode.checked = !!cfg.allowlistMode;
+      el.nameCheck.checked = !!cfg.allowlistNameCheck;
       cur.rows = await data.list(eid);
       renderList();
     }
@@ -1611,7 +1644,15 @@
     };
     el.mode.onchange = async () => {
       if (!cur.dedupField){ el.mode.checked = false; setWarnings(); return; }   // không có field đối chiếu thì không bật được
-      await data.setMode(cur.eid, el.mode.checked); setWarnings();
+      await data.setMode(cur.eid, el.mode.checked);
+      // Allowlist TẮT → "Đối chiếu họ tên" (tính năng con) cũng phải bỏ tích + lưu false, cho khớp với form
+      // (tránh để lại allowlistNameCheck:true kẹt trong config rồi sống lại âm thầm khi bật allowlist lần sau).
+      if (!el.mode.checked && el.nameCheck.checked) { el.nameCheck.checked = false; await data.setNameCheck(cur.eid, false); }
+      setWarnings();
+    };
+    el.nameCheck.onchange = async () => {
+      if (!el.mode.checked){ el.nameCheck.checked = false; return; }   // allowlist tắt thì không bật khớp tên được
+      await data.setNameCheck(cur.eid, el.nameCheck.checked);
     };
 
     // Gọi khi mở tab "Danh sách cho phép" (nối vào handler tab sẵn có qua biến closure).

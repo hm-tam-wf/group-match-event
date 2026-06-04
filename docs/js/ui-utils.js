@@ -41,10 +41,17 @@ function toast(msg, sticky) {
 }
 
 function validEmployeeId(v) { return /^[A-Za-z0-9]{3,20}$/.test((v || "").trim()); }
+// Tên hợp lệ: ≥2 ký tự VÀ có ít nhất 1 chữ cái (gồm chữ có dấu tiếng Việt qua \p{L}) → chặn tên rác
+// kiểu "123", "!!!", chuỗi chỉ số/ký hiệu/khoảng trắng. Ô "Họ và tên" thực tế luôn ≥2 ký tự.
+function validName(v) { v = (v || "").trim(); return v.length >= 2 && /\p{L}/u.test(v); }
 function fieldError(f, v) {
   v = (v || "").trim();
-  if (f.required && !v) return "Bắt buộc nhập";
+  // Field "name" là hợp đồng BẮT BUỘC của app (apiClaim + ui-render dùng me.fields.name làm tên hiển thị)
+  // → ép required dù config lỡ để required:false (vá lỗ "tên rỗng lọt" ở sự kiện cấu hình cũ).
+  const required = f.required || f.key === "name";
+  if (required && !v) return "Bắt buộc nhập";
   if (!v) return "";
   if (f.key === "employeeId" && !validEmployeeId(v)) return "Mã số nhân viên không hợp lệ (chỉ chữ và số, 3–20 ký tự)";
+  if (f.key === "name" && !validName(v)) return "Họ tên chưa hợp lệ (nhập đúng họ tên, tối thiểu 2 ký tự)";
   return "";
 }

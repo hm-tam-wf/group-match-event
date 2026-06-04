@@ -20,6 +20,16 @@ const col = name => db.collection("events").doc(EVENT_ID).collection(name);
 
 function _dedupKey(v) { return String(v || "").trim().toUpperCase().replace(/\s+/g, ""); }
 
+// Chuẩn hoá HỌ TÊN để so khớp với danh sách cho phép: bỏ dấu tiếng Việt, gộp khoảng trắng, IN HOA.
+// "Lê Văn A" / "le  van a" → "LE VAN A". Khoan dung (bỏ dấu) để tránh chặn nhầm người gõ thiếu/khác dấu.
+// Dùng ở cả popup (UX) lẫn transaction apiClaim (chốt). NFD không tách được đ/Đ nên thay tay.
+function _normName(v) {
+  return String(v || "")
+    .normalize("NFD").replace(new RegExp("[" + String.fromCharCode(768) + "-" + String.fromCharCode(879) + "]", "g"), "")  // bỏ dấu kết hợp U+0300..U+036F
+    .replace(/đ/g, "d").replace(/Đ/g, "D")
+    .trim().replace(/\s+/g, " ").toUpperCase();
+}
+
 // Kiểm tra NHANH một giá trị dedup (vd MSNV) ĐÃ được đăng ký chưa — để CHẶN NGAY ở cổng vào
 // (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc dedup_keys (rules cho phép get).
 // Trả false khi: không bật chống trùng / không firebase / lỗi mạng → KHÔNG chặn nhầm
@@ -38,19 +48,23 @@ async function apiDedupTaken(value) {
 
 // Khi ALLOWLIST_MODE bật: kiểm tra định danh (DEDUP_FIELD) có nằm trong allowlist chưa — để CHẶN NGAY
 // ở cổng vào (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc allowlist (rules cho phép get).
-// Trả TRUE (cho qua) khi: không bật chế độ / không firebase / lỗi mạng → KHÔNG chặn nhầm
-// (transaction trong apiClaim vẫn là tuyến chặn cuối). Trả FALSE = NGOÀI danh sách → chặn ở cổng.
-async function apiAllowlistAllowed(value) {
-  if (MODE !== "firebase" || !ALLOWLIST_MODE || !DEDUP_FIELD) return true;
+// Trả {allowed, name}: allowed=TRUE (cho qua) khi không bật chế độ / không firebase / lỗi mạng → KHÔNG
+// chặn nhầm; allowed=FALSE = NGOÀI danh sách. name = tên đã đăng ký ("" nếu danh sách không có cột tên),
+// dùng để đối chiếu HỌ TÊN ở popup (transaction apiClaim vẫn là tuyến chặn cuối cho cả hai).
+async function apiAllowlistInfo(value) {
+  if (MODE !== "firebase" || !ALLOWLIST_MODE || !DEDUP_FIELD) return { allowed: true, name: "" };
   const key = _dedupKey(value);
-  if (!key) return false;   // bật allowlist mà không có định danh để đối chiếu → coi như ngoài danh sách
+  if (!key) return { allowed: false, name: "" };   // bật allowlist mà không có định danh → coi như ngoài danh sách
   try {
     const snap = await col("allowlist").doc(key).get();
-    return snap.exists;
+    if (!snap.exists) return { allowed: false, name: "" };
+    return { allowed: true, name: String((snap.data() || {}).name || "") };
   } catch (e) {
-    return true;            // lỗi mạng → KHÔNG chặn nhầm; apiClaim là chốt cuối
+    return { allowed: true, name: "" };   // lỗi mạng → KHÔNG chặn nhầm; apiClaim là chốt cuối
   }
 }
+// Tiện ích boolean cho cổng vào lúc tải trang (chỉ cần biết được/không) — tái dùng apiAllowlistInfo.
+async function apiAllowlistAllowed(value) { return (await apiAllowlistInfo(value)).allowed; }
 
 async function apiState() {
   if (MODE === "firebase") {
@@ -146,6 +160,13 @@ async function apiClaim(payload) {
       if (pid && mb.exists)   return { ok: false, reason: "already" };          // 1 người chỉ 1 đội
       if (dk && dk.exists)    return { ok: false, reason: "dup" };
       if (allowRef && !al.exists) return { ok: false, reason: "notAllowed" };   // ngoài danh sách cho phép
+      // ĐỐI CHIẾU HỌ TÊN — dùng dữ liệu `al` ĐÃ ĐỌC ở trên (KHÔNG thêm lệnh đọc, KHÔNG đổi thứ tự đọc-ghi,
+      // KHÔNG đụng vòng retry). Chỉ chặn khi BẬT cờ ALLOWLIST_NAMECHECK & dòng CÓ lưu tên & tên nhập lệch
+      // sau chuẩn hoá (bỏ dấu). Cờ tắt (mặc định/sự kiện cũ) ⇒ bỏ qua, chỉ kiểm có-trong-danh-sách.
+      if (allowRef && al.exists && ALLOWLIST_NAMECHECK) {
+        const wantName = String((al.data() || {}).name || "");
+        if (wantName && _normName(wantName) !== _normName(name)) return { ok: false, reason: "nameMismatch" };
+      }
 
       const count = t.exists ? (t.data().count || 0) : 0;
       const names = t.exists ? (t.data().names || []) : [];

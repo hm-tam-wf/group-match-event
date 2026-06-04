@@ -29,11 +29,34 @@ mới được vào lưới + join đội. Enforce **phía client**, mô phỏng
 - **demo**: gate bằng `sGet("allowlistMode")` + `sGet("allowlist")` (seed tay khi dev).
 - `loadtest.js`: mirror nhánh allowlist (giữ TẮT để test phản ánh production).
 
+## Hợp lệ & khớp HỌ TÊN (2026-06-04)
+- **Tên hợp lệ** (`validName`, `ui-utils.js`): ≥2 ký tự & có ≥1 chữ cái (`/\p{L}/u`) → chặn tên rác
+  ("123","!!!"). `fieldError` cũng **ép field `name` luôn required** (vá lỗ tên rỗng ở sự kiện cũ).
+- **Toggle riêng `allowlistNameCheck`** (opt-in, **mặc định TẮT**): khớp tên chỉ chạy khi
+  `ALLOWLIST_MODE && ALLOWLIST_NAMECHECK`. Tắt → chỉ kiểm có-trong-danh-sách, không xét tên.
+  Sự kiện cũ thiếu cờ ⇒ boot không gán ⇒ `ALLOWLIST_NAMECHECK=false` ⇒ tương thích ngược.
+  Bật ở 2 chỗ: checkbox `fAllowlistNameCheck` trong form Tạo/Sửa (con của `fAllowlistMode`,
+  xám/khoá khi allowlist tắt) + nút nhanh `alNameCheck` ở tab Danh sách cho phép (khi tắt
+  allowlist → tự bỏ tích + lưu false, tránh kẹt stale). Lưu vào `meta/config.allowlistNameCheck`.
+- **Khớp tên với danh sách** (CHỈ khi `ALLOWLIST_NAMECHECK` BẬT & dòng CÓ cột tên): tên nhập phải
+  khớp tên đã import sau chuẩn hoá `_normName` (`api.js`: bỏ dấu tiếng Việt + gộp trắng + IN HOA;
+  dải dấu kết hợp U+0300..036F dựng bằng `String.fromCharCode` để tránh ký tự vô hình trong nguồn).
+  Dòng KHÔNG có tên → bỏ qua. "Lê Văn A" ↔ "le van a" coi là khớp.
+  - Lớp 1 (UX): `apiAllowlistInfo(value)`→`{allowed,name}`, dùng ở `save()` (`ui-render.js`) → lệch
+    thì báo lỗi inline ô họ tên, GIỮ popup để sửa, KHÔNG ghi.
+  - Lớp 2 (chốt): transaction `apiClaim` trả `reason:"nameMismatch"` (so trên `al` ĐÃ đọc trong
+    `Promise.all`, KHÔNG thêm read, KHÔNG đổi thứ tự đọc-ghi). `doClaim` (`app.js`) gặp `nameMismatch`
+    → `editing=true` mở lại popup để sửa (hồ sơ đã khoá sửa sau khi điền xong).
+  - **Gotcha**: `/\s/` JS không match U+200B/U+00AD (ký tự vô hình từ paste) → lọt qua `_normName`
+    → có thể báo lệch tên oan khi dán từ chat/PDF. Hiếm, recoverable, chưa vá.
+- `apiAllowlistAllowed` nay là wrapper mỏng của `apiAllowlistInfo`.
+
 ## Admin — tab "Danh sách cho phép" (`tab-allowlist` trong `admin.html`)
 Dropdown sự kiện → trạng thái (dedupField/đếm/toggle `allowlistMode`) → import **SheetJS (CSV/XLSX)**:
 chọn cột khớp `dedupField` (+ cột tên tuỳ chọn, regex `họ tên|name|tên`), `buildItems` chuẩn hoá key
 bằng `_dedupKey`, dedup nội bộ, batch ≤400. Thêm/Thay-thế, bảng tìm kiếm, tải CSV, xoá từng dòng.
-Toggle trong form Tạo/Sửa (`fAllowlistMode`) phụ thuộc có chọn `dedupField` (`syncAllowlistToggle`).
+Toggle `fAllowlistMode` trong form phụ thuộc `dedupField` (`syncAllowlistToggle`); toggle `fAllowlistNameCheck`
+(con) phụ thuộc `fAllowlistMode` (`syncNameCheckToggle`). Cả hai toggle có bản nút nhanh ở tab (`alMode`/`alNameCheck`).
 
 ## Rules ([[firestore-schema]])
 `match /allowlist/{key}` → `get: if true` (client tx đọc theo key đã biết) · `list/write: if isAdmin()`

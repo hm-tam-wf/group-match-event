@@ -124,19 +124,30 @@ function showProfileModal() {
     dupBlocked = false;
 
     // CỔNG danh sách cho phép — SAU cổng dedup: MSNV không trong danh sách → chặn, KHÔNG ghi hồ sơ.
-    let allowed = true;
-    if (typeof apiAllowlistAllowed === "function") {
+    // apiAllowlistInfo trả {allowed, name}: name = tên đã đăng ký (để đối chiếu họ tên ngay bên dưới).
+    let allow = { allowed: true, name: "" };
+    if (typeof apiAllowlistInfo === "function") {
       if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
-      try { allowed = await apiAllowlistAllowed(me.fields[DEDUP_FIELD]); } catch (e) {}
+      try { allow = await apiAllowlistInfo(me.fields[DEDUP_FIELD]); } catch (e) {}
       if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
     }
-    if (!allowed) {
+    if (!allow.allowed) {
       allowBlocked = true;
       if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn hồ sơ nếu lỡ lưu trước đó
       renderProfile();            // allowBlocked && !myIcon && !editing → hiện modal chặn (KHÔNG ghi data)
       return;
     }
     allowBlocked = false;
+
+    // ĐỐI CHIẾU HỌ TÊN với danh sách — chỉ khi BẬT cờ ALLOWLIST_NAMECHECK & dòng CÓ lưu tên: tên nhập phải
+    // khớp sau chuẩn hoá (bỏ dấu, gộp khoảng trắng, không phân biệt hoa/thường). Lệch → báo ngay ô họ tên,
+    // GIỮ ở popup để sửa (KHÔNG ghi). Cờ tắt (mặc định) ⇒ bỏ qua bước này, chỉ kiểm có-trong-danh-sách.
+    if (ALLOWLIST_NAMECHECK && allow.name && typeof _normName === "function" && _normName(me.fields.name) !== _normName(allow.name)) {
+      const msg = $("m_name"), inp = $("f_name");
+      if (msg) msg.textContent = "Họ tên không khớp với danh sách được phép — kiểm tra lại.";
+      if (inp) inp.classList.add("bad");
+      return;
+    }
 
     // Chỉ ghi khi MSNV hợp lệ (không trùng, có trong danh sách); đồng bộ ngay cả khi CHƯA chọn đội để admin có data.
     apiSaveProfile({ playerId: me.id, fields: me.fields });

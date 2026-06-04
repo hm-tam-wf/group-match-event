@@ -36,6 +36,7 @@ async function doClaim(g) {
       else if (r === "already")   toast("Bạn đã tham gia một đội rồi.");
       else if (r === "dup")     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
       else if (r === "notAllowed") { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast("Bạn không có trong danh sách được phép tham gia sự kiện này. Vui lòng liên hệ ban tổ chức."); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
+      else if (r === "nameMismatch") { editing = true; toast("Họ tên không khớp với danh sách được phép. Vui lòng nhập đúng họ tên đã đăng ký."); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
       else if (r === "missing")   toast("Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.");   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
       else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
@@ -170,6 +171,7 @@ async function init() {
     if (typeof cfg.dedupField === "string")                 DEDUP_FIELD = cfg.dedupField;
     if (typeof cfg.blockDup   === "boolean")                BLOCK_DUP   = cfg.blockDup;
     if (typeof cfg.allowlistMode === "boolean")             ALLOWLIST_MODE = cfg.allowlistMode;
+    if (typeof cfg.allowlistNameCheck === "boolean")        ALLOWLIST_NAMECHECK = cfg.allowlistNameCheck;
 
     // CHẶN CỨNG cấu hình lỗi: app cần MỘT field key "name" (apiClaim + ui-render dùng me.fields.name
     // để hiển thị tên trong danh sách đội). Thiếu → người chơi vào được lưới nhưng KHÔNG join được
