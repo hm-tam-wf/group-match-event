@@ -33,7 +33,10 @@ function renderProfile() {
     return;
   }
 
-  const done = profileValid() && !editing;
+  // Đã vào đội (myIcon) ⇒ hồ sơ đã KHOÁ → LUÔN hiện thanh tóm tắt, KHÔNG ép lại popup nhập (kể cả khi
+  // hồ sơ lưu từ phiên cũ không qua được validate mới — vd sự kiện cũ để name không bắt buộc / tên 1 ký
+  // tự). Người CHƯA vào đội vẫn phải hợp lệ mới vào lưới: renderState.ready/canJoin dùng profileValid && !myIcon.
+  const done = (myIcon || profileValid()) && !editing;
 
   if (done) {
     closeProfileModal();
@@ -111,7 +114,7 @@ function showProfileModal() {
     const btn = $("pmSave");
     if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
     let taken = false;
-    if (typeof apiDedupTaken === "function") {
+    if (!myIcon && typeof apiDedupTaken === "function") {   // đã vào đội ⇒ mã dedup là của CHÍNH MÌNH, đừng tự coi là trùng rồi xoá hồ sơ
       try { taken = await apiDedupTaken(me.fields[DEDUP_FIELD]); } catch (e) {}
     }
     if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
@@ -151,7 +154,7 @@ function showProfileModal() {
 
     // CỔNG đặt-chỗ TIỀN-JOIN — SAU mọi cổng trên, TRƯỚC khi ghi signups: giữ MSNV để KHÔNG ai tạo
     // dòng signup thứ hai cùng mã (kể cả khi chưa ai join). Người khác đã giữ ⇒ chặn như trùng MSNV.
-    if (typeof apiRegReserve === "function") {
+    if (!myIcon && typeof apiRegReserve === "function") {   // đã vào đội ⇒ chỗ giữ là của mình, không cần đặt lại
       if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
       let reserved = { ok: true };
       try { reserved = await apiRegReserve(me.fields[DEDUP_FIELD]); } catch (e) {}

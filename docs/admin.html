@@ -1578,7 +1578,7 @@
       let aoa; try{ aoa = await readFile(f); }catch(e){ showResult(e.message, true); return; }
       if (!aoa.length){ showResult('File rỗng.', true); return; }
       const headers = aoa[0].map(h=>String(h));
-      const nameIdx = headers.findIndex(h=>/h[oọ]\s*t[eê]n|name|^t[eê]n$/i.test(String(h).trim()));
+      const nameIdx = headers.findIndex(h=>/h[oọ]\s*t[eê]n|^(full\s*)?name$|^t[eê]n$/i.test(String(h).trim()));   // neo ^...$ cho "name" để "username"/"lastname"/"displayName" KHÔNG bị nhận nhầm là cột tên
       let colIdx = pickColumn(headers);
       if (colIdx < 0){
         el.col.innerHTML = headers.map((h,i)=>`<option value="${i}">${esc(h||('Cột '+(i+1)))}</option>`).join('');
@@ -1591,7 +1591,7 @@
         el.add.disabled = el.replace.disabled = cur.parsed.items.length === 0;
         if (cur.parsed.items.length) showResult(`Đọc được ${cur.parsed.items.length} định danh hợp lệ. Bấm "Nhập" hoặc "Xoá cũ & nạp mới".`);
       };
-      el.col.onchange = apply; apply();
+      el.col.onchange = apply; if (colIdx >= 0) apply();   // chỉ auto-dựng khi đã TỰ tìm thấy cột định danh; không thấy ⇒ giữ cảnh báo + chờ admin chọn (tránh im lặng nhập nhầm cột 0)
     }
 
     async function doImport(replace){
