@@ -65,9 +65,14 @@ signup → admin thấy 2 dòng trùng. signups KHOÁ ĐỌC → client không t
 khai `reg_keys/{key}` NGAY khi điền form** (key = `_dedupKey(MSNV)`, giống dedup_keys; doc chỉ `{at}`,
 KHÔNG chứa pid → không lộ token).
 - **`apiRegReserve(value)`** — transaction: reg_keys/{key} đã có & KHÔNG phải chỗ mình ⇒ `{ok:false,
-  reason:"dup"}`; chưa có ⇒ `set {at}` + nhớ `reservedKey` (localStorage per-event, `sSet`). Gọi trong
-  `save()` (ui-render) NGAY TRƯỚC `apiSaveProfile` (sau mọi cổng dedup/allowlist/namecheck). Đổi MSNV
+  reason:"dup"}`; chưa có ⇒ `set {at}` + nhớ `reservedKey` (localStorage per-event, `sSet`). Đổi MSNV
   (typo) ⇒ tự `delete` chỗ cũ để không khoá nhầm mã người khác. Fail-open (lỗi mạng/không bật ⇒ `{ok:true}`).
+- **PHẢI gọi apiRegReserve TRƯỚC MỌI apiSaveProfile** — có 2 chỗ ghi signups: `save()` (ui-render, sau
+  các cổng dedup/allowlist/namecheck) VÀ `init()` (app.js, đồng bộ hồ sơ phiên trước). **Bug 2026-06-04:**
+  ban đầu chỉ `save()` đặt-chỗ; `init()` ghi signup KHÔNG đặt-chỗ → hồ sơ điền phiên trước (localStorage)
+  được ghi lại không có reg_keys → người trùng MSNV sau đó KHÔNG bị chặn (2 dòng signup, chỉ 1 reg_key,
+  reg_key sinh ở thời điểm người THỨ HAI). Fix: `init()` cũng `apiRegReserve` trước `apiSaveProfile` (chỉ
+  khi `!myIcon`); trùng ⇒ dupBlocked + apiRemoveProfile (tự dọn bản thua khi reload).
 - **`apiRegTaken(value)`** — cổng VÀO TRANG (`init()` app.js, sau `apiDedupTaken`): reg_keys/{key} tồn tại
   & KHÔNG phải chỗ mình ⇒ chặn. Bịt lỗ "bị chặn ở save() rồi reload để vào lưới" (người bị chặn không có
   `reservedKey` → vẫn chặn). Chủ sở hữu (`reservedKey===key`) KHÔNG bị chặn.

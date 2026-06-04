@@ -111,10 +111,22 @@ async function init() {
   // hoặc ngoài danh sách cho phép) thì KHÔNG lưu — và DỌN bản ghi của mình nếu đã lỡ lưu ở phiên
   // trước. Khớp với cổng chặn ở save()/doClaim.
   if (MODE === "firebase" && profileComplete()) {
-    if (!dupBlocked && !allowBlocked && typeof apiSaveProfile === "function") {
-      apiSaveProfile({ playerId: me.id, fields: me.fields });
-    } else if ((dupBlocked || allowBlocked) && typeof apiRemoveProfile === "function") {
-      apiRemoveProfile(me.id);
+    if (dupBlocked || allowBlocked) {
+      if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+    } else {
+      // ĐẶT-CHỖ TRƯỚC KHI GHI (giống save()) — đóng lỗ: trước đây init() ghi signup qua apiSaveProfile
+      // mà KHÔNG đặt-chỗ → hồ sơ điền ở phiên trước (vd trước khi deploy) được ghi lại không có reg_keys
+      // → người trùng MSNV sau đó không bị chặn. Đã join (myIcon) thì bỏ qua, chỉ đồng bộ lại hồ sơ.
+      let reserved = { ok: true };
+      if (!myIcon && BLOCK_DUP && DEDUP_FIELD && typeof apiRegReserve === "function") {
+        try { reserved = await apiRegReserve(me.fields[DEDUP_FIELD]); } catch (e) {}
+      }
+      if (reserved && reserved.ok === false) {
+        dupBlocked = true;                                                  // người khác đã giữ MSNV này
+        if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+      } else if (typeof apiSaveProfile === "function") {
+        apiSaveProfile({ playerId: me.id, fields: me.fields });
+      }
     }
   }
 
