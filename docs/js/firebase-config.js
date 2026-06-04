@@ -16,6 +16,17 @@ const FIREBASE_CONFIG = {
 // Ở chế độ firebase: được gán lại bởi boot() từ events/{id}/meta/config.
 let BLOCK_DUP = true;
 
+// Chế độ "danh sách cho phép": true ⇒ chỉ định danh (theo DEDUP_FIELD) nằm trong collection
+// allowlist mới claim được; false/thiếu ⇒ mở cho mọi người (tương thích ngược sự kiện cũ).
+// Ở chế độ firebase: được gán lại bởi boot() từ events/{id}/meta/config.allowlistMode.
+let ALLOWLIST_MODE = false;
+
+// Tính năng CON của allowlist: đối chiếu HỌ TÊN người nhập với cột "name" trong danh sách (khớp khoan
+// dung — bỏ dấu, gộp khoảng trắng, không phân biệt hoa/thường). Chỉ có tác dụng khi ALLOWLIST_MODE bật
+// VÀ dòng allowlist có lưu name. Mặc định TẮT (opt-in): sự kiện cũ thiếu cờ ⇒ KHÔNG xét tên, chỉ kiểm
+// có-trong-danh-sách. Ở chế độ firebase: được gán lại bởi boot() từ config.allowlistNameCheck.
+let ALLOWLIST_NAMECHECK = false;
+
 const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
 let db = null;
 if (FIREBASE_ON) {

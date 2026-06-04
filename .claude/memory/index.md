@@ -12,6 +12,7 @@
 - [[ui-pipeline]] — script loading order (sacred!), render pipeline, animation
 - [[admin-panel]] — Firebase Auth, export CSV, hardcoded UID gotcha
 - [[firestore-schema]] — collections, security rules, capacity sync gotcha
+- [[allowlist]] — danh sách MSNV được phép join: import Excel/CSV, toggle/sự kiện, cổng chặn client (mirror dedup)
 
 ## UI & components
 - [[design-tokens]] — Soft Cloud Candy palette, fonts Baloo 2 + Nunito, motion
