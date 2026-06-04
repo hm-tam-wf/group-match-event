@@ -150,9 +150,9 @@ async function apiState() {
     return teams;
   }
   if (MODE === MODE_SHEET) {
-    const r = await fetch(SCRIPT_URL + "?action=state", { method: "GET" });
-    const j = await r.json();
-    return (j && j.teams) || {};
+    const response = await fetch(SCRIPT_URL + "?action=state", { method: "GET" });
+    const json = await response.json();
+    return (json && json.teams) || {};
   }
   // demo: dựng map đội từ claims cục bộ ({ icon: [ {...fields, pid}, ... ] })  (claims đã namespace theo EVENT_ID ở storage.js)
   const obj = JSON.parse(await sGet(SK.CLAIMS, true) || "{}");
@@ -171,12 +171,12 @@ async function apiState() {
 async function apiSaveProfile(payload) {
   if (MODE !== MODE_FIREBASE) return { ok: true };   // sheet/demo: hồ sơ đã ở localStorage, không có bảng admin
   const pid  = String(payload.playerId || "").trim();
-  const f    = payload.fields || {};
-  const name = String(f.name || "").trim();
+  const fields = payload.fields || {};
+  const name = String(fields.name || "").trim();
   if (!pid || !name) return { ok: false, reason: REASON.MISSING };   // chưa đủ thông tin → chưa ghi
   try {
     await col(COL.SIGNUPS).doc(pid).set(
-      { ...f, playerId: pid, at: firebase.firestore.FieldValue.serverTimestamp() },
+      { ...fields, playerId: pid, at: firebase.firestore.FieldValue.serverTimestamp() },
       { merge: true }                              // merge: KHÔNG đè icon nếu đã join trước đó
     );
     return { ok: true };
@@ -206,11 +206,11 @@ async function apiClaim(payload) {
   if (MODE === MODE_FIREBASE) {
     const icon     = String(payload.icon     || "").trim();
     const pid      = String(payload.playerId || "").trim();
-    const f        = payload.fields || {};
-    const name     = String(f.name || "").trim();
-    const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? String(f[DEDUP_FIELD] || "").trim() : "";
+    const fields   = payload.fields || {};
+    const name     = String(fields.name || "").trim();
+    const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? String(fields[DEDUP_FIELD] || "").trim() : "";
     // Danh sách cho phép: định danh đối chiếu là DEDUP_FIELD (độc lập với BLOCK_DUP). Chỉ tính khi bật chế độ.
-    const allowVal = (ALLOWLIST_MODE && DEDUP_FIELD) ? String(f[DEDUP_FIELD] || "").trim() : "";
+    const allowVal = (ALLOWLIST_MODE && DEDUP_FIELD) ? String(fields[DEDUP_FIELD] || "").trim() : "";
     if (!icon || !name) return { ok: false, reason: REASON.MISSING };
     // allowlistMode bật nhưng KHÔNG có định danh để đối chiếu (cfg thiếu dedupField, hoặc chưa nhập field
     // đó) ⇒ coi như ngoài danh sách. Trả về luôn, không cần mở transaction (cũng không đụng schema cũ).
@@ -227,25 +227,25 @@ async function apiClaim(payload) {
         ? col(COL.ALLOWLIST).doc(_dedupKey(allowVal)) : null;  // danh sách cho phép (chỉ khi ALLOWLIST_MODE)
 
       // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
-      const [t, mb, dk, al] = await Promise.all([
+      const [teamSnap, memberSnap, dedupSnap, allowSnap] = await Promise.all([
         tx.get(teamRef), tx.get(memberRef),
         dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
         allowRef ? tx.get(allowRef) : Promise.resolve(null),
       ]);
       // full/already/dup/notAllowed là kết quả TRẢ VỀ (không ném) → vòng retry bên dưới KHÔNG lặp lại chúng.
-      if (pid && mb.exists)   return { ok: false, reason: REASON.ALREADY };          // 1 người chỉ 1 đội
-      if (dk && dk.exists)    return { ok: false, reason: REASON.DUP };
-      if (allowRef && !al.exists) return { ok: false, reason: REASON.NOT_ALLOWED };   // ngoài danh sách cho phép
-      // ĐỐI CHIẾU HỌ TÊN — dùng dữ liệu `al` ĐÃ ĐỌC ở trên (KHÔNG thêm lệnh đọc, KHÔNG đổi thứ tự đọc-ghi,
+      if (pid && memberSnap.exists)   return { ok: false, reason: REASON.ALREADY };          // 1 người chỉ 1 đội
+      if (dedupSnap && dedupSnap.exists)    return { ok: false, reason: REASON.DUP };
+      if (allowRef && !allowSnap.exists) return { ok: false, reason: REASON.NOT_ALLOWED };   // ngoài danh sách cho phép
+      // ĐỐI CHIẾU HỌ TÊN — dùng dữ liệu `allowSnap` ĐÃ ĐỌC ở trên (KHÔNG thêm lệnh đọc, KHÔNG đổi thứ tự đọc-ghi,
       // KHÔNG đụng vòng retry). Chỉ chặn khi BẬT cờ ALLOWLIST_NAMECHECK & dòng CÓ lưu tên & tên nhập lệch
       // sau chuẩn hoá (bỏ dấu). Cờ tắt (mặc định/sự kiện cũ) ⇒ bỏ qua, chỉ kiểm có-trong-danh-sách.
-      if (allowRef && al.exists && ALLOWLIST_NAMECHECK) {
-        const wantName = String((al.data() || {}).name || "");
+      if (allowRef && allowSnap.exists && ALLOWLIST_NAMECHECK) {
+        const wantName = String((allowSnap.data() || {}).name || "");
         if (wantName && _normName(wantName) !== _normName(name)) return { ok: false, reason: REASON.NAME_MISMATCH };
       }
 
-      const count = t.exists ? (t.data().count || 0) : 0;
-      const names = t.exists ? (t.data().names || []) : [];
+      const count = teamSnap.exists ? (teamSnap.data().count || 0) : 0;
+      const names = teamSnap.exists ? (teamSnap.data().names || []) : [];
       if (count >= CAPACITY) return { ok: false, reason: REASON.FULL };              // đội đã đủ người
 
       const at = firebase.firestore.FieldValue.serverTimestamp();
@@ -263,28 +263,28 @@ async function apiClaim(payload) {
     // Lưu ý: full/already/dup/notAllowed TRẢ VỀ {ok:false} (không ném) nên thoát ngay, KHÔNG retry.
     // (Tham số phải khớp với loadtest.js để test phản ánh đúng production.)
     const MAX_ATTEMPTS = 8, BASE_MS = 150, CAP_MS = 2500, BUDGET_MS = 12000;
-    const t0 = Date.now();
+    const startMs = Date.now();
     let lastErr;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
         return await runClaimTx();
       } catch (e) {
         lastErr = e;
-        if (attempt === MAX_ATTEMPTS - 1 || Date.now() - t0 > BUDGET_MS) break;
-        const back = Math.min(CAP_MS, BASE_MS * 2 ** attempt);
-        await new Promise(r => setTimeout(r, Math.random() * back));            // full jitter → lệch nhịp
+        if (attempt === MAX_ATTEMPTS - 1 || Date.now() - startMs > BUDGET_MS) break;
+        const backoffMs = Math.min(CAP_MS, BASE_MS * 2 ** attempt);
+        await new Promise(resolve => setTimeout(resolve, Math.random() * backoffMs));            // full jitter → lệch nhịp
       }
     }
     return { ok: false, reason: REASON.ERROR, detail: String(lastErr) };
   }
   if (MODE === MODE_SHEET) {
     // text/plain tránh CORS preflight; Apps Script vẫn đọc được body JSON
-    const r = await fetch(SCRIPT_URL, {
+    const response = await fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ action: "claim", ...payload }),
     });
-    return await r.json();
+    return await response.json();
   }
   // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng theo DEDUP_FIELD)
   const obj      = JSON.parse(await sGet(SK.CLAIMS, true) || "{}");

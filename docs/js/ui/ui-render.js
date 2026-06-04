@@ -18,12 +18,12 @@ const RESIZE_DEBOUNCE_MS = 120;   // debounce tính lại số cột lưới khi
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
 // Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
-  const box  = $("profile");
+  const profileBoxEl = $("profile");
 
   // CỔNG chống trùng: MSNV đã đăng ký & chưa vào đội & không đang sửa → chặn cứng, không cho vào lưới.
   if (dupBlocked && !myIcon && !editing) {
     closeProfileModal();
-    box.innerHTML = "";
+    profileBoxEl.innerHTML = "";
     closeAllowBlockedModal();
     showDupBlockedModal();
     return;
@@ -32,7 +32,7 @@ function renderProfile() {
   // CỔNG danh sách cho phép: bật allowlist & MSNV không trong danh sách → chặn cứng, không cho vào lưới.
   if (allowBlocked && !myIcon && !editing) {
     closeProfileModal();
-    box.innerHTML = "";
+    profileBoxEl.innerHTML = "";
     closeDupBlockedModal();
     showAllowBlockedModal();
     return;
@@ -46,7 +46,7 @@ function renderProfile() {
   if (done) {
     closeProfileModal();
     const metaBits = FIELDS.filter(f => f.key !== "name").map(f => me.fields[f.key]).filter(Boolean).join("  ·  ");
-    box.innerHTML = `
+    profileBoxEl.innerHTML = `
       <div class="summary">
         <div class="ava" style="background:${myIcon ? byEmoji[myIcon].color : 'var(--accent)'}">${initial(me.fields.name)}</div>
         <div class="s-txt">
@@ -61,13 +61,13 @@ function renderProfile() {
     return;
   }
 
-  box.innerHTML = "";        // không còn form inline — dùng popup bên dưới
+  profileBoxEl.innerHTML = "";        // không còn form inline — dùng popup bên dưới
   showProfileModal();
 }
 
 function closeProfileModal() {
-  const m = $("profileModal");
-  if (m) m.remove();
+  const modalEl = $("profileModal");
+  if (modalEl) modalEl.remove();
 }
 
 // Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
@@ -76,10 +76,10 @@ function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
   const canCancel = profileValid();
 
-  const bg = document.createElement("div");
-  bg.className = "modal-bg";
-  bg.id = "profileModal";
-  bg.innerHTML = `
+  const modalBgEl = document.createElement("div");
+  modalBgEl.className = "modal-bg";
+  modalBgEl.id = "profileModal";
+  modalBgEl.innerHTML = `
     <div class="modal profile-modal">
       <div class="pm-emoji">🐾</div>
       <h3>Chào bạn!</h3>
@@ -98,7 +98,7 @@ function showProfileModal() {
         <button class="confirm" id="pmSave">Bắt đầu tham gia đội →</button>
       </div>
     </div>`;
-  document.body.appendChild(bg);
+  document.body.appendChild(modalBgEl);
 
   const save = async () => {
     let ok = true;
@@ -191,92 +191,92 @@ function showProfileModal() {
     inp.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
     inp.addEventListener("input",   () => { $("m_" + f.key).textContent = ""; inp.classList.remove("bad"); });
   });
-  const first = $("f_" + FIELDS[0].key);
-  if (first) setTimeout(() => first.focus(), 40);
+  const firstInputEl = $("f_" + FIELDS[0].key);
+  if (firstInputEl) setTimeout(() => firstInputEl.focus(), 40);
 }
 
 // Modal CHẶN khi MSNV đã đăng ký rồi — không thể bỏ qua (không click nền/Esc), chỉ cho "Nhập mã khác".
 // Đây là cổng chặn vào trang chọn đội: trùng MSNV ⇒ không vào được lưới linh thú.
 function showDupBlockedModal() {
   if ($("dupBlockedModal")) return;
-  const lbl = labelOf(DEDUP_FIELD);
-  const bg = document.createElement("div");
-  bg.className = "modal-bg";
-  bg.id = "dupBlockedModal";
-  bg.innerHTML = `
+  const fieldLabel = labelOf(DEDUP_FIELD);
+  const modalBgEl = document.createElement("div");
+  modalBgEl.className = "modal-bg";
+  modalBgEl.id = "dupBlockedModal";
+  modalBgEl.innerHTML = `
     <div class="modal">
       <div class="mic">🔒</div>
       <h3>Mã này đã đăng ký rồi</h3>
-      <p><b>${esc(lbl)}</b> bạn nhập đã được dùng để tham gia một đội (kể cả trên thiết bị khác).<br>
+      <p><b>${esc(fieldLabel)}</b> bạn nhập đã được dùng để tham gia một đội (kể cả trên thiết bị khác).<br>
          Mỗi mã chỉ tham gia <b>một lần</b>.</p>
       <div class="row"><button class="confirm" id="dupBack">Nhập mã khác</button></div>
     </div>`;
-  document.body.appendChild(bg);
-  $("dupBack").onclick = () => { bg.remove(); editing = true; renderProfile(); };
+  document.body.appendChild(modalBgEl);
+  $("dupBack").onclick = () => { modalBgEl.remove(); editing = true; renderProfile(); };
 }
 
 function closeDupBlockedModal() {
-  const m = $("dupBlockedModal");
-  if (m) m.remove();
+  const modalEl = $("dupBlockedModal");
+  if (modalEl) modalEl.remove();
 }
 
 // Modal CHẶN khi MSNV KHÔNG nằm trong danh sách cho phép — không thể bỏ qua, chỉ cho "Nhập mã khác".
 // Cổng chặn vào trang chọn đội khi sự kiện bật "danh sách cho phép" mà mã không có trong danh sách.
 function showAllowBlockedModal() {
   if ($("allowBlockedModal")) return;
-  const lbl = labelOf(DEDUP_FIELD);
-  const bg = document.createElement("div");
-  bg.className = "modal-bg";
-  bg.id = "allowBlockedModal";
-  bg.innerHTML = `
+  const fieldLabel = labelOf(DEDUP_FIELD);
+  const modalBgEl = document.createElement("div");
+  modalBgEl.className = "modal-bg";
+  modalBgEl.id = "allowBlockedModal";
+  modalBgEl.innerHTML = `
     <div class="modal">
       <div class="mic">🔒</div>
       <h3>Bạn chưa có trong danh sách</h3>
-      <p><b>${esc(lbl)}</b> bạn nhập không nằm trong danh sách được phép tham gia sự kiện này.<br>
+      <p><b>${esc(fieldLabel)}</b> bạn nhập không nằm trong danh sách được phép tham gia sự kiện này.<br>
          Vui lòng kiểm tra lại hoặc liên hệ ban tổ chức.</p>
       <div class="row"><button class="confirm" id="allowBack">Nhập mã khác</button></div>
     </div>`;
-  document.body.appendChild(bg);
-  $("allowBack").onclick = () => { bg.remove(); editing = true; renderProfile(); };
+  document.body.appendChild(modalBgEl);
+  $("allowBack").onclick = () => { modalBgEl.remove(); editing = true; renderProfile(); };
 }
 
 function closeAllowBlockedModal() {
-  const m = $("allowBlockedModal");
-  if (m) m.remove();
+  const modalEl = $("allowBlockedModal");
+  if (modalEl) modalEl.remove();
 }
 
 // ── Popup chúc mừng sau khi vào đội thành công ─────────────────────
 // Giữ phong cách modal sẵn có (.modal-bg/.modal/.confirm) + confetti. Emoji con vật
-// của đội (g.icon, loại cũ 🦊🐉…) hiển thị tốt nên giữ nguyên trong popup.
-function showJoinedModal(g) {
+// của đội (iconDef.icon, loại cũ 🦊🐉…) hiển thị tốt nên giữ nguyên trong popup.
+function showJoinedModal(iconDef) {
   $("toast").classList.remove("show");   // dẹp toast "Đang ghi nhận…" dính trước đó (toast z-index cao hơn modal)
 
-  const bg = document.createElement("div");
-  bg.className = "modal-bg";
-  bg.innerHTML = `
-    <div class="modal joined-modal" style="--c:${g.color}">
+  const modalBgEl = document.createElement("div");
+  modalBgEl.className = "modal-bg";
+  modalBgEl.innerHTML = `
+    <div class="modal joined-modal" style="--c:${iconDef.color}">
       <div class="confetti">${"<i></i>".repeat(CONFETTI_COUNT)}</div>
-      <div class="jm-icon">${g.icon}</div>
+      <div class="jm-icon">${iconDef.icon}</div>
       <h3>Chúc mừng! 🎉</h3>
-      <p>Bạn đã tham gia <b>đội ${esc(g.name)}</b>.<br>Hẹn gặp bạn cùng đồng đội nhé!</p>
+      <p>Bạn đã tham gia <b>đội ${esc(iconDef.name)}</b>.<br>Hẹn gặp bạn cùng đồng đội nhé!</p>
       <div class="row"><button class="confirm" id="jmOk">Tuyệt vời!</button></div>
     </div>`;
-  document.body.appendChild(bg);
+  document.body.appendChild(modalBgEl);
 
   // confetti ngẫu nhiên màu/vị trí/thời gian
   const colors = ["#FF7AC0","#A98CFF","#7DD3FC","#4dd47a","#ffe14d","#ffb13d"];
-  bg.querySelectorAll(".confetti i").forEach((p, i) => {
-    p.style.left = Math.random() * 100 + "%";
-    p.style.background = colors[i % colors.length];
-    p.style.animationDuration = (1.2 + Math.random() * 1.2) + "s";
-    p.style.animationDelay = (Math.random() * 0.4) + "s";
+  modalBgEl.querySelectorAll(".confetti i").forEach((pieceEl, i) => {
+    pieceEl.style.left = Math.random() * 100 + "%";
+    pieceEl.style.background = colors[i % colors.length];
+    pieceEl.style.animationDuration = (1.2 + Math.random() * 1.2) + "s";
+    pieceEl.style.animationDelay = (Math.random() * 0.4) + "s";
   });
 
   // close() gỡ CẢ listener keydown ở cả 3 lối đóng (nút / click nền / Esc) → không rò listener.
-  const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
+  const close = () => { modalBgEl.remove(); document.removeEventListener("keydown", onKey); };
   function onKey(e) { if (e.key === "Escape") close(); }
-  bg.querySelector("#jmOk").onclick = close;
-  bg.addEventListener("click", e => { if (e.target === bg) close(); });
+  modalBgEl.querySelector("#jmOk").onclick = close;
+  modalBgEl.addEventListener("click", e => { if (e.target === modalBgEl) close(); });
   document.addEventListener("keydown", onKey);
 }
 
@@ -306,16 +306,16 @@ function balancedColumns(count, maxFit) {
 function layoutFreeGrid() {
   const grid = $("grid");
   if (!grid) return;
-  const n = grid.children.length;
-  const cs      = getComputedStyle(grid);
-  const minTile = parseFloat(cs.getPropertyValue("--min-tile")) || 168;
-  const gap     = parseFloat(cs.columnGap) || 16;
-  const w       = grid.clientWidth;
-  const maxFit  = Math.max(1, Math.floor((w + gap) / (minTile + gap)));
-  // ≤ 1 hàng (n ≤ maxFit) → để CSS auto-fill: tile giữ bề ngang tự nhiên, canh trái — KHÔNG
+  const tileCount = grid.children.length;
+  const gridStyle = getComputedStyle(grid);
+  const minTile   = parseFloat(gridStyle.getPropertyValue("--min-tile")) || 168;
+  const gap       = parseFloat(gridStyle.columnGap) || 16;
+  const gridWidth = grid.clientWidth;
+  const maxFit    = Math.max(1, Math.floor((gridWidth + gap) / (minTile + gap)));
+  // ≤ 1 hàng (tileCount ≤ maxFit) → để CSS auto-fill: tile giữ bề ngang tự nhiên, canh trái — KHÔNG
   // kéo giãn 1–2 đội còn lại chiếm cả chiều ngang. Chỉ chia đều khi tràn sang nhiều hàng.
-  if (n === 0 || n <= maxFit) { grid.style.gridTemplateColumns = ""; return; }
-  const cols = balancedColumns(n, maxFit);
+  if (tileCount === 0 || tileCount <= maxFit) { grid.style.gridTemplateColumns = ""; return; }
+  const cols = balancedColumns(tileCount, maxFit);
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 }
 
@@ -332,17 +332,17 @@ function renderState() {
   if (!_skipSelfHeal && stateLoaded && myIcon && teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
 
   // banner đội của mình
-  const bw = $("bannerWrap");
+  const bannerWrapEl = $("bannerWrap");
   if (myIcon) {
-    const g = byEmoji[myIcon];
-    bw.innerHTML = `<div class="banner" style="--c:${g.color}">
-        <span class="bi">${g.icon}</span>
+    const iconDef = byEmoji[myIcon];
+    bannerWrapEl.innerHTML = `<div class="banner" style="--c:${iconDef.color}">
+        <span class="bi">${iconDef.icon}</span>
         <div>
-          <div class="bt">Bạn đang ở đội ${g.name} ${g.icon}</div>
+          <div class="bt">Bạn đang ở đội ${iconDef.name} ${iconDef.icon}</div>
           <div class="bs">Đã ghi nhận thông tin của bạn. Mỗi người chỉ tham gia 1 đội.</div>
         </div></div>`;
   } else {
-    bw.innerHTML = "";
+    bannerWrapEl.innerHTML = "";
   }
 
   const ready = profileValid() && !editing;
@@ -350,34 +350,34 @@ function renderState() {
   // ── Đội còn chỗ (count < CAPACITY) ──
   const grid = $("grid"); grid.innerHTML = "";
   let open = 0;
-  ICONS.forEach(g => {
-    const tm = teamOf(g.icon);
-    if (tm.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
+  ICONS.forEach(iconDef => {
+    const team = teamOf(iconDef.icon);
+    if (team.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
     open++;
-    const mine    = g.icon === myIcon;
+    const mine    = iconDef.icon === myIcon;
     const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách) mới được tham gia
-    const pct     = Math.round(tm.count / CAPACITY * 100);
-    const avas    = tm.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
-                  + (tm.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${tm.count - AVATAR_PREVIEW_MAX}</span>` : "")
+    const pct     = Math.round(team.count / CAPACITY * 100);
+    const avatarChips = team.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
+                  + (team.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${team.count - AVATAR_PREVIEW_MAX}</span>` : "")
                   || `<span class="mini empty">·</span>`;
     const label   = !ready ? "Điền thông tin" : (myIcon ? (mine ? "Đội của bạn" : "Đã có đội") : "Tham gia");
 
-    const t = document.createElement("div");
-    t.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "");
-    t.style.setProperty("--c", g.color);
-    t.innerHTML = `
-      <div class="ic">${g.icon}</div>
-      <div class="nm">${g.name}</div>
-      <div class="cap">${tm.count}/${CAPACITY}</div>
+    const tileEl = document.createElement("div");
+    tileEl.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "");
+    tileEl.style.setProperty("--c", iconDef.color);
+    tileEl.innerHTML = `
+      <div class="ic">${iconDef.icon}</div>
+      <div class="nm">${iconDef.name}</div>
+      <div class="cap">${team.count}/${CAPACITY}</div>
       <div class="cap-bar"><span style="width:${pct}%"></span></div>
-      <div class="avas">${avas}</div>
+      <div class="avas">${avatarChips}</div>
       <button class="pick ${canJoin ? "" : "lock"}">${label}</button>`;
     if (canJoin) {
-      const act = () => askConfirm(g);
-      t.onclick = e => { if (!e.target.closest("button")) act(); };
-      t.querySelector(".pick").onclick = e => { e.stopPropagation(); act(); };
+      const act = () => askConfirm(iconDef);
+      tileEl.onclick = e => { if (!e.target.closest("button")) act(); };
+      tileEl.querySelector(".pick").onclick = e => { e.stopPropagation(); act(); };
     }
-    grid.appendChild(t);
+    grid.appendChild(tileEl);
   });
   layoutFreeGrid();   // chia đều số cột theo số đội còn chỗ hiện tại (vd 10 → 5/5)
   $("freeCount").textContent = `${open}/${ICONS.length} đội`;
@@ -400,25 +400,25 @@ function renderState() {
     : "";
 
   // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
-  const tk = $("taken"); tk.innerHTML = "";
+  const takenEl = $("taken"); takenEl.innerHTML = "";
   let done = 0;
-  ICONS.forEach(g => {
-    const tm = teamOf(g.icon);
-    if (tm.count < CAPACITY) return;
+  ICONS.forEach(iconDef => {
+    const team = teamOf(iconDef.icon);
+    if (team.count < CAPACITY) return;
     done++;
-    const mine = g.icon === myIcon;
-    const lis  = tm.names.map((n, i) => `<li><span class="no">${i + 1}</span>${esc(n || "—")}</li>`).join("");
-    const el = document.createElement("div");
-    el.className = "full-team" + (mine ? " mine" : "");
-    el.style.setProperty("--c", g.color);
-    el.innerHTML = `
+    const mine = iconDef.icon === myIcon;
+    const memberItems = team.names.map((n, i) => `<li><span class="no">${i + 1}</span>${esc(n || "—")}</li>`).join("");
+    const teamEl = document.createElement("div");
+    teamEl.className = "full-team" + (mine ? " mine" : "");
+    teamEl.style.setProperty("--c", iconDef.color);
+    teamEl.innerHTML = `
       <div class="ft-head">
-        <span class="ti">${g.icon}</span>
-        <div class="ft-meta"><div class="lab">Đội</div><div class="ft-name">${g.name}</div></div>
-        <span class="ft-badge">${tm.count}/${CAPACITY}${mine ? " · bạn" : ""}</span>
+        <span class="ti">${iconDef.icon}</span>
+        <div class="ft-meta"><div class="lab">Đội</div><div class="ft-name">${iconDef.name}</div></div>
+        <span class="ft-badge">${team.count}/${CAPACITY}${mine ? " · bạn" : ""}</span>
       </div>
-      <ol class="ft-list">${lis}</ol>`;
-    tk.appendChild(el);
+      <ol class="ft-list">${memberItems}</ol>`;
+    takenEl.appendChild(teamEl);
   });
   $("takenCount").textContent = `${done}/${ICONS.length} đội`;
   $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">${EMPTY_SVG}Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";

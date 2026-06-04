@@ -1,43 +1,43 @@
-function askConfirm(g) {
-  const bg = document.createElement("div");
-  bg.className = "modal-bg";
-  bg.innerHTML = `<div class="modal" style="--c:${g.color}">
-      <div class="mic">${g.icon}</div>
-      <h3>Tham gia đội ${esc(g.name)}?</h3>
+function askConfirm(iconDef) {
+  const modalBgEl = document.createElement("div");
+  modalBgEl.className = "modal-bg";
+  modalBgEl.innerHTML = `<div class="modal" style="--c:${iconDef.color}">
+      <div class="mic">${iconDef.icon}</div>
+      <h3>Tham gia đội ${esc(iconDef.name)}?</h3>
       <p>Mỗi người chỉ tham gia 1 đội (tối đa ${CAPACITY} người/đội). Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
       <div class="row">
         <button class="cancel"  id="c0">Quay lại</button>
         <button class="confirm" id="c1">Xác nhận</button>
       </div>
     </div>`;
-  document.body.appendChild(bg);
-  bg.querySelector("#c0").onclick   = () => bg.remove();
-  bg.addEventListener("click", e => { if (e.target === bg) bg.remove(); });
-  bg.querySelector("#c1").onclick   = async () => { bg.remove(); await doClaim(g); };
+  document.body.appendChild(modalBgEl);
+  modalBgEl.querySelector("#c0").onclick   = () => modalBgEl.remove();
+  modalBgEl.addEventListener("click", e => { if (e.target === modalBgEl) modalBgEl.remove(); });
+  modalBgEl.querySelector("#c1").onclick   = async () => { modalBgEl.remove(); await doClaim(iconDef); };
 }
 
-async function doClaim(g) {
+async function doClaim(iconDef) {
   if (busy) { toast("Đang xử lý lượt tham gia của bạn…"); return; }   // bấm lúc đang ghi nhận → báo, không câm
   busy = true;
   document.body.classList.add("claiming");      // khoá mọi tile trong lúc ghi nhận
   toast("Đang ghi nhận…", true);                // toast dính: apiClaim có thể retry vài giây
   try {
-    const res = await apiClaim({ icon: g.icon, playerId: me.id, fields: me.fields });
+    const res = await apiClaim({ icon: iconDef.icon, playerId: me.id, fields: me.fields });
     if (res && res.ok) {
-      myIcon = g.icon;
+      myIcon = iconDef.icon;
       _skipSelfHeal = true;
       await saveMe();
-      showJoinedModal(g);         // popup chúc mừng + confetti (thay toast nhỏ)
+      showJoinedModal(iconDef);         // popup chúc mừng + confetti (thay toast nhỏ)
       renderProfile();            // khoá "Sửa thông tin" ngay lập tức
       renderStateIfChanged(true); // khoá toàn bộ tile ngay lập tức
     } else {
-      const r = res && res.reason;
-      if      (r === REASON.FULL)      toast(`Đội ${g.name} vừa đủ ${CAPACITY} người rồi!`);
-      else if (r === REASON.ALREADY)   toast("Bạn đã tham gia một đội rồi.");
-      else if (r === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
-      else if (r === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast("Bạn không có trong danh sách được phép tham gia sự kiện này. Vui lòng liên hệ ban tổ chức."); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
-      else if (r === REASON.NAME_MISMATCH) { editing = true; toast("Họ tên không khớp với danh sách được phép. Vui lòng nhập đúng họ tên đã đăng ký."); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
-      else if (r === REASON.MISSING)   toast("Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.");   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
+      const reason = res && res.reason;
+      if      (reason === REASON.FULL)      toast(`Đội ${iconDef.name} vừa đủ ${CAPACITY} người rồi!`);
+      else if (reason === REASON.ALREADY)   toast("Bạn đã tham gia một đội rồi.");
+      else if (reason === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
+      else if (reason === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast("Bạn không có trong danh sách được phép tham gia sự kiện này. Vui lòng liên hệ ban tổ chức."); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
+      else if (reason === REASON.NAME_MISMATCH) { editing = true; toast("Họ tên không khớp với danh sách được phép. Vui lòng nhập đúng họ tên đã đăng ký."); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
+      else if (reason === REASON.MISSING)   toast("Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.");   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
       else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
     }
@@ -56,10 +56,10 @@ async function doClaim(g) {
 
 // Chữ ký dữ liệu: chỉ render lại khi sĩ số/tên đội/myIcon/editing/hồ-sơ thực sự đổi → chống nhấp nháy
 function computeSig() {
-  const t = Object.keys(state).sort()
+  const teamsSig = Object.keys(state).sort()
     .map(ic => ic + ":" + state[ic].count + ":" + (state[ic].names || []).join(","))
     .join("|");
-  return t + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0) + "|" + (stateLoaded ? 1 : 0);
+  return teamsSig + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0) + "|" + (stateLoaded ? 1 : 0);
 }
 function renderStateIfChanged(force) {
   const sig = computeSig();
@@ -76,7 +76,7 @@ async function refresh(force) {
 async function loadMe() {
   try {
     const raw = await sGet(SK.ME, false);
-    if (raw) { const o = JSON.parse(raw); me = o.me || me; myIcon = o.myIcon || null; }
+    if (raw) { const saved = JSON.parse(raw); me = saved.me || me; myIcon = saved.myIcon || null; }
   } catch (e) {}
 }
 

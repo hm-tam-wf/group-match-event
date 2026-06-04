@@ -6,7 +6,7 @@ const byEmoji = {};
 // Ở chế độ demo/sheet: boot() gọi ngay với DEFAULT_ICONS.
 function rebuildByEmoji() {
   Object.keys(byEmoji).forEach(k => delete byEmoji[k]);
-  ICONS.forEach(g => { byEmoji[g.icon] = g; });
+  ICONS.forEach(iconDef => { byEmoji[iconDef.icon] = iconDef; });
 }
 
 // State cục bộ
