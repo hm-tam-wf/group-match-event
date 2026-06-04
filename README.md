@@ -8,15 +8,15 @@ Dữ liệu lưu trên **Cloud Firestore**.
 
 ## App tự nhận diện 3 chế độ backend
 
-Xác định trong [docs/js/ui-utils.js](docs/js/ui-utils.js) (`const MODE = …`):
+Xác định trong [docs/js/ui/ui-utils.js](docs/js/ui/ui-utils.js) (`const MODE = …`):
 
 | Chế độ | Khi nào | Backend |
 |--------|---------|---------|
-| `firebase` | Có `FIREBASE_CONFIG.projectId` (xem [docs/js/firebase-config.js](docs/js/firebase-config.js)) | Cloud Firestore (đang dùng) |
-| `sheet` | `SCRIPT_URL` khác rỗng (Apps Script) | Google Sheet (**legacy**, xem [legacy-apps-script/](legacy-apps-script/)) |
+| `firebase` | Có `FIREBASE_CONFIG.projectId` (xem [docs/js/config/firebase-config.js](docs/js/config/firebase-config.js)) | Cloud Firestore (đang dùng) |
+| `sheet` | `SCRIPT_URL` khác rỗng (Apps Script) | Google Sheet (**legacy**, xem [legacy/apps-script/](legacy/apps-script/)) |
 | `demo` | Không cấu hình gì | `localStorage` / RAM (chạy thử 1 máy) |
 
-> `SCRIPT_URL` để **rỗng** trong [docs/js/config.js](docs/js/config.js) (web tĩnh không có Apps Script),
+> `SCRIPT_URL` để **rỗng** trong [docs/js/config/config.js](docs/js/config/config.js) (web tĩnh không có Apps Script),
 > nên app rơi vào `firebase` nếu đã cấu hình Firebase, ngược lại `demo`.
 
 ## Cấu trúc thư mục
@@ -25,20 +25,23 @@ Xác định trong [docs/js/ui-utils.js](docs/js/ui-utils.js) (`const MODE = …
 docs/                     ← GitHub Pages phục vụ thư mục này
   index.html              ← HTML shell: <link> css + <script src> các file js theo ĐÚNG thứ tự
   admin.html              ← trang quản trị (đứng riêng): đăng nhập Firebase Auth, xem & tải Excel signups
-  css/styles.css          ← giao diện (Soft Cloud Candy)
+  assets/styles.css       ← giao diện (Soft Cloud Candy)
   js/
-    config.js             ← FIELDS, DEDUP_FIELD, EVENT_ID, CAPACITY, ICONS, POLL_MS, SCRIPT_URL
-    firebase-config.js    ← FIREBASE_CONFIG, BLOCK_DUP, khởi tạo db (SDK nạp qua CDN ở index.html)
-    storage.js            ← lưu token định danh + đội đã tham gia (localStorage)
-    api.js                ← tầng dữ liệu: apiState / apiClaim / apiSubscribe (3 chế độ)
-    ui-utils.js           ← MODE, state, tiện ích, validate
-    ui-render.js          ← render hồ sơ, lưới đội, banner
+    config/config.js      ← FIELDS, DEDUP_FIELD, EVENT_ID, CAPACITY, ICONS, POLL_MS, SCRIPT_URL
+    config/firebase-config.js ← FIREBASE_CONFIG, BLOCK_DUP, khởi tạo db (SDK nạp qua CDN ở index.html)
+    data/storage.js       ← lưu token định danh + đội đã tham gia (localStorage)
+    data/api.js           ← tầng dữ liệu: apiState / apiClaim / apiSubscribe (3 chế độ)
+    ui/ui-utils.js        ← MODE, state, tiện ích, validate
+    ui/ui-render.js       ← render hồ sơ, lưới đội, banner
     app.js                ← khởi tạo, realtime/poll, xác nhận tham gia
 
-firestore.rules           ← Security Rules (DÁN vào Firebase Console). cap()=10 phải khớp CAPACITY
-export.js  EXPORT.md      ← công cụ xuất danh sách signups ra CSV (firebase-admin)
-SETUP-FIREBASE.md         ← hướng dẫn dựng Firestore + deploy
-legacy-apps-script/       ← backend Apps Script CŨ — KHÔNG còn dùng (giữ làm dự phòng)
+backend/
+  firestore.rules         ← Security Rules (DÁN vào Firebase Console). cap()=10 phải khớp CAPACITY
+  scripts/export.js · loadtest.js
+documentation/
+  EXPORT.md               ← công cụ xuất danh sách signups ra CSV (firebase-admin)
+  SETUP-FIREBASE.md       ← hướng dẫn dựng Firestore + deploy
+legacy/apps-script/       ← backend Apps Script CŨ — KHÔNG còn dùng (giữ làm dự phòng)
 ```
 
 > Thứ tự nạp script trong `index.html` rất quan trọng: các biến toàn cục (`const`) được khai báo
@@ -67,9 +70,9 @@ GitHub repo → **Settings → Pages → Source:** branch `master`, folder **`/d
 
 ## Xuất danh sách đăng ký
 
-Xem [EXPORT.md](EXPORT.md): `npm install` rồi `npm run export` (đọc collection `signups` qua `firebase-admin`).
+Xem [EXPORT.md](documentation/EXPORT.md): `npm install` rồi `npm run export` (đọc collection `signups` qua `firebase-admin`).
 
 ## Thay đổi sĩ số đội (CAPACITY)
 
-Phải sửa **cả 2 nơi** cho khớp: `CAPACITY` trong [docs/js/config.js](docs/js/config.js) và `function cap()`
-trong [firestore.rules](firestore.rules) (rồi Publish lại rules trên Firebase Console).
+Phải sửa **cả 2 nơi** cho khớp: `CAPACITY` trong [docs/js/config/config.js](docs/js/config/config.js) và `function cap()`
+trong [backend/firestore.rules](backend/firestore.rules) (rồi Publish lại rules trên Firebase Console).
