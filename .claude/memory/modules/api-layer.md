@@ -79,9 +79,18 @@ KHÔNG chứa pid → không lộ token).
 - **"Chỗ của mình"** = localStorage `reservedKey` (per-event, `shared:false`), KHÔNG phải pid-trong-doc →
   doc reg_keys không lộ gì. Hệ quả CHỦ ĐÍCH: cùng người đổi THIẾT BỊ (pid mới, reservedKey trống) trước khi
   join ⇒ bị chặn ở thiết bị thứ 2 ("1 MSNV = 1 đăng ký"). Chốt CỨNG vẫn là dedup_keys lúc JOIN (apiClaim).
-- **Giới hạn di trú:** reg_keys bắt đầu RỖNG → chỉ bảo vệ đăng ký MỚI (sau deploy). Signup CŨ (trước feature)
-  chưa có đặt-chỗ → newcomer cùng MSNV vẫn tạo được dòng trùng tới khi backfill. Backfill = admin (đọc được
-  signups) ghi reg_keys — CHƯA làm (kế hoạch duyệt: "reg_keys rỗng, dọn trùng cũ bằng tay").
+- **Fix H2 (2026-06-04, app.js:91):** khi `init()` mint danh tính MỚI (`!me.id` → mất/xoá `me`) thì
+  `await sDel("reservedKey")` → nhả reservedKey cũ. Bịt lỗ: trước đây `me` bị xoá nhưng reservedKey còn sót
+  → `apiRegReserve`/`apiRegTaken` short-circuit "chỗ của mình" cho qua nhầm. Returning user còn `me.id` ⇒
+  không chạy ⇒ giữ reservation. Không đổi hành vi cổng.
+- **Giới hạn di trú + vì sao KHÔNG backfill (2026-06-04):** reg_keys bắt đầu RỖNG → chỉ bảo vệ đăng ký MỚI.
+  Signup CŨ (trước deploy `e92ffef` 14:14) chưa có đặt-chỗ. **Backfill reg_keys ĐÃ BỊ LOẠI** vì nó KHOÁ NHẦM
+  chính chủ: ownership chỉ theo `reservedKey` (localStorage per-browser, server KHÔNG set được) → backfill xong,
+  chủ thật (chưa join, máy không có reservedKey) mở lại trang sẽ bị `apiRegTaken` chặn khỏi lưới (init:99).
+  Thay bằng **self-heal** (chủ mở lại ⇒ init:121 `apiRegReserve` tự giữ chỗ, không khoá nhầm) + script DỌN
+  TRÙNG `backend/scripts/dedup-signups.js` (mặc định **dry-run**; `--apply` mới xoá; giữ dòng đã-join hoặc
+  sớm-nhất mỗi MSNV, KHÔNG đụng reg_keys/dedup_keys). npm: `dedup:signups`. Nhớ: chốt cứng dedup_keys lúc
+  JOIN đã đảm bảo 1 MSNV → tối đa 1 đội bất kể data cũ — dòng trùng tiền-join chỉ là cosmetic ở admin.
 - Demo/sheet: no-op (`{ok:true}`/`false`) — không có signups trên server nên không có vấn đề dòng-trùng.
 → Rule `reg_keys` (get:true, create hasOnly['at'], **delete:if true** cho typo-recovery) xem [[firestore-schema]].
 clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
