@@ -53,6 +53,14 @@ service cloud.firestore {
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
+      // Danh sách cho phép (allowlist): chỉ key có trong đây mới claim được khi meta/config.allowlistMode = true.
+      // key = _dedupKey(<giá trị dedupField>) — chuẩn hoá GIỐNG HỆT dedup_keys để import & claim khớp tuyệt đối.
+      match /allowlist/{key} {
+        allow get:   if true;             // client transaction cần đọc theo key đã biết
+        allow list:  if isAdmin();        // chỉ admin liệt kê/đếm; KHÔNG mở cho client (chống enumerate)
+        allow write: if isAdmin();        // admin import từ Excel; client không ghi
+      }
+
       match /signups/{pid} {
         allow read:   if isAdmin();       // (list/count cho admin)
         allow create: if true;            // ghi hồ sơ NGAY khi điền xong (kể cả CHƯA chọn đội)

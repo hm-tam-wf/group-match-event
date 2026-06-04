@@ -38,6 +38,9 @@ const FIREBASE_CONFIG = {
 let NUM_ICONS   = 50;
 let CAPACITY    = 10;
 let DEDUP_FIELD = 'employeeId';
+// Danh sách cho phép: TAT cho load test (user tong hop khong nam trong allowlist nao). Giu false de
+// mirror dung cau truc apiClaim ma khong lam hong test; bat len se khien moi claim tra 'notAllowed'.
+let ALLOWLIST_MODE = false;
 let ICONS = Array.from({ length: NUM_ICONS }, (_, i) => ({
   icon: `T${i}`, name: `Doi ${i}`, color: '#888',
 }));
@@ -176,16 +179,20 @@ async function claim(u) {
   const signupRef = evDoc('signups',    u.playerId);
   const dedupVal  = norm(u.fields[DEDUP_FIELD]);
   const dedupRef  = dedupVal ? evDoc('dedup_keys', dedupVal) : null;
+  const allowVal  = (ALLOWLIST_MODE && DEDUP_FIELD) ? norm(u.fields[DEDUP_FIELD]) : '';
+  const allowRef  = allowVal ? evDoc('allowlist', allowVal) : null;
 
   const runTx = () => runTransaction(cdb, async tx => {
-    const [t, mb, dk] = await Promise.all([
+    const [t, mb, dk, al] = await Promise.all([
       tx.get(teamRef),
       tx.get(memberRef),
       dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
+      allowRef ? tx.get(allowRef) : Promise.resolve(null),
     ]);
     // modular SDK: .exists() la HAM (khac compat SDK la thuoc tinh)
     if (mb.exists())       return { ok: false, reason: 'already' };
     if (dk && dk.exists()) return { ok: false, reason: 'dup' };
+    if (allowRef && !al.exists()) return { ok: false, reason: 'notAllowed' };   // mirror apiClaim (TAT trong test)
     const count = t.exists() ? (t.data().count || 0) : 0;
     const names = t.exists() ? (t.data().names || []) : [];
     if (count >= CAPACITY) return { ok: false, reason: 'full' };

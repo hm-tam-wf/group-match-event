@@ -19,10 +19,14 @@ let busy    = false;
 let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi (chống nhấp nháy)
 let _skipSelfHeal = false; // true trong window vừa tham gia → chặn self-heal stale-state
 let dupBlocked = false; // true khi MSNV đã đăng ký rồi → chặn vào lưới chọn đội (cổng chống trùng)
+let allowBlocked = false; // true khi bật allowlist & MSNV KHÔNG trong danh sách → chặn vào lưới (cổng allowlist)
 
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };
 const profileComplete = () => FIELDS.every(f => !f.required || (me.fields[f.key] || "").trim());
+// HỢP LỆ để tham gia: mọi field qua được fieldError (bắt buộc đủ VÀ đúng định dạng, không chỉ khác rỗng).
+// Dùng làm CỔNG vào lưới chọn đội — thông tin chưa đúng/đủ thì giữ ở popup, KHÔNG cho vào trang.
+const profileValid = () => FIELDS.every(f => !fieldError(f, me.fields[f.key]));
 const labelOf = key => (FIELDS.find(f => f.key === key) || {}).label || key;
 const esc = s => (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 

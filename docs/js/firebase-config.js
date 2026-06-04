@@ -16,6 +16,11 @@ const FIREBASE_CONFIG = {
 // Ở chế độ firebase: được gán lại bởi boot() từ events/{id}/meta/config.
 let BLOCK_DUP = true;
 
+// Chế độ "danh sách cho phép": true ⇒ chỉ định danh (theo DEDUP_FIELD) nằm trong collection
+// allowlist mới claim được; false/thiếu ⇒ mở cho mọi người (tương thích ngược sự kiện cũ).
+// Ở chế độ firebase: được gán lại bởi boot() từ events/{id}/meta/config.allowlistMode.
+let ALLOWLIST_MODE = false;
+
 const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
 let db = null;
 if (FIREBASE_ON) {

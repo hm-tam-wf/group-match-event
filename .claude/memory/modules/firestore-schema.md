@@ -3,7 +3,7 @@ title: firestore-schema
 tags: [module, backend, data]
 code: [firestore.rules, docs/js/api.js, docs/js/config.js]
 related: [[index]], [[architecture]], [[api-layer]]
-updated: 2026-06-03
+updated: 2026-06-04
 ---
 
 # Firestore Schema
@@ -38,6 +38,19 @@ meta/config
   — READ: public
   — WRITE: admin only
 ```
+
+## `meta/config.fields` — hợp đồng BẮT BUỘC có key "name"
+`fields` = mảng `{ key, label, type, required, placeholder }`. Toàn app (`apiClaim`,
+`apiSaveProfile`, `ui-render` avatar/summary/roster) dùng `me.fields.name` / `f.name` làm
+TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:true`**.
+- Thiếu/không-bắt-buộc ⇒ người chơi điền form + vào lưới được nhưng `apiClaim` trả
+  `reason:"missing"` (vì `f.name` rỗng) → "join lỗi". Bug thực tế 2026-06-04: sự kiện tạo
+  với key `"hoten"` thay vì `"name"` (config.fields lấy từ admin, không bị ép key).
+- Ép phía admin: `validateForm` bắt buộc field key "name" (required) + chặn key trùng;
+  `resetForm` seed sẵn `DEFAULT_FIELDS` (name+employeeId) cho form tạo mới — xem [[admin-panel]].
+- Chốt phía client: `boot()` thiếu key "name" → hiện lỗi cấu hình, KHÔNG vào lưới; cổng vào
+  trang dùng `profileValid()` (đủ + đúng định dạng qua `fieldError`) — xem [[api-layer]].
+- (config còn có `subtitle`, `dedupField`, `blockDup`, `allowlistMode` — xem [[api-layer]], [[allowlist]].)
 
 ## Security rules — critical points
 1. **Capacity check:** `teams/{icon}.count < cap()` — `cap()` đọc `meta/config.capacity`

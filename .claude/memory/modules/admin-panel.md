@@ -3,7 +3,7 @@ title: admin-panel
 tags: [module, admin]
 code: [docs/admin.html, docs/js/api.js, export.js]
 related: [[index]], [[architecture]], [[firestore-schema]]
-updated: 2026-06-03
+updated: 2026-06-04
 ---
 
 # Admin Panel
@@ -48,6 +48,16 @@ Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm t
   tới khi khớp, `danger:true`.
 - ⚠️ Sửa sự kiện đang chạy KHÔNG live trên trang công khai — xem [[ui-pipeline]] (config
   reload-only). Success message nhắc admin/người dùng phải tải lại trang.
+
+## Danh sách cho phép (allowlist) — đã có
+- [[allowlist]] — tab riêng "Danh sách cho phép": import SheetJS (CSV/XLSX), bảng tìm kiếm,
+  tải CSV, toggle `allowlistMode` theo sự kiện. Tái dùng `xlsx-0.20.3` (CDN) cũng dùng cho export.
+
+## Cấu hình field — `validateForm`/`resetForm` (từ 2026-06-04)
+- `validateForm` BẮT BUỘC có field `key:"name"` (required) + chặn key trùng — app dùng
+  `me.fields.name` làm tên hiển thị (hợp đồng trong [[firestore-schema]]). Thiếu ⇒ chặn lưu.
+- `resetForm(seed=true)` seed sẵn `DEFAULT_FIELDS` (name+employeeId) cho form tạo mới;
+  `populateForm` gọi `resetForm(false)` (Sửa/Nhân bản tự thêm field của sự kiện, tránh nhân đôi).
 
 ## Gotchas
 - Admin HTML không có dependency ngược lại `index.html` — 2 entry points độc lập

@@ -19,11 +19,21 @@ function renderProfile() {
   if (dupBlocked && !myIcon && !editing) {
     closeProfileModal();
     box.innerHTML = "";
+    closeAllowBlockedModal();
     showDupBlockedModal();
     return;
   }
 
-  const done = profileComplete() && !editing;
+  // CỔNG danh sách cho phép: bật allowlist & MSNV không trong danh sách → chặn cứng, không cho vào lưới.
+  if (allowBlocked && !myIcon && !editing) {
+    closeProfileModal();
+    box.innerHTML = "";
+    closeDupBlockedModal();
+    showAllowBlockedModal();
+    return;
+  }
+
+  const done = profileValid() && !editing;
 
   if (done) {
     closeProfileModal();
@@ -56,7 +66,7 @@ function closeProfileModal() {
 // với token mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
 function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
-  const canCancel = profileComplete();
+  const canCancel = profileValid();
 
   const bg = document.createElement("div");
   bg.className = "modal-bg";
@@ -113,9 +123,25 @@ function showProfileModal() {
     }
     dupBlocked = false;
 
-    // Chỉ ghi khi MSNV hợp lệ (không trùng); đồng bộ ngay cả khi CHƯA chọn đội để admin có data.
+    // CỔNG danh sách cho phép — SAU cổng dedup: MSNV không trong danh sách → chặn, KHÔNG ghi hồ sơ.
+    let allowed = true;
+    if (typeof apiAllowlistAllowed === "function") {
+      if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
+      try { allowed = await apiAllowlistAllowed(me.fields[DEDUP_FIELD]); } catch (e) {}
+      if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
+    }
+    if (!allowed) {
+      allowBlocked = true;
+      if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn hồ sơ nếu lỡ lưu trước đó
+      renderProfile();            // allowBlocked && !myIcon && !editing → hiện modal chặn (KHÔNG ghi data)
+      return;
+    }
+    allowBlocked = false;
+
+    // Chỉ ghi khi MSNV hợp lệ (không trùng, có trong danh sách); đồng bộ ngay cả khi CHƯA chọn đội để admin có data.
     apiSaveProfile({ playerId: me.id, fields: me.fields });
     closeDupBlockedModal();
+    closeAllowBlockedModal();
     closeProfileModal();
     renderProfile();
     renderStateIfChanged(true);
@@ -157,6 +183,31 @@ function showDupBlockedModal() {
 
 function closeDupBlockedModal() {
   const m = $("dupBlockedModal");
+  if (m) m.remove();
+}
+
+// Modal CHẶN khi MSNV KHÔNG nằm trong danh sách cho phép — không thể bỏ qua, chỉ cho "Nhập mã khác".
+// Cổng chặn vào trang chọn đội khi sự kiện bật "danh sách cho phép" mà mã không có trong danh sách.
+function showAllowBlockedModal() {
+  if ($("allowBlockedModal")) return;
+  const lbl = labelOf(DEDUP_FIELD);
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.id = "allowBlockedModal";
+  bg.innerHTML = `
+    <div class="modal">
+      <div class="mic">🔒</div>
+      <h3>Bạn chưa có trong danh sách</h3>
+      <p><b>${esc(lbl)}</b> bạn nhập không nằm trong danh sách được phép tham gia sự kiện này.<br>
+         Vui lòng kiểm tra lại hoặc liên hệ ban tổ chức.</p>
+      <div class="row"><button class="confirm" id="allowBack">Nhập mã khác</button></div>
+    </div>`;
+  document.body.appendChild(bg);
+  $("allowBack").onclick = () => { bg.remove(); editing = true; renderProfile(); };
+}
+
+function closeAllowBlockedModal() {
+  const m = $("allowBlockedModal");
   if (m) m.remove();
 }
 
@@ -260,7 +311,7 @@ function renderState() {
     bw.innerHTML = "";
   }
 
-  const ready = profileComplete() && !editing;
+  const ready = profileValid() && !editing;
 
   // ── Đội còn chỗ (count < CAPACITY) ──
   const grid = $("grid"); grid.innerHTML = "";
@@ -270,7 +321,7 @@ function renderState() {
     if (tm.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
     open++;
     const mine    = g.icon === myIcon;
-    const canJoin = ready && !myIcon && !dupBlocked; // chưa có đội & không bị chặn trùng mới được tham gia
+    const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách) mới được tham gia
     const pct     = Math.round(tm.count / CAPACITY * 100);
     const avas    = tm.names.slice(0, 5).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
                   + (tm.count > 5 ? `<span class="mini more">+${tm.count - 5}</span>` : "")

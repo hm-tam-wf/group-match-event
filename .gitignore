@@ -7,6 +7,9 @@ serviceAccountKey*.json
 *firebase-adminsdk*.json
 signups-*.csv
 
+# File khoá tạm của Excel/Office (sinh ra khi đang mở .xlsx) — không bao giờ commit
+~$*
+
 # Công cụ dev / chẩn đoán & preview chụp ảnh (không phải sản phẩm)
 diag-dedup.js
 fix-dedup.js

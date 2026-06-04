@@ -60,6 +60,10 @@ bản ghi người thắng (pid khác). → Rule `signups allow delete: if true`
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).
 
+## Sắp tới
+- [[allowlist]] (WIP) — cổng "chỉ MSNV trong danh sách mới được join" sẽ chặn trước/trong
+  `apiClaim`; bổ sung cho cổng chống trùng `apiDedupTaken` hiện có. Code chưa tồn tại.
+
 ## Gotchas
 - Script loading order: `config.js` và `firebase-config.js` phải load TRƯỚC `api.js` (global scope dependency)
 - `BLOCK_DUP` flag trong `firebase-config.js` controls dedup strictness

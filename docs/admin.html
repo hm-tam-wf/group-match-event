@@ -225,6 +225,33 @@
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
   }
+
+  /* ── Danh sách cho phép (allowlist) ── prefix al- để không đụng class cũ; màu map theo theme admin */
+  .al-status{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin:14px 0 6px;}
+  .al-stat{display:flex;flex-direction:column;gap:2px;}
+  .al-stat-k{font-size:12px;color:var(--mut);}
+  .al-stat-v{font-weight:600;}
+  .al-toggle{margin-left:auto;}                 /* đẩy toggle về cuối hàng */
+  .al-warn{
+    margin:10px 0;padding:10px 12px;border-radius:var(--r-sm);
+    background:var(--danger-soft);border:1px solid #F6C9D2;color:#9b2740;font-size:14px;line-height:1.5;
+  }
+  .al-import{margin:8px 0 4px;padding:14px;border:1px dashed var(--line);border-radius:var(--r);}
+  .al-import-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .al-col{max-width:240px;}
+  .al-import-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .al-result{margin-top:10px;font-size:14px;color:var(--ok);}
+  .al-result.err{color:var(--bad);}
+  .al-list-head{display:flex;gap:10px;align-items:center;margin:16px 0 8px;}
+  .al-search{flex:1;}
+  .al-table .num{width:48px;}
+  .al-table td:last-child{width:64px;text-align:right;}
+  .al-empty{padding:16px;text-align:center;color:var(--mut);}
+  .al-import.is-disabled{opacity:.5;pointer-events:none;}
+  @media (max-width:640px){
+    .al-status{gap:12px;}
+    .al-toggle{margin-left:0;}
+  }
 </style>
 </head>
 <body>
@@ -256,6 +283,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="tabEvents">Quản lý sự kiện</button>
       <button class="tab" data-tab="tabSignups">Xem đăng ký</button>
+      <button class="tab" data-tab="tab-allowlist">Danh sách cho phép</button>
     </div>
 
     <!-- TAB: Quản lý sự kiện -->
@@ -321,6 +349,14 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <label>Danh sách cho phép</label>
+          <div class="form-col">
+            <label class="cb-wrap"><input type="checkbox" id="fAllowlistMode" /> Chỉ cho người trong danh sách (Excel) được tham gia</label>
+            <span class="hint" id="fAllowlistHint">Cần chọn <b>field chống trùng</b> ở trên. Sau khi tạo, vào tab <b>Danh sách cho phép</b> để nạp file Excel.</span>
+          </div>
+        </div>
+
         <div class="form-row" style="align-items:flex-start;">
           <label style="padding-top:6px;">Ô nhập (fields)</label>
           <div class="form-col">
@@ -368,6 +404,70 @@
         </div>
       </div>
     </div><!-- /tabSignups -->
+
+    <!-- TAB: Danh sách cho phép -->
+    <section id="tab-allowlist" class="tab-panel">
+      <div class="card">
+        <!-- Hàng chọn sự kiện: tái dùng .row-sig của tab "Xem đăng ký" -->
+        <div class="row-sig">
+          <label for="alEvent">Sự kiện:</label>
+          <select id="alEvent"></select>
+          <button id="alReload" class="btn-ghost btn-sm" type="button">↻ Tải lại</button>
+        </div>
+
+        <!-- Khối trạng thái -->
+        <div class="al-status">
+          <div class="al-stat">
+            <span class="al-stat-k">Field đối chiếu</span>
+            <span class="al-stat-v" id="alDedupField">—</span>
+          </div>
+          <div class="al-stat">
+            <span class="al-stat-k">Tổng trong danh sách</span>
+            <span class="al-stat-v" id="alCount">0</span>
+          </div>
+          <label class="cb-wrap al-toggle">
+            <input type="checkbox" id="alMode" />
+            Chỉ cho người trong danh sách được tham gia
+          </label>
+        </div>
+
+        <!-- Cảnh báo (ẩn mặc định; JS bật khi cần) -->
+        <div class="al-warn" id="alWarnNoField" hidden>
+          Sự kiện này chưa đặt <b>field chống trùng</b> nên chưa dùng được danh sách cho phép.
+          Hãy đặt field ở phần <b>Sửa</b> sự kiện trước.
+        </div>
+        <div class="al-warn" id="alWarnEmpty" hidden>
+          Đang <b>bật giới hạn</b> nhưng danh sách <b>trống</b> ⇒ sẽ chặn TẤT CẢ mọi người.
+        </div>
+
+        <!-- Khối nhập từ Excel -->
+        <div class="al-import" id="alImport">
+          <div class="hint">Cột định danh sẽ tự khớp theo field đối chiếu. Nếu không khớp, chọn cột bên dưới.</div>
+          <div class="al-import-row">
+            <input type="file" id="alFile" accept=".xlsx,.xls,.csv" />
+            <select id="alCol" class="al-col" hidden></select>
+          </div>
+          <div class="al-import-actions">
+            <button id="alAdd" class="btn-pri btn-sm" type="button" disabled>Nhập (thêm vào danh sách)</button>
+            <button id="alReplace" class="btn-ghost btn-sm" type="button" disabled>Xoá cũ &amp; nạp mới</button>
+          </div>
+          <div class="al-result" id="alResult" hidden></div>
+        </div>
+
+        <!-- Danh sách hiện có -->
+        <div class="al-list-head">
+          <input type="text" id="alSearch" class="al-search" placeholder="Tìm theo định danh hoặc tên…" />
+          <button id="alDownload" class="btn-ghost btn-sm" type="button">Tải xuống CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table class="reg-table al-table">
+            <thead><tr><th class="num">#</th><th>Định danh</th><th>Tên</th><th></th></tr></thead>
+            <tbody id="alBody"></tbody>
+          </table>
+        </div>
+        <div class="al-empty" id="alEmpty" hidden>Chưa có ai trong danh sách. Nạp file Excel ở trên.</div>
+      </div>
+    </section>
 
   </div><!-- /adminView -->
 
@@ -489,6 +589,7 @@
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       btn.classList.add("active");
       $(btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "tab-allowlist" && allowlistOnTabOpen) allowlistOnTabOpen();
     });
   });
 
@@ -497,6 +598,7 @@
   let cachedEvents  = [];   // { id, exists, cfg, metrics }
   let editingId     = "";   // "" = đang TẠO mới; có giá trị = đang SỬA sự kiện này
   let editOriginal  = null; // cfg gốc của sự kiện đang sửa (để so sánh dedup/field)
+  let allowlistOnTabOpen = null; // gán bởi IIFE allowlist; gọi khi mở tab "Danh sách cho phép"
 
   auth.onAuthStateChanged(user => {
     if (user) {
@@ -782,6 +884,7 @@
     if (!ok) return;
     try {
       await clearEventData(eid);                       // dọn nốt teams/dedup còn rơi rớt (nếu có)
+      await deleteAll(`events/${eid}/allowlist`);      // dọn danh sách cho phép (CHỈ khi xoá hẳn; "Xóa dữ liệu" GIỮ để mở lại)
       const batch = db.batch();
       batch.set(db.collection("config").doc("eventList"), { ids: FV.arrayRemove(eid) }, { merge: true });
       batch.delete(db.collection("events").doc(eid).collection("meta").doc("config"));
@@ -889,6 +992,16 @@
     $("fBlockDup").disabled = !hasField;
     if (!hasField) $("fBlockDup").checked = false;
     else if (!$("fBlockDup").dataset.touched) $("fBlockDup").checked = true;
+    syncAllowlistToggle($("fDedupField").value);   // toggle "Danh sách cho phép" cũng phụ thuộc field chống trùng
+  }
+
+  // Toggle "Danh sách cho phép" phụ thuộc field chống trùng: '' (Không chống trùng) ⇒ khoá + bỏ tích + nhắc đỏ.
+  function syncAllowlistToggle(dedupValue) {
+    const off = !dedupValue;
+    const cb = $("fAllowlistMode");
+    cb.disabled = off;
+    if (off) cb.checked = false;
+    $("fAllowlistHint").style.color = off ? "var(--bad)" : "";
   }
 
   // Khi TẠO MỚI (admin chưa tự chọn dropdown) và đang để "Không chống trùng":
@@ -927,6 +1040,7 @@
       capacity:   parseInt($("fCapacity").value, 10) || 10,
       dedupField: $("fDedupField").value,
       blockDup:   $("fBlockDup").checked,
+      allowlistMode: $("fAllowlistMode").checked,
       fields, icons
     };
   }
@@ -945,6 +1059,17 @@
       if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(f.key))
         return `Key "${f.key}" không hợp lệ — bắt đầu bằng chữ cái, chỉ dùng a-z A-Z 0-9 _.`;
     }
+    // Key không được trùng nhau (2 ô cùng key ⇒ me.fields đè nhau, form render 2 input ghi 1 key).
+    const fkeys = d.fields.map(f => f.key);
+    if (new Set(fkeys).size !== fkeys.length)
+      return "Có key ô nhập bị trùng — mỗi ô cần một key riêng.";
+    // BẮT BUỘC có ô tên hiển thị key đúng "name" và để "Bắt buộc": apiClaim + ui-render dùng
+    // me.fields.name để hiện tên trong danh sách đội. Thiếu/để-trống ⇒ vào lưới được nhưng KHÔNG join được.
+    const nameField = d.fields.find(f => f.key === "name");
+    if (!nameField)
+      return 'Cần một ô nhập có key đúng là "name" (ô họ tên hiển thị) — ứng dụng dùng key này để hiện tên trong danh sách đội.';
+    if (!nameField.required)
+      return 'Ô "name" (họ tên) phải đặt "Bắt buộc" — ứng dụng cần tên để hiển thị trong danh sách đội.';
     for (const ic of d.icons) {
       if (!ic.icon) return "Có đội chưa điền emoji.";
       if (!ic.name) return "Có đội chưa điền tên.";
@@ -956,6 +1081,9 @@
       return "Hãy chọn field để chống trùng (vd: Mã nhân viên), hoặc đặt 'Không chống trùng' rồi bỏ tích chặn.";
     if (d.dedupField && !d.fields.some(f => f.key === d.dedupField))
       return `Field chống trùng "${d.dedupField}" không nằm trong danh sách ô nhập.`;
+    // Danh sách cho phép đối chiếu theo field chống trùng → bật mà chưa chọn field thì cấu hình vô nghĩa.
+    if (d.allowlistMode && !d.dedupField)
+      return "Bật 'Danh sách cho phép' thì phải chọn field chống trùng — danh sách đối chiếu theo field này.";
     return null;
   }
 
@@ -988,6 +1116,7 @@
         capacity:   d.capacity,
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
+        allowlistMode: d.allowlistMode,
         createdAt:  FV.serverTimestamp()
       });
       await db.collection("config").doc("eventList")
@@ -1061,6 +1190,7 @@
         capacity:   d.capacity,
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
+        allowlistMode: d.allowlistMode,
         updatedAt:  FV.serverTimestamp()
       }, { merge: true });
       const wasActive = editingId === activeEventId;
@@ -1078,7 +1208,7 @@
 
   $("btnCancel").addEventListener("click", () => { resetForm(); });
 
-  function resetForm() {
+  function resetForm(seed = true) {
     editingId    = "";
     editOriginal = null;
     $("fId").readOnly      = false;
@@ -1090,10 +1220,15 @@
     $("fBlockDup").checked = true;
     $("fBlockDup").disabled = false;
     $("fBlockDup").dataset.touched = "";
+    $("fAllowlistMode").checked = false;
     $("fieldsList").innerHTML = "";
     $("iconsList").innerHTML  = "";
     $("fDedupField").innerHTML = '<option value="">Không chống trùng</option>';
     $("fDedupField").dataset.manual = "";
+    // Tạo mới: seed sẵn field mặc định (gồm ô họ tên key "name") để admin khỏi gõ tay sai key.
+    // populateForm (Sửa/Nhân bản) gọi resetForm(false) vì sẽ tự thêm field của sự kiện bên dưới.
+    if (seed && typeof DEFAULT_FIELDS !== "undefined" && Array.isArray(DEFAULT_FIELDS))
+      DEFAULT_FIELDS.forEach(f => addFieldRow(f));
     syncDedupControls();
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
@@ -1114,13 +1249,14 @@
   }
 
   function populateForm(cfg, id) {
-    resetForm();
+    resetForm(false);   // KHÔNG seed mặc định — sẽ tự thêm đúng field của sự kiện bên dưới
     $("fId").value = id || "";
     $("fId").dataset.manual = id ? "1" : "";
     $("fTitle").value    = cfg.title    || "";
     $("fSubtitle").value = cfg.subtitle || "";
     $("fCapacity").value = cfg.capacity != null ? cfg.capacity : 10;
     $("fBlockDup").checked = cfg.blockDup !== false;
+    $("fAllowlistMode").checked = !!cfg.allowlistMode;
     // Nhân bản: giữ đúng cấu hình bản gốc (kể cả "" hợp lệ) → tắt autopick, tôn trọng checkbox gốc.
     // Đặt cờ TRƯỚC khi thêm field rows để autopick/syncDedupControls trong vòng lặp không ghi đè cfg.blockDup.
     $("fDedupField").dataset.manual = "1";
@@ -1135,6 +1271,8 @@
       // dropdown lúc đó còn "" (giá trị chỉ gán ở dòng trên). Có field chống trùng ⇒ tôn trọng cfg.blockDup
       // (mặc định BẬT khi thiếu/đúng). Nhờ vậy bấm "Sửa" sự kiện có chống trùng sẽ thấy checkbox ĐÃ TÍCH.
       if ($("fDedupField").value !== "") $("fBlockDup").checked = cfg.blockDup !== false;
+      // Tương tự "chặn trùng": khôi phục allowlistMode sau khi gán dropdown (vòng addFieldRow đã bỏ tích).
+      if ($("fDedupField").value !== "") $("fAllowlistMode").checked = !!cfg.allowlistMode;
     }, 0);
   }
 
@@ -1293,6 +1431,202 @@
     const eid = $("sigSelect").value || "signups";
     XLSX.writeFile(wb, eid + ".xlsx");
   }
+
+  // ── Tab "Danh sách cho phép" (allowlist) ──────────────────────────────────
+  // Tái dùng (closure của IIFE chính): db, _dedupKey, confirmModal, FV, esc, cachedEvents, deleteAll, XLSX.
+  // Admin chỉ chạy chế độ firebase (trang bail nếu !FIREBASE_ON) → tầng dữ liệu firebase-only.
+  (function () {
+    const el = {
+      event:$('alEvent'), reload:$('alReload'), dedup:$('alDedupField'), count:$('alCount'),
+      mode:$('alMode'), warnNoField:$('alWarnNoField'), warnEmpty:$('alWarnEmpty'),
+      import:$('alImport'), file:$('alFile'), col:$('alCol'), add:$('alAdd'),
+      replace:$('alReplace'), result:$('alResult'), search:$('alSearch'),
+      download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
+    };
+    let cur = { eid:'', dedupField:'', rows:[], parsed:null };   // parsed = {items:[{key,name}]}
+
+    // ── tầng dữ liệu (firebase) ──
+    const data = {
+      async config(eid){ return (await db.collection('events').doc(eid).collection('meta').doc('config').get()).data() || {}; },
+      async setMode(eid, on){ return db.collection('events').doc(eid).collection('meta').doc('config').set({ allowlistMode:on }, { merge:true }); },
+      async list(eid){
+        const s = await db.collection('events').doc(eid).collection('allowlist').get();
+        return s.docs.map(d => ({ key:d.id, name:(d.data()||{}).name||'' }));
+      },
+      async addMany(eid, items){   // items: [{key,name}] — merge, batch ≤400
+        const ts = FV.serverTimestamp();
+        for (let i=0;i<items.length;i+=400){
+          const batch = db.batch();
+          items.slice(i,i+400).forEach(it =>
+            batch.set(db.collection('events').doc(eid).collection('allowlist').doc(it.key),
+              it.name ? { name:it.name, at:ts } : { at:ts }, { merge:true }));
+          await batch.commit();
+        }
+      },
+      async clear(eid){ await deleteAll(`events/${eid}/allowlist`); },   // tái dùng deleteAll của admin
+      async delOne(eid, key){ return db.collection('events').doc(eid).collection('allowlist').doc(key).delete(); },
+    };
+
+    function populateEvents(){
+      // Nguồn sự kiện = cachedEvents (giống dropdown "Xem đăng ký"); chỉ sự kiện có cấu hình.
+      const prev = el.event.value;
+      const list = (cachedEvents || []).filter(e => e.exists);
+      el.event.innerHTML = list.map(e =>
+        `<option value="${esc(e.id)}">${esc((e.cfg && e.cfg.title) || e.id)} (${esc(e.id)})</option>`).join('');
+      if (prev && list.some(e => e.id === prev)) el.event.value = prev;
+    }
+
+    function setWarnings(){
+      const noField = !cur.dedupField;
+      el.warnNoField.hidden = !noField;
+      el.import.classList.toggle('is-disabled', noField);
+      el.warnEmpty.hidden = !(el.mode.checked && cur.rows.length === 0);
+    }
+
+    function renderList(){
+      const q = (el.search.value||'').trim().toUpperCase();
+      const rows = q ? cur.rows.filter(r => r.key.includes(q) || (r.name||'').toUpperCase().includes(q)) : cur.rows;
+      el.empty.hidden = cur.rows.length !== 0;
+      el.body.innerHTML = rows.map((r,i)=>
+        `<tr><td class="num">${i+1}</td><td>${esc(r.key)}</td><td>${esc(r.name||'')}</td>`+
+        `<td><button class="btn-del" data-key="${esc(r.key)}" title="Xoá">✕</button></td></tr>`).join('');
+      el.count.textContent = cur.rows.length;
+      setWarnings();
+    }
+
+    async function loadEvent(eid){
+      cur.eid = eid; cur.parsed = null; el.result.hidden = true;
+      el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
+      if (!eid){ cur.dedupField=''; el.dedup.textContent='—'; el.mode.checked=false; cur.rows=[]; renderList(); return; }
+      const cfg = await data.config(eid);
+      cur.dedupField = (cfg.dedupField||'').trim();
+      el.dedup.textContent = cur.dedupField || '(chưa đặt)';
+      el.mode.checked = !!cfg.allowlistMode;
+      cur.rows = await data.list(eid);
+      renderList();
+    }
+
+    // ── Đọc Excel/CSV → array-of-arrays ──
+    function readFile(file){
+      return new Promise((res,rej)=>{
+        const fr = new FileReader();
+        fr.onerror = ()=>rej(new Error('Không đọc được file.'));
+        fr.onload = ()=>{
+          try{
+            const wb = XLSX.read(new Uint8Array(fr.result), { type:'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            res(XLSX.utils.sheet_to_json(ws, { header:1, defval:'' }));
+          }catch(e){ rej(new Error('File không hợp lệ.')); }
+        };
+        fr.readAsArrayBuffer(file);
+      });
+    }
+    function pickColumn(headers){
+      const want = cur.dedupField.toLowerCase();
+      return headers.findIndex(h => String(h).trim().toLowerCase() === want);   // -1 nếu không thấy
+    }
+    function buildItems(aoa, colIdx, nameIdx){
+      const out = [], seen = new Set();
+      for (let r=1;r<aoa.length;r++){
+        const key = _dedupKey(aoa[r][colIdx]);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        out.push({ key, name: nameIdx>=0 ? String(aoa[r][nameIdx]||'').trim() : '' });
+      }
+      return out;
+    }
+
+    function showResult(msg, err){ el.result.textContent = msg; el.result.classList.toggle('err', !!err); el.result.hidden = false; }
+
+    async function onFile(){
+      el.result.hidden = true; cur.parsed = null; el.add.disabled = el.replace.disabled = true; el.col.hidden = true;
+      const f = el.file.files[0]; if (!f) return;
+      if (!cur.dedupField){ showResult('Sự kiện chưa có field đối chiếu — không thể nhập.', true); return; }
+      let aoa; try{ aoa = await readFile(f); }catch(e){ showResult(e.message, true); return; }
+      if (!aoa.length){ showResult('File rỗng.', true); return; }
+      const headers = aoa[0].map(h=>String(h));
+      const nameIdx = headers.findIndex(h=>/h[oọ]\s*t[eê]n|name|^t[eê]n$/i.test(String(h).trim()));
+      let colIdx = pickColumn(headers);
+      if (colIdx < 0){
+        el.col.innerHTML = headers.map((h,i)=>`<option value="${i}">${esc(h||('Cột '+(i+1)))}</option>`).join('');
+        el.col.hidden = false;
+        showResult(`Không thấy cột khớp "${cur.dedupField}". Hãy chọn cột định danh.`, true);
+      }
+      const apply = () => {
+        const ci = el.col.hidden ? colIdx : parseInt(el.col.value,10);
+        cur.parsed = { items: buildItems(aoa, ci, nameIdx) };
+        el.add.disabled = el.replace.disabled = cur.parsed.items.length === 0;
+        if (cur.parsed.items.length) showResult(`Đọc được ${cur.parsed.items.length} định danh hợp lệ. Bấm "Nhập" hoặc "Xoá cũ & nạp mới".`);
+      };
+      el.col.onchange = apply; apply();
+    }
+
+    async function doImport(replace){
+      if (!cur.parsed || !cur.parsed.items.length) return;
+      if (replace){
+        const ok = await confirmModal({
+          title:'Xoá danh sách cũ rồi nạp mới?',
+          message:`Sẽ XOÁ toàn bộ danh sách hiện có của "${cur.eid}" rồi nạp ${cur.parsed.items.length} mục. Không hồi phục được.`,
+          confirmText:'Xoá & nạp', danger:true,
+        });
+        if (!ok) return;
+      }
+      el.add.disabled = el.replace.disabled = true;
+      try {
+        if (replace) await data.clear(cur.eid);
+        await data.addMany(cur.eid, cur.parsed.items);
+        cur.rows = await data.list(cur.eid); renderList();
+        showResult(`Đã nhập ${cur.parsed.items.length} · tổng hiện có ${cur.rows.length}.`);
+        el.file.value=''; cur.parsed=null; el.col.hidden = true;
+      } catch (err) {
+        showResult('Lỗi khi ghi danh sách: ' + (err.message || err), true);
+        el.add.disabled = el.replace.disabled = false;
+      }
+    }
+
+    function downloadCsv(){
+      const enc = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+      let csv = '﻿' + ['STT','Định danh','Tên'].map(enc).join(',') + '\r\n';
+      cur.rows.forEach((r,i)=>{ csv += [i+1, r.key, r.name||''].map(enc).join(',') + '\r\n'; });
+      const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `allowlist-${cur.eid}.csv`; a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ── events ──
+    el.event.onchange = e => loadEvent(e.target.value);
+    el.reload.onclick = () => cur.eid && loadEvent(cur.eid);
+    el.file.onchange = onFile;
+    el.add.onclick = () => doImport(false);
+    el.replace.onclick = () => doImport(true);
+    el.search.oninput = renderList;
+    el.download.onclick = downloadCsv;
+    el.body.onclick = async e => {
+      const b = e.target.closest('.btn-del'); if (!b) return;
+      const ok = await confirmModal({ title:'Xoá khỏi danh sách?', message:`Xoá "${b.dataset.key}" khỏi danh sách cho phép?`, confirmText:'Xoá', danger:true });
+      if (!ok) return;
+      await data.delOne(cur.eid, b.dataset.key);
+      cur.rows = await data.list(cur.eid); renderList();
+    };
+    el.mode.onchange = async () => {
+      if (!cur.dedupField){ el.mode.checked = false; setWarnings(); return; }   // không có field đối chiếu thì không bật được
+      await data.setMode(cur.eid, el.mode.checked); setWarnings();
+    };
+
+    // Gọi khi mở tab "Danh sách cho phép" (nối vào handler tab sẵn có qua biến closure).
+    allowlistOnTabOpen = async () => {
+      if (!(cachedEvents && cachedEvents.length) && typeof loadEventList === 'function') {
+        try { await loadEventList(); } catch (_) {}
+      }
+      populateEvents();
+      if (el.event.value) loadEvent(el.event.value);
+    };
+  })();
+
+  // Khởi tạo: mở form ở chế độ "Tạo sự kiện mới" + seed sẵn field mặc định (name + employeeId)
+  // ngay khi tải trang. Gọi ở CUỐI IIFE để EMP_ID_RE + các hàm sync đã khởi tạo xong (tránh TDZ).
+  resetForm();
 })();
 </script>
 </body>

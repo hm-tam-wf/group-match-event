@@ -36,6 +36,22 @@ async function apiDedupTaken(value) {
   }
 }
 
+// Khi ALLOWLIST_MODE bật: kiểm tra định danh (DEDUP_FIELD) có nằm trong allowlist chưa — để CHẶN NGAY
+// ở cổng vào (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc allowlist (rules cho phép get).
+// Trả TRUE (cho qua) khi: không bật chế độ / không firebase / lỗi mạng → KHÔNG chặn nhầm
+// (transaction trong apiClaim vẫn là tuyến chặn cuối). Trả FALSE = NGOÀI danh sách → chặn ở cổng.
+async function apiAllowlistAllowed(value) {
+  if (MODE !== "firebase" || !ALLOWLIST_MODE || !DEDUP_FIELD) return true;
+  const key = _dedupKey(value);
+  if (!key) return false;   // bật allowlist mà không có định danh để đối chiếu → coi như ngoài danh sách
+  try {
+    const snap = await col("allowlist").doc(key).get();
+    return snap.exists;
+  } catch (e) {
+    return true;            // lỗi mạng → KHÔNG chặn nhầm; apiClaim là chốt cuối
+  }
+}
+
 async function apiState() {
   if (MODE === "firebase") {
     const snap  = await col("teams").get();
@@ -103,7 +119,12 @@ async function apiClaim(payload) {
     const f        = payload.fields || {};
     const name     = String(f.name || "").trim();
     const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? String(f[DEDUP_FIELD] || "").trim() : "";
+    // Danh sách cho phép: định danh đối chiếu là DEDUP_FIELD (độc lập với BLOCK_DUP). Chỉ tính khi bật chế độ.
+    const allowVal = (ALLOWLIST_MODE && DEDUP_FIELD) ? String(f[DEDUP_FIELD] || "").trim() : "";
     if (!icon || !name) return { ok: false, reason: "missing" };
+    // allowlistMode bật nhưng KHÔNG có định danh để đối chiếu (cfg thiếu dedupField, hoặc chưa nhập field
+    // đó) ⇒ coi như ngoài danh sách. Trả về luôn, không cần mở transaction (cũng không đụng schema cũ).
+    if (ALLOWLIST_MODE && !allowVal) return { ok: false, reason: "notAllowed" };
 
     // 1 lần chạy giao dịch — tách riêng để bọc retry bên ngoài.
     const runClaimTx = () => db.runTransaction(async tx => {
@@ -112,14 +133,19 @@ async function apiClaim(payload) {
       const signupRef = col("signups").doc(pid);             // full hồ sơ — KHOÁ đọc
       const dedupRef  = dedupVal
         ? col("dedup_keys").doc(_dedupKey(dedupVal)) : null; // guard chống trùng (theo DEDUP_FIELD)
+      const allowRef  = allowVal
+        ? col("allowlist").doc(_dedupKey(allowVal)) : null;  // danh sách cho phép (chỉ khi ALLOWLIST_MODE)
 
       // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
-      const [t, mb, dk] = await Promise.all([
-        tx.get(teamRef), tx.get(memberRef), dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
+      const [t, mb, dk, al] = await Promise.all([
+        tx.get(teamRef), tx.get(memberRef),
+        dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
+        allowRef ? tx.get(allowRef) : Promise.resolve(null),
       ]);
-      // full/already/dup là kết quả TRẢ VỀ (không ném) → vòng retry bên dưới KHÔNG lặp lại chúng.
+      // full/already/dup/notAllowed là kết quả TRẢ VỀ (không ném) → vòng retry bên dưới KHÔNG lặp lại chúng.
       if (pid && mb.exists)   return { ok: false, reason: "already" };          // 1 người chỉ 1 đội
       if (dk && dk.exists)    return { ok: false, reason: "dup" };
+      if (allowRef && !al.exists) return { ok: false, reason: "notAllowed" };   // ngoài danh sách cho phép
 
       const count = t.exists ? (t.data().count || 0) : 0;
       const names = t.exists ? (t.data().names || []) : [];
@@ -137,7 +163,7 @@ async function apiClaim(payload) {
     // giao dịch NÉM permission-denied (rule từ chối ghi đè stale do nhiều người GIÀNH CÙNG 1 đội).
     // Vì đội còn chỗ thì rốt cuộc ai cũng vào được → cần đủ lần thử + jitter rộng để các bên LỆCH nhịp,
     // tránh cùng retry một lúc rồi lại đụng nhau. Đủ chỗ thì hội tụ 'ok'; hết chỗ thì trả 'full' (dừng).
-    // Lưu ý: full/already/dup TRẢ VỀ {ok:false} (không ném) nên thoát ngay, KHÔNG retry.
+    // Lưu ý: full/already/dup/notAllowed TRẢ VỀ {ok:false} (không ném) nên thoát ngay, KHÔNG retry.
     // (Tham số phải khớp với loadtest.js để test phản ánh đúng production.)
     const MAX_ATTEMPTS = 8, BASE_MS = 150, CAP_MS = 2500, BUDGET_MS = 12000;
     const t0 = Date.now();
@@ -172,6 +198,14 @@ async function apiClaim(payload) {
       if (m.pid && m.pid === payload.playerId) return { ok: false, reason: "already" };
       if (dedupVal && _dedupKey(m[DEDUP_FIELD] || "") === dedupVal) return { ok: false, reason: "dup" };
     }
+  }
+  // Danh sách cho phép (demo) — SAU already/dup, TRƯỚC full (khớp thứ tự nhánh firebase). Demo không có
+  // UI admin nên seed thủ công khi dev: localStorage["linhthu:allowlistMode:<EVENT_ID>"]="true" +
+  // localStorage["linhthu:allowlist:<EVENT_ID>"]=JSON.stringify({"NV2026001":1,"NV2026002":1,...}).
+  if ((await sGet("allowlistMode", true)) === "true" && DEDUP_FIELD) {
+    const allowKey  = _dedupKey(fields[DEDUP_FIELD] || "");
+    const allowList = JSON.parse(await sGet("allowlist", true) || "{}");
+    if (!allowKey || !allowList[allowKey]) return { ok: false, reason: "notAllowed" };
   }
   const arr = obj[payload.icon] || (obj[payload.icon] = []);
   if (arr.length >= CAPACITY) return { ok: false, reason: "full" };
