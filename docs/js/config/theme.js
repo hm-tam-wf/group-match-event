@@ -11,7 +11,7 @@
 //   • Biến thể sự kiện (tuỳ chọn): đặt ACTIVE_VARIANT = 'tên' để kế thừa theme
 //     nền và chỉ override ảnh nền + vài màu nhấn (xem khối §BIẾN THỂ trong themes.css).
 // ============================================================================
-const ACTIVE_THEME   = 'default'; // 'default' | 'tech'
+const ACTIVE_THEME   = 'tech';    // 'default' | 'tech'
 const ACTIVE_VARIANT = '';        // '' = không dùng biến thể; vd 'eventX'
 
 document.documentElement.setAttribute('data-theme', ACTIVE_THEME);
