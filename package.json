@@ -5,6 +5,10 @@
     "firebase-admin": "^13.0.0"
   },
   "scripts": {
+    "serve": "npx --yes serve fe",
+    "deploy": "firebase deploy --only hosting",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:all": "firebase deploy",
     "export": "node backend/scripts/export.js",
     "dedup:signups": "node backend/scripts/dedup-signups.js"
   }
