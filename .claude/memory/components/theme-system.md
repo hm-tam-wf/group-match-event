@@ -1,7 +1,7 @@
 ---
 title: theme-system
 tags: [ui, component, theme]
-code: [docs/js/config/config.js, docs/assets/themes.css, docs/assets/styles.css, docs/index.html]
+code: [docs/js/config/theme.js, docs/assets/themes.css, docs/assets/styles.css, docs/index.html, docs/admin.html]
 related: [[design-tokens]], [[ui-pipeline]], [[conventions]], [[index]]
 updated: 2026-06-05
 ---
@@ -13,15 +13,31 @@ end-user). Đơn giản: CSS variables + `data-theme` + 1 cờ. Không framework
 build, không dependency, không module — tôn trọng [[ui-pipeline]] (thứ tự script).
 
 ## Một nguồn sự thật
-- Cờ duy nhất: `const ACTIVE_THEME = 'default' | 'tech'` trong
-  [config.js](../../docs/js/config/config.js) (script nạp **đầu tiên** → áp sớm,
-  tránh FOUC). Ngay sau khi khai báo:
-  `document.documentElement.setAttribute('data-theme', ACTIVE_THEME)`.
+- Cờ duy nhất ở [theme.js](../../docs/js/config/theme.js): `const ACTIVE_THEME =
+  'default'|'tech'` (+ `ACTIVE_VARIANT` tuỳ chọn). File này nạp ở **`<head>`** trên
+  CẢ 2 trang (TRƯỚC khi vẽ) → set `data-theme`/`data-variant` không nháy (**0 FOUC**).
+  Độc lập, ngoài chuỗi nạp thiêng (chỉ `setAttribute` trên `<html>`) — xem [[ui-pipeline]].
+- (Trước đây cờ ở config.js — đã chuyển sang theme.js để 0 FOUC; config.js để lại
+  comment trỏ tới.)
 - Đổi giao diện = đổi **đúng chuỗi đó**. KHÔNG hardcode tên theme ở chỗ khác.
-- `index.html` và `admin.html` **dùng chung** config.js nên cả hai tự set
-  `data-theme`. Nhưng chỉ `index.html` link `assets/themes.css`; **admin.html
-  KHÔNG** → admin nhận attribute nhưng không có rule nào match ⇒ giữ nguyên 100%
-  (admin có theme inline riêng, xem [[design-tokens]] / [[admin-panel]]).
+- Cả `index.html` và `admin.html` đều link `assets/themes.css` + nạp `theme.js`.
+
+## Biến thể theo sự kiện (§E.3 — tuỳ chọn)
+`ACTIVE_VARIANT='eventX'` đặt thêm `data-variant`; khối
+`[data-theme="tech"][data-variant="eventX"]` kế thừa toàn bộ token theme nền, chỉ
+override `--page-bg-image` + 1–2 màu nhấn. Mặc định `''` ⇒ INERT (ảnh trong url()
+không tải). Mỗi dịp = 1 khối nhỏ, không nhân bản cả theme.
+
+## Admin cũng có theme (scope riêng)
+admin.html có `:root` + bộ token RIÊNG (`--ink/--pri/--grad/--card-2/--accent-soft
+/--danger`…). Vì vài token TRÙNG tên với app chính (`--bg/--card/--line/--accent
+/--r-lg`) mà 2 trang chung `themes.css`, override admin được **scope vào
+`[data-theme="tech"] body.admin`** (specificity cao hơn `:root` inline → thắng dù
+nạp trước; KHÔNG đụng app chính vì app chính không có `body.admin`). admin.html
+thêm `class="admin"` ở `<body>`. **GOTCHA:** khối tech app-chính (đặt token trên
+`<html>`) RÒ token trùng tên sang admin → khối admin phải **set lại** (`--r-lg`).
+Theme admin mới (tối) → copy cụm `body.admin` này (token + bề mặt hardcode admin:
+`.cm-box` trắng, `.btn-ghost`, input `:focus`#fff, body radials, `.form-mode.edit`…).
 
 ## Tại sao không bọc fallback (khác prompt)
 `styles.css` **đã tokenized sẵn** bằng `:root` CSS vars (`--bg`, `--card`, `--text`,
