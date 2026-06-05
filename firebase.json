@@ -1,5 +1,14 @@
 {
   "firestore": {
     "rules": "backend/firestore.rules"
+  },
+  "hosting": {
+    "site": "group-match-event",
+    "public": "fe",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
   }
 }

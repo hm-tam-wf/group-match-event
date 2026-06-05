@@ -1,7 +1,7 @@
 ---
 title: design-tokens
 tags: [ui, component]
-code: [docs/assets/styles.css, docs/admin.html]
+code: [fe/assets/styles.css, fe/admin.html]
 related: [[index]], [[ui-pipeline]], [[theme-system]]
 updated: 2026-06-03
 ---

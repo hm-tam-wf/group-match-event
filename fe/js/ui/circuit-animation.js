@@ -1,7 +1,7 @@
 /**
  * circuit-animation.js
  * Hiệu ứng Canvas xung điện chạy sáng (glowing circuit pulses) trên nền ảnh bo mạch.
- * Thiết kế cho theme "tech" của Icon Match.
+ * Thiết kế cho theme "tech" của Group Match.
  */
 (function () {
   // --- Màu lấy TỪ palette CSS của theme 'tech' (1 nguồn chân lý: themes.css --c-*) ---

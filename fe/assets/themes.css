@@ -1,5 +1,5 @@
 /* ============================================================================
-   themes.css — Hệ ĐỔI GIAO DIỆN (theme) cho icon-picker
+   themes.css — Hệ ĐỔI GIAO DIỆN (theme) cho group-match
    ----------------------------------------------------------------------------
    CƠ CHẾ (đơn giản, không framework, không build):
      • js/config/theme.js (nạp ở <head>, TRƯỚC khi vẽ → 0 FOUC) khai báo
@@ -108,7 +108,7 @@
   --r-xl: 22px;
 
   /* —— nền trang: 1 nguồn sự thật. none = nền CSS; đổi sang url('img/<file>')
-        (đặt ảnh tại docs/assets/img/) để dùng ảnh nền — KHÔNG sửa rule nào khác. */
+        (đặt ảnh tại fe/assets/img/) để dùng ảnh nền — KHÔNG sửa rule nào khác. */
   --page-bg-image:   url('img/bg-tech.jpg');
   --page-bg-overlay: linear-gradient(color-mix(in srgb,var(--c-deep-navy) 72%,transparent), color-mix(in srgb,var(--c-deep-navy) 82%,transparent));
 }
@@ -446,7 +446,7 @@
    VÍ DỤ dưới override màu nhấn bằng chính palette tech (giữ file không hex rời);
    sự kiện thật có thể khai màu thương hiệu riêng tại đây khi cần. */
 [data-theme="tech"][data-variant="eventX"]{
-  --page-bg-image: url('img/bg-eventX.jpg'); /* đặt ảnh tại docs/assets/img/ */
+  --page-bg-image: url('img/bg-eventX.jpg'); /* đặt ảnh tại fe/assets/img/ */
   --accent:        var(--c-magenta);          /* màu chủ đạo của sự kiện X     */
   --err:           var(--c-accent-cyan);      /* nhấn phụ của sự kiện X        */
 }

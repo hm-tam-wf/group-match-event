@@ -8,22 +8,22 @@ updated: 2026-06-03
 # Architecture
 
 ## Overview
-**Icon Match** là app đăng ký sự kiện theo team, dành cho sự kiện nội bộ (~500 người đồng thời). Mỗi icon/emoji đại diện cho 1 đội. Người dùng điền tên + mã nhân viên → chọn đội → join. Đội tự khoá khi đầy (mặc định 10 người). Mỗi người chỉ join được 1 đội. Không cần đăng nhập để tham gia.
+**Group Match** là app đăng ký sự kiện theo team, dành cho sự kiện nội bộ (~500 người đồng thời). Mỗi icon/emoji đại diện cho 1 đội. Người dùng điền tên + mã nhân viên → chọn đội → join. Đội tự khoá khi đầy (mặc định 10 người). Mỗi người chỉ join được 1 đội. Không cần đăng nhập để tham gia.
 
 ## Big pieces
-- **Frontend (`docs/`)** — Static HTML/CSS/JS, không build, ship thẳng lên GitHub Pages. Tất cả logic ở browser-side.
+- **Frontend (`fe/`)** — Static HTML/CSS/JS, không build, ship thẳng lên Firebase Hosting (site `group-match-event`). Tất cả logic ở browser-side.
 - **Firestore** — Primary database. Realtime push (onSnapshot). Client ghi trực tiếp qua SDK (rules bảo vệ).
 - **Firebase Auth** — Chỉ dùng cho admin panel. Người dùng thường không cần auth.
 - **Google Apps Script** (`legacy/apps-script/`) — Backend cũ, archived. Không còn dùng.
 - **Admin tools** (`backend/scripts/export.js`, `backend/scripts/loadtest.js`) — Node.js scripts chạy local, dùng firebase-admin.
 
 ## How they connect
-1. Browser load `docs/index.html` → scripts load theo thứ tự cố định (xem [[conventions]])
+1. Browser load `fe/index.html` → scripts load theo thứ tự cố định (xem [[conventions]])
 2. `api.js` auto-detect backend: Firebase (live) → Sheet (legacy) → Demo (localStorage)
 3. `app.js` gọi `apiSubscribe()` → Firestore `onSnapshot` push realtime updates về team counts
 4. Khi user submit: `apiClaim()` chạy Firestore **transaction** — kiểm tra dedup + capacity + 1-person-1-team đồng thời atomically
 5. Nếu transaction fail (tranh chấp), retry tối đa 8 lần với exponential backoff + jitter
-6. Admin truy cập `docs/admin.html` → đăng nhập Firebase → xem danh sách signup → export CSV
+6. Admin truy cập `fe/admin.html` → đăng nhập Firebase → xem danh sách signup → export CSV
 
 ## Firestore collections (namespaced `events/{EVENT_ID}/`)
 ```
@@ -36,7 +36,7 @@ meta/config          — event config: title, fields, icons, capacity (admin-wri
 
 ## Capacity management — critical sync point
 `CAPACITY` phải nhất quán ở 2 nơi:
-1. `docs/js/config/config.js` — frontend default
+1. `fe/js/config/config.js` — frontend default
 2. `backend/firestore.rules` function `cap()` — hoặc đọc từ `meta/config.capacity` (dynamic)
 
 Xem chi tiết: [[firestore-schema]]

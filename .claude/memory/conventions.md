@@ -8,10 +8,10 @@ updated: 2026-06-03
 # Conventions
 
 ## Commands
-- Dev: `npx serve docs` hoặc VS Code Live Server trên `docs/index.html`
+- Dev: `npx serve fe` hoặc VS Code Live Server trên `fe/index.html`
 - Export signups: `npm run export` (cần `serviceAccountKey.json`)
 - Load test: `node backend/scripts/loadtest.js` (500 concurrent signups)
-- Deploy: `git push` — GitHub Pages tự serve `docs/` (không có build step)
+- Deploy: `firebase deploy --only hosting` — Firebase Hosting serve `fe/` (site `group-match-event` → group-match-event.web.app, không có build step). GitHub Pages KHÔNG còn dùng (Pages không serve `/fe`).
 
 ## Code style
 - **Language:** Vanilla HTML/CSS/JS — không framework, không module system, không bundler
@@ -42,7 +42,7 @@ updated: 2026-06-03
   - `chore: mô tả`
 
 ## Do / Don't
-- **Do:** Giữ `docs/` là production-ready bất cứ lúc nào (direct serve, không build)
+- **Do:** Giữ `fe/` là production-ready bất cứ lúc nào (direct serve, không build)
 - **Do:** Cập nhật `CAPACITY` đồng thời ở `config.js` VÀ `firestore.rules` (xem [[firestore-schema]])
 - **Don't:** Dùng ES modules (`import`/`export`) — browser chạy trực tiếp file này không qua bundler
 - **Don't:** Thêm npm dependencies cho frontend — CDN only (Firebase SDK, Google Fonts)

@@ -1,7 +1,7 @@
 ---
 title: theme-system
 tags: [ui, component, theme]
-code: [docs/js/config/theme.js, docs/assets/themes.css, docs/assets/styles.css, docs/index.html, docs/admin.html]
+code: [fe/js/config/theme.js, fe/assets/themes.css, fe/assets/styles.css, fe/index.html, fe/admin.html]
 related: [[design-tokens]], [[ui-pipeline]], [[conventions]], [[index]]
 updated: 2026-06-05
 ---
@@ -13,7 +13,7 @@ end-user). Đơn giản: CSS variables + `data-theme` + 1 cờ. Không framework
 build, không dependency, không module — tôn trọng [[ui-pipeline]] (thứ tự script).
 
 ## Một nguồn sự thật
-- Cờ duy nhất ở [theme.js](../../docs/js/config/theme.js): `const ACTIVE_THEME =
+- Cờ duy nhất ở [theme.js](../../fe/js/config/theme.js): `const ACTIVE_THEME =
   'default'|'tech'` (+ `ACTIVE_VARIANT` tuỳ chọn). File này nạp ở **`<head>`** trên
   CẢ 2 trang (TRƯỚC khi vẽ) → set `data-theme`/`data-variant` không nháy (**0 FOUC**).
   Độc lập, ngoài chuỗi nạp thiêng (chỉ `setAttribute` trên `<html>`) — xem [[ui-pipeline]].
@@ -46,7 +46,7 @@ Theme admin mới (tối) → copy cụm `body.admin` này (token + bề mặt h
 (tránh refactor toàn CSS) → default bất biến tuyệt đối, diff tối thiểu.
 
 ## Thêm theme mới (1 khối CSS, không sửa JS/HTML)
-1. Copy khối TEMPLATE trong [themes.css](../../docs/assets/themes.css), đổi tên,
+1. Copy khối TEMPLATE trong [themes.css](../../fe/assets/themes.css), đổi tên,
    điền màu (override token đã có trong `styles.css :root`).
 2. Đổi `ACTIVE_THEME = 'ten-theme'` trong config.js. Hết.
 
@@ -68,7 +68,7 @@ Khối `[data-theme="tech"]` đã xử lý đủ các chỗ trên — theme tố
 `--bg --surface --card --card-alt --text --muted --muted-2 --line --err --accent
 --candy --sh-soft --sh-card --sh-pop --r-lg --r-xl` (font `--display/--body` để
 trống = giữ). Token riêng theme nền-ảnh: `--page-bg-image` (`none` = nền CSS;
-`url('img/<file>')` đặt ảnh ở `docs/assets/img/`) + `--page-bg-overlay` (lớp phủ
+`url('img/<file>')` đặt ảnh ở `fe/assets/img/`) + `--page-bg-overlay` (lớp phủ
 giữ tương phản). 1 rule `body::before` lo cả nền-CSS lẫn nền-ảnh; đổi cách = đổi
 **1 token**.
 
@@ -95,7 +95,7 @@ NGHĨA (`--bg --accent --err`…) + helper (`--surf-top/-bot --glow-edge --glow-
   vạch nhấn modal có đuôi magenta. Contrast trắng/navy đạt AA. default BẤT BIẾN.
 
 ## Nền ảnh + canvas mạch điện (tech, chỉ index.html)
-- `--page-bg-image: url('img/bg-tech.jpg')` (ảnh bo mạch, đặt tại `docs/assets/img/`).
+- `--page-bg-image: url('img/bg-tech.jpg')` (ảnh bo mạch, đặt tại `fe/assets/img/`).
   `body::before` xếp lớp: lưới grid + glow cyan/magenta **trên** overlay+ảnh, vignette
   dưới cùng. Overlay navy 72–82% nên ảnh khá tối (chủ ý: nền cho glow nổi).
 - `js/ui/circuit-animation.js` (script NGOÀI CHUỖI #2, sau app.js — xem [[ui-pipeline]]):

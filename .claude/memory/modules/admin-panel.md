@@ -1,7 +1,7 @@
 ---
 title: admin-panel
 tags: [module, admin]
-code: [docs/admin.html, docs/js/data/api.js, backend/scripts/export.js]
+code: [fe/admin.html, fe/js/data/api.js, backend/scripts/export.js]
 related: [[index]], [[architecture]], [[firestore-schema]]
 updated: 2026-06-04
 ---
@@ -9,7 +9,7 @@ updated: 2026-06-04
 # Admin Panel
 
 ## Overview
-`docs/admin.html` là trang riêng biệt (không link từ index). Admin đăng nhập Firebase → xem danh sách signups → export.
+`fe/admin.html` là trang riêng biệt (không link từ index). Admin đăng nhập Firebase → xem danh sách signups → export.
 
 ## Auth flow
 Firebase Authentication (email/password). UIDs được hardcode trong `firestore.rules`:
@@ -29,7 +29,7 @@ Admin panel có theme riêng (back-office) nhưng dùng cùng font:
 - Gradient: `--grad: linear-gradient(135deg, #7857E6, #A98CFF)`
 - Font: Baloo 2 + Nunito (same as main app)
 
-## Quản lý sự kiện (trong `docs/admin.html`)
+## Quản lý sự kiện (trong `fe/admin.html`)
 Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm trong IIFE của admin.html.
 - **Danh sách sự kiện** đọc từ registry `config/eventList = { ids:[...] }` (KHÔNG dùng
   collectionGroup). Mỗi id → đọc `meta/config` + `teams` để tính chỉ số:

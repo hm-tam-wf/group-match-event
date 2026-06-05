@@ -1,6 +1,6 @@
 # Triển khai bản chịu tải lớn (~500 người cùng lúc) bằng Firebase Firestore
 
-App này có 3 chế độ chạy, tự nhận diện trong [docs/js/ui/ui-utils.js](docs/js/ui/ui-utils.js):
+App này có 3 chế độ chạy, tự nhận diện trong [fe/js/ui/ui-utils.js](fe/js/ui/ui-utils.js):
 
 | Chế độ | Khi nào | Backend | Chịu tải |
 |--------|---------|---------|----------|
@@ -8,7 +8,7 @@ App này có 3 chế độ chạy, tự nhận diện trong [docs/js/ui/ui-utils
 | `sheet` | Có `SCRIPT_URL` (Apps Script) | Google Sheet | ⚠️ chỉ vài chục người |
 | `demo` | Không cấu hình gì | localStorage / RAM | Chạy thử 1 máy |
 
-Hướng dẫn này bật chế độ **`firebase`** — frontend vẫn nằm trên **GitHub Pages**, dữ liệu nằm trên **Firestore**. **Không cần Apps Script nữa.**
+Hướng dẫn này bật chế độ **`firebase`** — frontend nằm trên **Firebase Hosting** (`group-match-event.web.app`), dữ liệu nằm trên **Firestore**. **Không cần Apps Script nữa.**
 
 ---
 
@@ -22,38 +22,40 @@ Hướng dẫn này bật chế độ **`firebase`** — frontend vẫn nằm tr
 
 ## 2. Dán cấu hình vào app
 
-Mở [docs/js/config/firebase-config.js](docs/js/config/firebase-config.js), điền `FIREBASE_CONFIG` (apiKey, projectId, …) lấy ở bước 1.
+Mở [fe/js/config/firebase-config.js](fe/js/config/firebase-config.js), điền `FIREBASE_CONFIG` (apiKey, projectId, …) lấy ở bước 1.
 > Các khoá web này **công khai được** (Firestore bảo vệ bằng Security Rules, không phải bằng việc giấu key).
 
-Kiểm tra `CAPACITY` ở [docs/js/config/config.js](docs/js/config/config.js) đúng sĩ số mong muốn, và **danh sách `ICONS`** có đủ số đội bạn cần.
+Kiểm tra `CAPACITY` ở [fe/js/config/config.js](fe/js/config/config.js) đúng sĩ số mong muốn, và **danh sách `ICONS`** có đủ số đội bạn cần.
 
 ## 3. Dán Security Rules
 
 Firebase Console → **Firestore Database → Rules** → xoá hết, dán toàn bộ nội dung [backend/firestore.rules](backend/firestore.rules) → **Publish**.
-> ⚠️ Trong file rules có `function cap() { return 10; }` — **số này phải khớp `CAPACITY`** ở [docs/js/config/config.js](docs/js/config/config.js). Đổi sĩ số thì sửa cả hai.
-> (Comment trong `backend/firestore.rules` vẫn ghi tên file cũ "ClientConfig.html" — nay là `docs/js/config/config.js`.)
+> ⚠️ Trong file rules có `function cap() { return 10; }` — **số này phải khớp `CAPACITY`** ở [fe/js/config/config.js](fe/js/config/config.js). Đổi sĩ số thì sửa cả hai.
+> (Comment trong `backend/firestore.rules` vẫn ghi tên file cũ "ClientConfig.html" — nay là `fe/js/config/config.js`.)
 
-## 4. Đẩy lên GitHub Pages
+## 4. Đẩy lên Firebase Hosting
 
-Thư mục `docs/` đã là sản phẩm cuối (HTML/CSS/JS thật) — **không còn bước build**. Chỉ cần commit & push:
+Thư mục `fe/` đã là sản phẩm cuối (HTML/CSS/JS thật) — **không còn bước build**. Cấu hình ở
+[firebase.json](../firebase.json) (`hosting.public = "fe"`, site `group-match-event`). Lần đầu cần tạo site:
 
 ```powershell
-git add -A
-git commit -m "Deploy Firestore build"
-git push
+firebase login
+firebase hosting:sites:create group-match-event   # 1 lần — tạo group-match-event.web.app
+firebase deploy --only hosting
 ```
 
-GitHub repo → **Settings → Pages → Source:** branch `master`, folder `/docs` → Save. Vài phút sau có URL `https://<user>.github.io/<repo>/`.
+Sau khi deploy có URL `https://group-match-event.web.app`.
+> ⚠️ Dự án **không còn dùng GitHub Pages** (Pages chỉ serve `/docs` hoặc root, không serve `/fe`).
 
 ## 5. Lấy data người tham gia
 
 Firebase Console → **Firestore Database → `events/{EVENT_ID}/signups`**: mỗi doc là 1 người (tên/MSNV/đội).
 Muốn xuất Excel, chọn **một** trong các cách:
-- **Trang admin** `docs/admin.html` — đăng nhập rồi tải `.xlsx` ngay trên trình duyệt (xem mục 6, không cần cài gì).
+- **Trang admin** `fe/admin.html` — đăng nhập rồi tải `.xlsx` ngay trên trình duyệt (xem mục 6, không cần cài gì).
 - Script `firebase-admin` ([EXPORT.md](EXPORT.md)) — xuất CSV ở máy có service-account key.
 - **Export** sẵn trong Firebase Console.
 
-## 6. Trang admin (xem & tải Excel) — `docs/admin.html`
+## 6. Trang admin (xem & tải Excel) — `fe/admin.html`
 
 Trang đứng riêng cho ban tổ chức xem danh sách `signups` và tải Excel. Bảo mật bằng **Firebase Authentication thật** + **Security Rules** (không phải mật khẩu kiểm tra bằng JavaScript). `signups` vẫn khoá đọc với mọi khách; chỉ tài khoản admin có UID nằm trong rules mới đọc được.
 
@@ -78,7 +80,7 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 **6.3. Truy cập & tải Excel**
 
-- Mở `admin.html` cùng gốc với app: `https://<user>.github.io/<repo>/admin.html` (hoặc `npx serve docs` rồi vào `/admin.html` khi chạy thử).
+- Mở `admin.html` cùng gốc với app: `https://group-match-event.web.app/admin.html` (hoặc `npx serve fe` rồi vào `/admin.html` khi chạy thử).
 - Đăng nhập bằng email/mật khẩu ở bước 6.1.
 - Ô **Sự kiện (EVENT_ID)** mặc định là sự kiện hiện tại; sửa để xem sự kiện cũ rồi bấm **Tải dữ liệu**.
 - Bảng hiện đủ Họ tên, MSNV, Đội, Thời gian + tổng số người và số người mỗi đội.
@@ -89,7 +91,7 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 ## Vì sao bản này chịu được ~500 người
 
-- **Ghi (tham gia đội): atomic bằng `runTransaction`** ([docs/js/data/api.js](docs/js/data/api.js)) — mili-giây, không phải khóa tuần tự 1–2s như Apps Script. Không ai thành người thứ 11; không trùng email; 1 người 1 đội.
+- **Ghi (tham gia đội): atomic bằng `runTransaction`** ([fe/js/data/api.js](fe/js/data/api.js)) — mili-giây, không phải khóa tuần tự 1–2s như Apps Script. Không ai thành người thứ 11; không trùng email; 1 người 1 đội.
 - **Sĩ số ép ở Security Rules** (`count <= cap()`): client gian lận cũng không vượt được.
 - **Đọc realtime bằng `onSnapshot`** — server tự đẩy thay đổi, **bỏ hẳn việc poll mỗi 3 giây**. Đây là thứ giết Apps Script ở quy mô lớn. Mỗi đội là 1 doc nhỏ nên 500 client cùng nghe vẫn nhẹ.
 - **Bảo mật PII**: tên/email/SĐT chỉ nằm ở `signups` (khoá đọc). Doc đội công khai chỉ có TÊN.
@@ -98,15 +100,15 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 Sức chứa tối đa = **số icon (đội) × CAPACITY**. Muốn nhận ~500 người:
 - 50 đội × `CAPACITY=10`, **hoặc** 10 đội × `CAPACITY=50`, v.v.
-- Thêm đội = thêm phần tử vào mảng `ICONS` ([docs/js/config/config.js](docs/js/config/config.js)); **mỗi `icon` phải là một emoji DUY NHẤT** (nó là khoá định danh đội). Cần nhiều đội thì dùng các emoji khác nhau.
+- Thêm đội = thêm phần tử vào mảng `ICONS` ([fe/js/config/config.js](fe/js/config/config.js)); **mỗi `icon` phải là một emoji DUY NHẤT** (nó là khoá định danh đội). Cần nhiều đội thì dùng các emoji khác nhau.
 
 ## Chạy sự kiện mới
 
 Mỗi sự kiện có **không gian dữ liệu riêng** dưới `events/{EVENT_ID}/`. Để mở sự kiện mới:
 
-1. Mở [docs/js/config/config.js](docs/js/config/config.js), đổi `EVENT_ID` sang nhãn mới (chỉ **chữ thường, số, gạch ngang**), vd `"su-kien-2026-q2"`.
+1. Mở [fe/js/config/config.js](fe/js/config/config.js), đổi `EVENT_ID` sang nhãn mới (chỉ **chữ thường, số, gạch ngang**), vd `"su-kien-2026-q2"`.
 2. (Tuỳ chọn) chỉnh `FIELDS` / `ICONS` / `CAPACITY` cho sự kiện đó. Nhớ `CAPACITY` khớp `cap()` trong [backend/firestore.rules](backend/firestore.rules).
-3. Commit & push (`docs/` lên GitHub Pages). **Không cần đổi gì trên Firebase** — Security Rules đã bọc sẵn `events/{eventId}/...`.
+3. `firebase deploy --only hosting` (đẩy `fe/` lên Firebase Hosting). **Không cần đổi gì khác trên Firebase** — Security Rules đã bọc sẵn `events/{eventId}/...`.
 
 Dữ liệu sự kiện cũ **vẫn còn nguyên** ở `events/{event_cũ}/signups`, mở lại / xuất qua Console bất cứ lúc nào. Người tham gia mở lại web ở sự kiện mới sẽ thấy form trống (trạng thái cục bộ cũng tách theo `EVENT_ID`), không kẹt "đã có đội" của sự kiện trước.
 

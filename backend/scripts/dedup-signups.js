@@ -23,7 +23,7 @@ const admin = require('firebase-admin');
 
 const PROJECT_ID = 'icon-picker';
 
-// Chuan hoa GIONG HET _dedupKey o client (docs/js/data/api.js) de gom nhom khop tuyet doi.
+// Chuan hoa GIONG HET _dedupKey o client (fe/js/data/api.js) de gom nhom khop tuyet doi.
 function dedupKey(v) { return String(v == null ? '' : v).trim().toUpperCase().replace(/\s+/g, ''); }
 
 // ── Phan tich tham so: --apply (co/khong), --event/--field/--key <value> (ho tro ca --flag=value). ──

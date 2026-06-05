@@ -19,3 +19,6 @@ shot-*.png
 
 # Log chẩn đoán của Firebase CLI (sinh khi deploy) — không commit
 *-debug.log
+
+# Cache deploy của Firebase CLI (local hosting cache) — không commit
+.firebase/

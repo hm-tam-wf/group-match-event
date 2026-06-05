@@ -1,7 +1,7 @@
 # Legacy — Google Apps Script (KHÔNG còn dùng)
 
 Đây là backend **cũ** của app, viết cho **Google Apps Script + Google Sheet**. App hiện chạy ở
-chế độ **`firebase`** (Cloud Firestore) và deploy bằng web tĩnh trên GitHub Pages, nên **toàn bộ
+chế độ **`firebase`** (Cloud Firestore) và deploy bằng web tĩnh trên Firebase Hosting, nên **toàn bộ
 thư mục này không còn được dùng tới**. Giữ lại làm **dự phòng/tham khảo** — KHÔNG deploy.
 
 | File | Vai trò cũ |
@@ -16,5 +16,5 @@ thư mục này không còn được dùng tới**. Giữ lại làm **dự phò
 
 Nếu muốn hồi sinh chế độ `sheet`: đưa các file `.gs` + `Index.html` về gốc repo, chỉnh
 `.clasp.json` (`rootDir`) cho khớp, `clasp push`, rồi điền `SCRIPT_URL` (URL web app) vào
-[../docs/js/config.js](../docs/js/config.js) — khi đó `MODE` sẽ tự chuyển sang `sheet`
+[../fe/js/config/config.js](../fe/js/config/config.js) — khi đó `MODE` sẽ tự chuyển sang `sheet`
 (nếu không bật Firebase).
