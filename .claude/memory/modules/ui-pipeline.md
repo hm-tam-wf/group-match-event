@@ -14,9 +14,13 @@ config.js → firebase-config.js → storage.js → api.js → ui-utils.js → u
 ```
 Mỗi file phụ thuộc vào globals của file trước. Sai thứ tự = `ReferenceError` ngay lập tức.
 
-**Ngoài chuỗi:** `js/config/theme.js` nạp ở `<head>` (TRƯỚC chuỗi trên, trên cả 2 trang)
-để áp `data-theme` trước khi vẽ → 0 FOUC. Độc lập: chỉ `setAttribute` trên `<html>`,
-không phụ thuộc / không bị phụ thuộc → không phá chuỗi thiêng. Xem [[theme-system]].
+**Ngoài chuỗi (2 file):**
+1. `js/config/theme.js` nạp ở `<head>` (TRƯỚC chuỗi trên, trên cả 2 trang) để áp
+   `data-theme` trước khi vẽ → 0 FOUC. Chỉ `setAttribute` trên `<html>`.
+2. `js/ui/circuit-animation.js` nạp ở CUỐI body **sau `app.js`** (chỉ ở index.html,
+   KHÔNG ở admin). IIFE độc lập, 0 global, không phụ thuộc chuỗi → an toàn. Tạo
+   `<canvas id="circuit-canvas">` (prepend body) vẽ xung điện cho theme `tech`.
+Cả hai không phụ thuộc / không bị phụ thuộc → không phá chuỗi thiêng. Xem [[theme-system]].
 
 ## app.js — Main init flow
 1. Chờ DOM ready

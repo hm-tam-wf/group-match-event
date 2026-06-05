@@ -50,28 +50,58 @@
 
 
 /* ============================================================================
-   THEME: tech          (bật bằng ACTIVE_THEME = 'tech')
-   Concept: công nghệ — navy đậm, xanh điện + đỏ nhấn, viền mảnh phát sáng,
-            glow nhẹ, chữ sáng trên nền tối.
+   THEME: tech  —  "TECH FUTURE KV"   (bật bằng ACTIVE_THEME = 'tech')
+   ----------------------------------------------------------------------------
+   Concept: tech tương lai — nền xanh navy đậm, chủ đạo Primary Blue, tương tác
+   Electric Blue, điểm nhấn neon Cyan, nhấn hiếm Magenta. Viền mảnh phát sáng,
+   chữ sáng trên nền tối.
+
+   TOKEN-FIRST: 11 màu palette khai 1 lần ở đầu khối (PALETTE THÔ) là NGUỒN CHÂN
+   LÝ DUY NHẤT; lớp token NGỮ NGHĨA trỏ về palette; toàn bộ rule phía dưới chỉ
+   dùng var(...) + color-mix(...) → KHÔNG còn hex màu rải rác trong file.
+   Tỉ lệ thị giác bám 70/15/10/5: Primary 70% (surface/vùng lớn) · Electric 15%
+   (tương tác/viền/hover) · Accent Cyan 10% (highlight/focus/glow) · Magenta 5%
+   (cảnh báo/CTA/badge hiếm). Success → Accent Cyan; 'đang sửa' → Neon Pink.
    ============================================================================ */
 [data-theme="tech"]{
-  /* —— token màu (override :root) —— */
-  --bg:        #0a1430;                 /* navy rất đậm (nền nền tảng)        */
-  --surface:   #0e1b3d;
-  --card:      rgba(22,31,61,.82);      /* thẻ/popup navy, hơi trong          */
-  --card-alt:  rgba(22,31,61,.60);
-  --text:      #e8eefc;                 /* chữ chính sáng                     */
-  --muted:     #9fb0d0;                 /* chữ phụ/mô tả                      */
-  --muted-2:   #8093bd;                 /* chữ mờ nhất (meta/placeholder)     */
-  --line:      rgba(80,140,255,.28);    /* viền mảnh phát sáng                */
-  --err:       #ff3b51;                 /* đỏ nhấn (cảnh báo/điểm nhấn)       */
-  --accent:    #2f7bff;                 /* xanh điện (nút, link, focus)       */
-  --candy:     linear-gradient(135deg,#2f7bff 0%,#4f9bff 60%,#6aa8ff 120%);
+  /* —— PALETTE THÔ — 11 màu "Tech Future KV" (NGUỒN CHÂN LÝ DUY NHẤT) —— */
+  --c-deep-navy:   #0F193D;   /* nền sâu nhất / bóng / vignette rìa          */
+  --c-dark-blue:   #17316A;   /* navy chuyển tiếp                            */
+  --c-primary:     #15458E;   /* 70% — chủ đạo: surface, vùng lớn, thân app  */
+  --c-electric:    #2264BB;   /* 15% — tương tác: viền, hover, nút           */
+  --c-cyan-blue:   #3899DF;   /* gradient & trạng thái nhạt                  */
+  --c-light-cyan:  #82B2EA;   /* gradient nhạt / chữ phụ sáng                */
+  --c-white:       #FFFFFF;   /* chữ chính / glow trắng                      */
+  --c-soft-glow:   #D4D5F2;   /* chữ phụ / glow nhẹ                          */
+  --c-neon-pink:   #A0579B;   /* biến thể magenta — trạng thái 'đang sửa'    */
+  --c-magenta:     #FF5CA8;   /* 5% — nhấn hiếm: cảnh báo, CTA, badge        */
+  --c-accent-cyan: #55E8FF;   /* 10% — highlight, focus ring, glow + success */
 
-  /* —— đổ bóng/glow: tối + viền glow xanh —— */
-  --sh-soft: 0 6px 20px -10px rgba(0,0,0,.60), 0 0 0 1px rgba(80,140,255,.10);
-  --sh-card: 0 22px 50px -24px rgba(0,0,0,.70), 0 0 0 1px rgba(80,140,255,.14), inset 0 1px 0 rgba(120,170,255,.10);
-  --sh-pop:  0 26px 60px -24px rgba(0,0,0,.70), 0 0 26px -6px rgba(47,123,255,.45);
+  /* —— token NGỮ NGHĨA (trỏ về palette; phần còn lại của file chỉ dùng nhóm này) —— */
+  --bg:        var(--c-deep-navy);
+  --surface:   var(--c-primary);
+  --card:      color-mix(in srgb, var(--c-primary) 82%, transparent);
+  --card-alt:  color-mix(in srgb, var(--c-primary) 60%, transparent);
+  --text:      var(--c-white);
+  --muted:     var(--c-soft-glow);
+  --muted-2:   var(--c-light-cyan);
+  --line:      color-mix(in srgb, var(--c-electric) 32%, transparent);
+  --err:       var(--c-magenta);
+  --accent:    var(--c-electric);
+  --candy:     linear-gradient(135deg, var(--c-electric) 0%, var(--c-cyan-blue) 60%, var(--c-light-cyan) 120%);
+
+  /* —— helper bề mặt + bóng/glow (đều trỏ palette → không hex rời) —— */
+  --surf-top:   color-mix(in srgb, var(--c-primary) 78%, var(--c-deep-navy));  /* mép trên thẻ kính (Primary-leaning) */
+  --surf-bot:   color-mix(in srgb, var(--c-deep-navy) 88%, var(--c-primary));  /* đáy thẻ kính (sâu)                  */
+  --glow-edge:  var(--c-electric);      /* viền/khung glow (15%)            */
+  --glow-bright:var(--c-accent-cyan);   /* highlight/focus sáng (10%)       */
+  --shade:      var(--c-deep-navy);     /* tông bóng tối (thay đen)         */
+  --hi:         var(--c-white);         /* vệt sáng inset                   */
+
+  /* —— đổ bóng/glow: tối + viền glow điện —— */
+  --sh-soft: 0 6px 20px -10px color-mix(in srgb,var(--shade) 60%,transparent), 0 0 0 1px color-mix(in srgb,var(--glow-edge) 10%,transparent);
+  --sh-card: 0 22px 50px -24px color-mix(in srgb,var(--shade) 70%,transparent), 0 0 0 1px color-mix(in srgb,var(--glow-edge) 14%,transparent), inset 0 1px 0 color-mix(in srgb,var(--hi) 10%,transparent);
+  --sh-pop:  0 26px 60px -24px color-mix(in srgb,var(--shade) 70%,transparent), 0 0 26px -6px color-mix(in srgb,var(--glow-bright) 45%,transparent);
 
   /* —— bo góc sắc hơn default đôi chút —— */
   --r-lg: 16px;
@@ -79,8 +109,23 @@
 
   /* —— nền trang: 1 nguồn sự thật. none = nền CSS; đổi sang url('img/<file>')
         (đặt ảnh tại docs/assets/img/) để dùng ảnh nền — KHÔNG sửa rule nào khác. */
-  --page-bg-image:   none;
-  --page-bg-overlay: linear-gradient(rgba(10,20,48,.72), rgba(10,20,48,.82));
+  --page-bg-image:   url('img/bg-tech.jpg');
+  --page-bg-overlay: linear-gradient(color-mix(in srgb,var(--c-deep-navy) 72%,transparent), color-mix(in srgb,var(--c-deep-navy) 82%,transparent));
+}
+
+/* —— Canvas hiệu ứng mạch điện chạy sáng —— */
+#circuit-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  display: none;
+}
+[data-theme="tech"] #circuit-canvas {
+  display: block;
 }
 
 /* —— Nền trang (ghi đè 4 radial pastel hardcode của body::before) ——
@@ -89,25 +134,25 @@
    mọi nội dung (z-index:-1) nên lưới không ảnh hưởng tương phản chữ. */
 [data-theme="tech"] body::before{
   background:
-    linear-gradient(rgba(80,140,255,.05) 1px, transparent 1px) 0 0 / 44px 44px,
-    linear-gradient(90deg, rgba(80,140,255,.05) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(color-mix(in srgb,var(--c-electric) 8%,transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, color-mix(in srgb,var(--c-electric) 8%,transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    radial-gradient(1100px 560px at 50% -8%, color-mix(in srgb,var(--c-accent-cyan) 20%,transparent), transparent 60%),
+    radial-gradient(820px 460px at 92% 8%, color-mix(in srgb,var(--c-magenta) 12%,transparent), transparent 60%),
+    radial-gradient(760px 460px at 86% 102%, color-mix(in srgb,var(--c-magenta) 8%,transparent), transparent 60%),
     var(--page-bg-overlay),
     var(--page-bg-image) center / cover no-repeat fixed,
-    radial-gradient(1100px 560px at 50% -8%, rgba(47,123,255,.22), transparent 60%),
-    radial-gradient(820px 460px at 92% 8%, rgba(255,59,81,.12), transparent 60%),
-    radial-gradient(760px 460px at 86% 102%, rgba(255,59,81,.08), transparent 60%),
-    /* §D.2 vignette: tâm sáng hơn rìa → chiều sâu (thay gradient phẳng 180deg) */
-    radial-gradient(1500px 1050px at 50% 42%, #0c1a3e 0%, #070f25 72%);
+    /* vignette: tâm sáng hơn rìa → chiều sâu (dark-blue tâm → deep-navy rìa) */
+    radial-gradient(1500px 1050px at 50% 42%, var(--c-dark-blue) 0%, var(--c-deep-navy) 72%);
 }
 
-/* —— Tiêu đề: gradient chữ theo tông tech ——
+/* —— Tiêu đề: gradient chữ theo tông Tech Future KV ——
    LƯU Ý: shorthand `background` RESET background-clip → phải khai lại clip:text,
    nếu không gradient lấp đầy khung và chữ (color:transparent) biến mất. */
 [data-theme="tech"] h1{
-  background:linear-gradient(92deg,#6aa8ff 0%,#2f7bff 50%,#ff3b51 112%);
+  background:linear-gradient(92deg,var(--c-light-cyan) 0%,var(--c-electric) 50%,var(--c-magenta) 112%);
   -webkit-background-clip:text;
   background-clip:text;
-  filter:drop-shadow(0 6px 14px rgba(47,123,255,.35));
+  filter:drop-shadow(0 6px 14px color-mix(in srgb,var(--c-electric) 35%,transparent));
 }
 
 /* ============================================================================
@@ -120,37 +165,38 @@
    CUỐI khối tech (đặt sau §D.2 để thắng cascade). */
 
 /* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
-[data-theme="tech"] .modal-bg{background:rgba(5,10,28,.6)}
+[data-theme="tech"] .modal-bg{background:color-mix(in srgb,var(--c-deep-navy) 60%,transparent)}
 [data-theme="tech"] .modal{
-  background:linear-gradient(180deg,rgba(22,31,61,.97),rgba(14,24,54,.97));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 97%,transparent),color-mix(in srgb,var(--surf-bot) 97%,transparent));
   border:1px solid var(--line);
-  box-shadow:0 30px 70px -26px rgba(0,0,0,.75), 0 0 30px -6px rgba(47,123,255,.35), inset 0 1px 0 rgba(120,170,255,.12);
+  box-shadow:0 30px 70px -26px color-mix(in srgb,var(--shade) 75%,transparent), 0 0 30px -6px color-mix(in srgb,var(--c-electric) 35%,transparent), inset 0 1px 0 color-mix(in srgb,var(--hi) 12%,transparent);
 }
-[data-theme="tech"] .modal .cancel{background:rgba(80,140,255,.12);color:var(--text)}
-[data-theme="tech"] .modal .cancel:hover{background:rgba(80,140,255,.20)}
+[data-theme="tech"] .modal .cancel{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--text)}
+[data-theme="tech"] .modal .cancel:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
 
-/* form input: nền/viền sáng + focus nền trắng hardcode → tông tối */
+/* form input: nền/viền sáng + focus nền trắng hardcode → tông tối, focus ring cyan */
 [data-theme="tech"] .field input{
-  background:rgba(80,140,255,.08);
-  border-color:rgba(80,140,255,.22);
+  background:color-mix(in srgb,var(--c-electric) 8%,transparent);
+  border-color:color-mix(in srgb,var(--c-electric) 22%,transparent);
 }
 [data-theme="tech"] .field input:focus{
-  background:rgba(80,140,255,.14);
-  border-color:var(--accent);
-  box-shadow:0 0 0 4px rgba(47,123,255,.20);
+  background:color-mix(in srgb,var(--c-electric) 14%,transparent);
+  border-color:var(--c-accent-cyan);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--c-accent-cyan) 28%,transparent);
 }
 
 /* toast: nền trắng mờ + viền trắng → navy + glow */
 [data-theme="tech"] .toast{
-  background:rgba(22,31,61,.92);
+  background:color-mix(in srgb,var(--surf-top) 92%,transparent);
   border:1px solid var(--line);
-  box-shadow:0 18px 40px -16px rgba(0,0,0,.7), 0 0 18px -6px rgba(47,123,255,.3);
+  box-shadow:0 18px 40px -16px color-mix(in srgb,var(--shade) 70%,transparent), 0 0 18px -6px color-mix(in srgb,var(--c-electric) 30%,transparent);
 }
 
-/* màn hình hoàn thành: nền sáng → tối. (.empty-note/.hint nâng cấp ở §A·TECH cuối khối) */
+/* màn hình hoàn thành: nền sáng → tối, viền success = Accent Cyan.
+   (.empty-note/.hint nâng cấp ở §A·TECH cuối khối) */
 [data-theme="tech"] .all-full{
-  background:linear-gradient(180deg,rgba(16,40,40,.55),rgba(12,24,56,.7));
-  border-color:rgba(34,197,94,.30);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c-accent-cyan) 8%,var(--surf-top)),color-mix(in srgb,var(--surf-bot) 70%,transparent));
+  border-color:color-mix(in srgb,var(--c-accent-cyan) 30%,transparent);
 }
 
 
@@ -166,27 +212,27 @@
 [data-theme="tech"] .full-team{position:relative}
 [data-theme="tech"] .full-team::before{
   content:"";position:absolute;left:16px;right:16px;top:0;height:1px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(150,190,255,.45),transparent);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--c-light-cyan) 45%,transparent),transparent);
 }
 
 /* (vạch nhấn) Thanh gradient mảnh ở MÉP TRÊN mọi modal (xác nhận/hồ sơ/chúc mừng).
-   overflow:hidden để vạch ôm theo bo góc. */
+   overflow:hidden để vạch ôm theo bo góc. Đuôi magenta = nhấn hiếm 5%. */
 [data-theme="tech"] .modal{position:relative;overflow:hidden}
 [data-theme="tech"] .modal::before{
   content:"";position:absolute;left:0;right:0;top:0;height:3px;pointer-events:none;
-  background:linear-gradient(90deg,var(--accent) 0%,#57a6ff 45%,var(--err) 100%);
+  background:linear-gradient(90deg,var(--c-electric) 0%,var(--c-accent-cyan) 45%,var(--c-magenta) 100%);
 }
 
-/* (icon) Icon modal xác nhận: vầng tím default → glow XANH đồng bộ tech.
+/* (icon) Icon modal xác nhận: vầng tím default → glow CYAN đồng bộ tech.
    (.jm-icon của popup chúc mừng GIỮ glow theo màu đội — bản sắc đội.) */
 [data-theme="tech"] .modal .mic,
 [data-theme="tech"] .pm-emoji{
-  filter:drop-shadow(0 0 16px rgba(47,123,255,.55)) drop-shadow(0 6px 12px rgba(0,0,0,.45));
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--c-accent-cyan) 55%,transparent)) drop-shadow(0 6px 12px color-mix(in srgb,var(--shade) 45%,transparent));
 }
 
 /* (divider) Vạch section: xám phẳng → gradient mảnh phát sáng. */
 [data-theme="tech"] .hr{
-  background:linear-gradient(90deg,transparent,rgba(120,160,255,.5),transparent);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--c-light-cyan) 50%,transparent),transparent);
 }
 
 /* (progress) .cap-bar + .cap-bar span: nâng cấp đầy đủ (track tối + fill xanh-điện +
@@ -198,8 +244,8 @@
    §A·TECH — TRANG PICK "GLASS DASHBOARD" (premium như admin)   [WINNER + GRAFTS]
    ----------------------------------------------------------------------------
    Nâng trang pick lên phong cách dashboard: tile candy-gradient nhiều màu → THẺ
-   KÍNH navy thống nhất; nút .pick về MỘT màu nhấn xanh-điện đặc; màu đội (--c, JS
-   bơm runtime) rút còn 3 điểm nhấn nhỏ: glow icon + chấm trước tên + fill cap-bar.
+   KÍNH navy thống nhất; nút .pick về MỘT màu nhấn Electric Blue đặc; màu đội (--c,
+   JS bơm runtime) rút còn 3 điểm nhấn nhỏ: glow icon + chấm trước tên + fill cap-bar.
    Đặt CUỐI khối tech (sau §D.2) → cùng specificity, nguồn-sau-thắng nên override
    các rule .tile/.banner/.cap-bar/.mini/.pick.lock/.ft-list .no/.empty-note/.hint
    (bản cũ đã gỡ ở trên). CHỈ đổi MÀU/NỀN/VIỀN/GLOW/bo góc/bóng/weight — KHÔNG layout.
@@ -212,15 +258,15 @@
 [data-theme="tech"] .tile{
   border:1px solid var(--line);
   border-radius:calc(var(--r-lg) - 4px);
-  background:linear-gradient(180deg,rgba(26,38,72,.92),rgba(14,24,54,.94));
-  box-shadow:0 18px 40px -22px rgba(0,0,0,.72),
-             0 0 0 1px rgba(80,140,255,.08),
-             inset 0 1px 0 rgba(140,180,255,.14);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 92%,transparent),color-mix(in srgb,var(--surf-bot) 94%,transparent));
+  box-shadow:0 18px 40px -22px color-mix(in srgb,var(--shade) 72%,transparent),
+             0 0 0 1px color-mix(in srgb,var(--glow-edge) 8%,transparent),
+             inset 0 1px 0 color-mix(in srgb,var(--c-light-cyan) 14%,transparent);
 }
 /* sheen mép-trên + hạ vầng glow màu đội (::before §74 vốn radial --c .22) xuống mờ. */
 [data-theme="tech"] .tile::before{
   background:
-    linear-gradient(180deg,rgba(140,180,255,.10),transparent 38%),
+    linear-gradient(180deg,color-mix(in srgb,var(--c-light-cyan) 10%,transparent),transparent 38%),
     radial-gradient(120px 80px at 50% -10%,
       color-mix(in srgb,var(--c) 55%,transparent),transparent 72%);
   opacity:.5;
@@ -228,7 +274,7 @@
 /* Icon: glow màu đội (điểm nhấn nhỏ #1). */
 [data-theme="tech"] .tile .ic{
   filter:drop-shadow(0 0 14px color-mix(in srgb,var(--c) 55%,transparent))
-         drop-shadow(0 4px 8px rgba(0,0,0,.5));
+         drop-shadow(0 4px 8px color-mix(in srgb,var(--shade) 50%,transparent));
 }
 /* Tên + chấm tròn màu đội trước tên (điểm nhấn nhỏ #2). */
 [data-theme="tech"] .tile .nm{color:var(--text);font-weight:700}
@@ -245,13 +291,13 @@
   letter-spacing:.02em;
 }
 
-/* HOVER (tile chọn được): nhấc nhẹ (bỏ scale §78) + viền + glow xanh-điện. */
+/* HOVER (tile chọn được): nhấc nhẹ (bỏ scale §78) + viền + glow Accent Cyan. */
 [data-theme="tech"] .tile.sel:hover{
   transform:translateY(-2px);
-  border-color:rgba(80,140,255,.55);
-  box-shadow:0 26px 50px -24px rgba(0,0,0,.8),
-             0 0 22px -6px rgba(47,123,255,.45),
-             inset 0 1px 0 rgba(140,180,255,.2);
+  border-color:color-mix(in srgb,var(--c-electric) 55%,transparent);
+  box-shadow:0 26px 50px -24px color-mix(in srgb,var(--shade) 80%,transparent),
+             0 0 22px -6px color-mix(in srgb,var(--c-accent-cyan) 45%,transparent),
+             inset 0 1px 0 color-mix(in srgb,var(--c-light-cyan) 20%,transparent);
 }
 [data-theme="tech"] .tile.sel:hover::before{opacity:.7}
 [data-theme="tech"] .tile.sel:active{transform:translateY(0)}
@@ -259,67 +305,67 @@
 [data-theme="tech"] .tile.sel{position:relative}
 [data-theme="tech"] .tile.sel::after{
   content:"";position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(47,123,255,.9),transparent);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--c-accent-cyan) 90%,transparent),transparent);
   opacity:0;transition:opacity .25s ease;
 }
 [data-theme="tech"] .tile.sel:hover::after{opacity:1}
 
 /* disabled: trầm rõ ràng, vẫn đọc được. */
 [data-theme="tech"] .tile.disabled{opacity:.5;filter:saturate(.7) brightness(.92)}
-/* mine: vòng nhấn XANH-ĐIỆN (đè ring màu-đội §85). */
+/* mine: vòng nhấn ELECTRIC BLUE (đè ring màu-đội §85). */
 [data-theme="tech"] .tile.mine{
-  border-color:rgba(80,140,255,.6);
-  box-shadow:0 0 0 1px rgba(80,140,255,.5) inset,
-             0 0 24px -8px rgba(47,123,255,.55),
-             0 18px 40px -22px rgba(0,0,0,.7);
+  border-color:color-mix(in srgb,var(--c-electric) 60%,transparent);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--c-electric) 50%,transparent) inset,
+             0 0 24px -8px color-mix(in srgb,var(--c-accent-cyan) 55%,transparent),
+             0 18px 40px -22px color-mix(in srgb,var(--shade) 70%,transparent);
 }
 
-/* —— PICK: nút primary MỘT màu nhấn xanh-điện đặc (chữ trắng ~16:1). —— */
+/* —— PICK: nút primary MỘT màu nhấn Electric Blue đặc (chữ trắng). —— */
 [data-theme="tech"] .pick{
   background:var(--accent);
-  color:#fff;
-  box-shadow:0 12px 24px -12px rgba(47,123,255,.7),
-             inset 0 1px 0 rgba(255,255,255,.25);
+  color:var(--c-white);
+  box-shadow:0 12px 24px -12px color-mix(in srgb,var(--c-electric) 70%,transparent),
+             inset 0 1px 0 color-mix(in srgb,var(--hi) 25%,transparent);
 }
 [data-theme="tech"] .pick:hover{
   filter:brightness(1.06);
-  box-shadow:0 16px 30px -12px rgba(47,123,255,.8),
-             inset 0 1px 0 rgba(255,255,255,.3);
+  box-shadow:0 16px 30px -12px color-mix(in srgb,var(--c-electric) 80%,transparent),
+             inset 0 1px 0 color-mix(in srgb,var(--hi) 30%,transparent);
 }
 /* lock: xám-navy trầm "đã khoá", thêm viền, bỏ glow. */
 [data-theme="tech"] .pick.lock{
-  background:rgba(80,140,255,.1);
+  background:color-mix(in srgb,var(--c-electric) 10%,transparent);
   color:var(--muted-2);
-  box-shadow:inset 0 0 0 1px rgba(80,140,255,.18);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-electric) 18%,transparent);
 }
 
-/* —— CAP-BAR: track tối + fill xanh-điện giữ ~28% màu đội.
+/* —— CAP-BAR: track tối + fill Electric Blue giữ ~28% màu đội.
    GOTCHA: track overflow:hidden → span CHỈ inset shadow (outer-glow bị cắt). —— */
 [data-theme="tech"] .cap-bar{
-  background:rgba(8,16,40,.7);
-  box-shadow:inset 0 0 0 1px rgba(80,140,255,.14);
+  background:color-mix(in srgb,var(--c-deep-navy) 70%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-electric) 14%,transparent);
 }
 [data-theme="tech"] .cap-bar span{
   background:linear-gradient(90deg,
-    color-mix(in srgb,var(--c) 28%,#2f7bff),
-    color-mix(in srgb,var(--c) 22%,#6aa8ff));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),
-             inset 0 -2px 4px rgba(0,0,0,.25);
+    color-mix(in srgb,var(--c) 28%,var(--c-electric)),
+    color-mix(in srgb,var(--c) 22%,var(--c-cyan-blue)));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--hi) 40%,transparent),
+             inset 0 -2px 4px color-mix(in srgb,var(--shade) 25%,transparent);
 }
 
 /* —— MINI avatars: gradient navy kính, viền glow mảnh. —— */
 [data-theme="tech"] .mini{
   background:linear-gradient(135deg,
-    color-mix(in srgb,var(--c) 45%,#16223f),
-    color-mix(in srgb,var(--c) 70%,#0c1838));
-  color:#eaf1ff;
-  box-shadow:inset 0 0 0 1px rgba(80,140,255,.25),
-             0 4px 9px -4px rgba(0,0,0,.6);
+    color-mix(in srgb,var(--c) 45%,var(--surf-bot)),
+    color-mix(in srgb,var(--c) 70%,var(--c-deep-navy)));
+  color:var(--c-white);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-electric) 25%,transparent),
+             0 4px 9px -4px color-mix(in srgb,var(--shade) 60%,transparent);
 }
 [data-theme="tech"] .mini.more{
-  background:rgba(80,140,255,.16);
+  background:color-mix(in srgb,var(--c-electric) 16%,transparent);
   color:var(--muted);
-  box-shadow:inset 0 0 0 1px rgba(80,140,255,.22);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-electric) 22%,transparent);
 }
 [data-theme="tech"] .mini.empty{
   background:transparent;color:var(--muted-2);box-shadow:none;
@@ -328,16 +374,16 @@
 /* —— BANNER "đội của bạn": gradient sáng → thẻ kính navy + mép-trên sáng. —— */
 [data-theme="tech"] .banner{
   position:relative;overflow:hidden;
-  border:1px solid rgba(80,140,255,.3);
+  border:1px solid color-mix(in srgb,var(--c-electric) 30%,transparent);
   border-radius:calc(var(--r-lg) + 4px);
-  background:linear-gradient(120deg,rgba(26,38,72,.92),rgba(14,24,54,.94));
-  box-shadow:0 18px 44px -24px rgba(0,0,0,.72),
-             0 0 22px -10px rgba(47,123,255,.35),
-             inset 0 1px 0 rgba(140,180,255,.12);
+  background:linear-gradient(120deg,color-mix(in srgb,var(--surf-top) 92%,transparent),color-mix(in srgb,var(--surf-bot) 94%,transparent));
+  box-shadow:0 18px 44px -24px color-mix(in srgb,var(--shade) 72%,transparent),
+             0 0 22px -10px color-mix(in srgb,var(--c-electric) 35%,transparent),
+             inset 0 1px 0 color-mix(in srgb,var(--c-light-cyan) 12%,transparent);
 }
 [data-theme="tech"] .banner::before{
   content:"";position:absolute;left:18px;right:18px;top:0;height:1px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(150,190,255,.5),transparent);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--c-light-cyan) 50%,transparent),transparent);
 }
 [data-theme="tech"] .banner .bi{
   filter:drop-shadow(0 0 12px color-mix(in srgb,var(--c) 55%,transparent));
@@ -350,18 +396,18 @@
 [data-theme="tech"] .full-team{
   border:1px solid var(--line);
   border-radius:calc(var(--r-lg) - 2px);
-  background:linear-gradient(180deg,rgba(24,35,66,.86),rgba(14,24,54,.9));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 86%,transparent),color-mix(in srgb,var(--surf-bot) 90%,transparent));
 }
 [data-theme="tech"] .full-team.mine{
-  border-color:rgba(80,140,255,.55);
+  border-color:color-mix(in srgb,var(--c-electric) 55%,transparent);
 }
 [data-theme="tech"] .ft-badge{
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hi) 18%,transparent);
 }
 [data-theme="tech"] .ft-meta .ft-name{color:var(--text);font-weight:700}
 [data-theme="tech"] .ft-list li{color:var(--text)}
 [data-theme="tech"] .ft-list .no{
-  background:rgba(80,140,255,.14);color:var(--muted);
+  background:color-mix(in srgb,var(--c-electric) 14%,transparent);color:var(--muted);
 }
 
 /* —— SECTION HEADER: nhãn kiểu dashboard (.hr giữ gradient §D.2 — KHÔNG khai lại). —— */
@@ -371,21 +417,21 @@
   letter-spacing:-.005em;
 }
 [data-theme="tech"] .section-h .count{
-  color:#7fa4e8;
+  color:var(--c-light-cyan);
   font-weight:800;
   font-variant-numeric:tabular-nums;
 }
 
 /* —— EMPTY / HINT: nền sáng → tấm kính navy mảnh. —— */
 [data-theme="tech"] .empty-note{
-  background:rgba(14,24,54,.5);
-  border:2px dashed rgba(80,140,255,.3);
+  background:color-mix(in srgb,var(--surf-bot) 50%,transparent);
+  border:2px dashed color-mix(in srgb,var(--c-electric) 30%,transparent);
   color:var(--muted);
 }
 [data-theme="tech"] .hint{
-  background:rgba(47,123,255,.12);
+  background:color-mix(in srgb,var(--c-electric) 12%,transparent);
   color:var(--muted);
-  box-shadow:inset 0 0 0 1px rgba(80,140,255,.16);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-electric) 16%,transparent);
 }
 
 
@@ -397,11 +443,12 @@
    ACTIVE_VARIANT trong theme.js (đặt data-variant trên <html>).
    Mặc định ACTIVE_VARIANT='' nên các khối dưới INERT (selector không khớp → ảnh
    trong url() KHÔNG được tải). Copy 1 khối, đổi tên + màu cho dịp mới.
-   ============================================================================ */
+   VÍ DỤ dưới override màu nhấn bằng chính palette tech (giữ file không hex rời);
+   sự kiện thật có thể khai màu thương hiệu riêng tại đây khi cần. */
 [data-theme="tech"][data-variant="eventX"]{
   --page-bg-image: url('img/bg-eventX.jpg'); /* đặt ảnh tại docs/assets/img/ */
-  --accent:        #00c2a8;                   /* màu chủ đạo của sự kiện X     */
-  --err:           #ffd166;                   /* nhấn phụ của sự kiện X        */
+  --accent:        var(--c-magenta);          /* màu chủ đạo của sự kiện X     */
+  --err:           var(--c-accent-cyan);      /* nhấn phụ của sự kiện X        */
 }
 
 
@@ -413,49 +460,50 @@
    (--bg/--card/--line/--accent/--r-lg) nên override admin được SCOPE vào
    `body.admin` (specificity cao hơn :root inline → thắng dù nạp trước/sau; và
    KHÔNG đụng app chính vì app chính không có body.admin). Default admin bất biến.
+   Palette --c-* kế thừa từ khối [data-theme="tech"] trên <html> nên dùng lại được.
    ============================================================================ */
 [data-theme="tech"] body.admin{
-  --bg:#0a1430; --card:rgba(22,31,61,.86); --card-2:rgba(14,24,54,.70); --line:rgba(80,140,255,.22);
-  --ink:#e8eefc; --mut:#9fb0d0; --mut-2:#8093bd;
-  --pri:#2f7bff; --accent:#4f9bff; --accent-soft:rgba(80,140,255,.16);
-  --bad:#ff5d6c; --danger:#ff3b51; --danger-soft:rgba(255,59,81,.16); --ok:#34d399; --ok-soft:rgba(34,211,153,.15);
-  --ring:0 0 0 3px rgba(47,123,255,.45);
-  --sh:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -18px rgba(0,0,0,.6);
-  --sh-lg:0 22px 50px -24px rgba(0,0,0,.7), 0 0 24px -8px rgba(47,123,255,.4);
-  --grad:linear-gradient(135deg,#2f7bff,#5a9bff);
+  --bg:var(--c-deep-navy); --card:color-mix(in srgb,var(--c-primary) 86%,transparent); --card-2:color-mix(in srgb,var(--surf-bot) 70%,transparent); --line:color-mix(in srgb,var(--c-electric) 28%,transparent);
+  --ink:var(--c-white); --mut:var(--c-soft-glow); --mut-2:var(--c-light-cyan);
+  --pri:var(--c-electric); --accent:var(--c-cyan-blue); --accent-soft:color-mix(in srgb,var(--c-electric) 16%,transparent);
+  --bad:var(--c-magenta); --danger:var(--c-magenta); --danger-soft:color-mix(in srgb,var(--c-magenta) 16%,transparent); --ok:var(--c-accent-cyan); --ok-soft:color-mix(in srgb,var(--c-accent-cyan) 15%,transparent);
+  --ring:0 0 0 3px color-mix(in srgb,var(--c-accent-cyan) 45%,transparent);
+  --sh:0 1px 2px color-mix(in srgb,var(--shade) 40%,transparent), 0 10px 26px -18px color-mix(in srgb,var(--shade) 60%,transparent);
+  --sh-lg:0 22px 50px -24px color-mix(in srgb,var(--shade) 70%,transparent), 0 0 24px -8px color-mix(in srgb,var(--c-electric) 40%,transparent);
+  --grad:linear-gradient(135deg,var(--c-electric),var(--c-cyan-blue));
   --r-lg:14px;                       /* chặn rò --r-lg:16px từ khối tech app chính */
   /* nền trang admin: thay 2 radial sáng hardcode trong styles inline */
   background-image:
-    radial-gradient(900px 480px at 100% -8%, rgba(47,123,255,.18), transparent 60%),
-    radial-gradient(720px 420px at -5% 0%, rgba(255,59,81,.10), transparent 55%);
+    radial-gradient(900px 480px at 100% -8%, color-mix(in srgb,var(--c-accent-cyan) 16%,transparent), transparent 60%),
+    radial-gradient(720px 420px at -5% 0%, color-mix(in srgb,var(--c-magenta) 10%,transparent), transparent 55%);
 }
 /* — bề mặt hardcode-sáng của admin → tối/đọc rõ — */
-[data-theme="tech"] body.admin code{background:rgba(80,140,255,.16);color:#bcd2ff}
-[data-theme="tech"] body.admin .btn-ghost{background:rgba(80,140,255,.12);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
-[data-theme="tech"] body.admin .btn-ghost:hover{background:rgba(80,140,255,.20)}
-[data-theme="tech"] body.admin .btn-ok{color:#7ef0bf}
-[data-theme="tech"] body.admin .btn-ok:hover{background:rgba(34,211,153,.22)}
-[data-theme="tech"] body.admin .btn-del{color:#ff8fa3}
-[data-theme="tech"] body.admin .btn-del:hover{background:rgba(255,59,81,.22)}
+[data-theme="tech"] body.admin code{background:color-mix(in srgb,var(--c-electric) 16%,transparent);color:var(--c-light-cyan)}
+[data-theme="tech"] body.admin .btn-ghost{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+[data-theme="tech"] body.admin .btn-ghost:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
+[data-theme="tech"] body.admin .btn-ok{color:var(--c-accent-cyan)}
+[data-theme="tech"] body.admin .btn-ok:hover{background:color-mix(in srgb,var(--c-accent-cyan) 22%,transparent)}
+[data-theme="tech"] body.admin .btn-del{color:var(--c-magenta)}
+[data-theme="tech"] body.admin .btn-del:hover{background:color-mix(in srgb,var(--c-magenta) 22%,transparent)}
 [data-theme="tech"] body.admin input:focus,
 [data-theme="tech"] body.admin select:focus,
 [data-theme="tech"] body.admin textarea:focus,
-[data-theme="tech"] body.admin #loginView input:focus{background:rgba(80,140,255,.14)}
-[data-theme="tech"] body.admin #fId[readonly]{background:rgba(80,140,255,.08);color:var(--mut)}
-[data-theme="tech"] body.admin .ev-status{background:rgba(80,140,255,.12)}
-[data-theme="tech"] body.admin .form-mode.edit{background:rgba(245,176,39,.16);color:#ffcf6b;box-shadow:inset 0 0 0 1px rgba(245,176,39,.3)}
-[data-theme="tech"] body.admin .form-mode.dup{color:#cdb8ff}
-[data-theme="tech"] body.admin .chip{color:#cdd9ff}
-[data-theme="tech"] body.admin .chip b{color:#bcd2ff}
+[data-theme="tech"] body.admin #loginView input:focus{background:color-mix(in srgb,var(--c-electric) 14%,transparent)}
+[data-theme="tech"] body.admin #fId[readonly]{background:color-mix(in srgb,var(--c-electric) 8%,transparent);color:var(--mut)}
+[data-theme="tech"] body.admin .ev-status{background:color-mix(in srgb,var(--c-electric) 12%,transparent)}
+[data-theme="tech"] body.admin .form-mode.edit{background:color-mix(in srgb,var(--c-neon-pink) 18%,transparent);color:var(--c-neon-pink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-neon-pink) 35%,transparent)}
+[data-theme="tech"] body.admin .form-mode.dup{color:var(--c-light-cyan)}
+[data-theme="tech"] body.admin .chip{color:var(--c-soft-glow)}
+[data-theme="tech"] body.admin .chip b{color:var(--c-light-cyan)}
 [data-theme="tech"] body.admin .dw-head,
-[data-theme="tech"] body.admin .dw-list b{color:#ff8fa3}
-[data-theme="tech"] body.admin .dw-list li{background:rgba(255,255,255,.06)}
-[data-theme="tech"] body.admin .dup-warn{background:linear-gradient(120deg,var(--danger-soft),rgba(14,24,54,.6));border-color:rgba(255,59,81,.3)}
-[data-theme="tech"] body.admin .al-warn{color:#ff9db0;border-color:rgba(255,59,81,.3)}
-[data-theme="tech"] body.admin .skeleton{background:linear-gradient(90deg,var(--card-2) 25%,rgba(80,140,255,.10) 37%,var(--card-2) 63%);background-size:400% 100%}
+[data-theme="tech"] body.admin .dw-list b{color:var(--c-magenta)}
+[data-theme="tech"] body.admin .dw-list li{background:color-mix(in srgb,var(--hi) 6%,transparent)}
+[data-theme="tech"] body.admin .dup-warn{background:linear-gradient(120deg,var(--danger-soft),color-mix(in srgb,var(--surf-bot) 60%,transparent));border-color:color-mix(in srgb,var(--c-magenta) 30%,transparent)}
+[data-theme="tech"] body.admin .al-warn{color:var(--c-magenta);border-color:color-mix(in srgb,var(--c-magenta) 30%,transparent)}
+[data-theme="tech"] body.admin .skeleton{background:linear-gradient(90deg,var(--card-2) 25%,color-mix(in srgb,var(--c-electric) 10%,transparent) 37%,var(--card-2) 63%);background-size:400% 100%}
 /* — modal admin (cm-box trắng hardcode) → navy + glow — */
-[data-theme="tech"] body.admin .cm-bg{background:rgba(5,10,28,.6)}
-[data-theme="tech"] body.admin .cm-box{background:linear-gradient(180deg,rgba(22,31,61,.97),rgba(14,24,54,.97));box-shadow:var(--sh-lg)}
-[data-theme="tech"] body.admin .cm-cancel{background:rgba(80,140,255,.12);color:var(--ink)}
-[data-theme="tech"] body.admin .cm-cancel:hover{background:rgba(80,140,255,.20)}
-[data-theme="tech"] body.admin .cm-input:focus{background:rgba(80,140,255,.14)}
+[data-theme="tech"] body.admin .cm-bg{background:color-mix(in srgb,var(--c-deep-navy) 60%,transparent)}
+[data-theme="tech"] body.admin .cm-box{background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 97%,transparent),color-mix(in srgb,var(--surf-bot) 97%,transparent));box-shadow:var(--sh-lg)}
+[data-theme="tech"] body.admin .cm-cancel{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--ink)}
+[data-theme="tech"] body.admin .cm-cancel:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
+[data-theme="tech"] body.admin .cm-input:focus{background:color-mix(in srgb,var(--c-electric) 14%,transparent)}
