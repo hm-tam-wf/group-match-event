@@ -1,0 +1,161 @@
+/* ============================================================================
+   themes.css — Hệ ĐỔI GIAO DIỆN (theme) cho icon-picker
+   ----------------------------------------------------------------------------
+   CƠ CHẾ (đơn giản, không framework, không build):
+     • config.js khai báo  const ACTIVE_THEME = 'default' | 'tech' | ...
+       rồi set  <html data-theme="<ACTIVE_THEME>">  (nguồn sự thật DUY NHẤT).
+     • File này nạp SAU styles.css; mỗi theme = 1 khối [data-theme="..."] chỉ
+       OVERRIDE các CSS variable đã có trong styles.css (:root) + vài rule riêng
+       cho những bề mặt hardcode-sáng (không token hoá được).
+     • 'default' KHÔNG cần khối ở đây — :root trong styles.css đã là default.
+
+   THÊM THEME MỚI (không sửa JS/HTML, chỉ thêm vào file này):
+     1) Copy khối TEMPLATE bên dưới → đổi "ten-theme", điền màu.
+     2) Đổi ACTIVE_THEME = 'ten-theme' trong js/config/config.js.
+     Theme TỐI (như 'tech') cần thêm rule cho các bề mặt hardcode-sáng — xem
+     danh sách "BỀ MẶT HARDCODE" trong khối tech để biết cần override những gì.
+
+   TOKEN dùng lại (đã định nghĩa trong styles.css :root — KHÔNG đặt tên mới):
+     --bg          nền trang (lưu ý: nền NHÌN THẤY là body::before, xem dưới)
+     --surface     nền đặc (ít dùng)        --card / --card-alt  nền thẻ/popup (mờ)
+     --text        chữ chính                --muted / --muted-2  chữ phụ / mờ nhất
+     --line        viền bề mặt              --err   nhấn phụ (lỗi/cảnh báo)
+     --accent      nhấn chính               --candy gradient nút CTA
+     --sh-soft/-card/-pop  đổ bóng/glow     --r-sm/-md/-lg/-xl/--pill  bo góc
+     --display / --body    font (để trống = giữ nguyên)
+   Token RIÊNG của theme nền-ảnh (chỉ khai trong khối theme, default không cần):
+     --page-bg-image    none = nền CSS; url('img/<file>') = dùng ảnh nền
+     --page-bg-overlay  lớp phủ tối giữ tương phản khi dùng ảnh
+   ============================================================================ */
+
+
+/* ----------------------------------------------------------------------------
+   TEMPLATE — copy khối này, đổi <ten-theme>, điền màu. (Đang để trong comment.)
+   ----------------------------------------------------------------------------
+   [data-theme="<ten-theme>"]{
+     --bg: ; --surface: ; --card: ; --card-alt: ;
+     --text: ; --muted: ; --muted-2: ;
+     --line: ; --err: ; --accent: ; --candy: ;
+     --sh-soft: ; --sh-card: ; --sh-pop: ;
+     --r-lg: ; --r-xl: ;
+     --page-bg-image: none;
+     --page-bg-overlay: linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.7));
+   }
+   [data-theme="<ten-theme>"] body::before{ background: ...; }
+---------------------------------------------------------------------------- */
+
+
+/* ============================================================================
+   THEME: tech          (bật bằng ACTIVE_THEME = 'tech')
+   Concept: công nghệ — navy đậm, xanh điện + đỏ nhấn, viền mảnh phát sáng,
+            glow nhẹ, chữ sáng trên nền tối.
+   ============================================================================ */
+[data-theme="tech"]{
+  /* —— token màu (override :root) —— */
+  --bg:        #0a1430;                 /* navy rất đậm (nền nền tảng)        */
+  --surface:   #0e1b3d;
+  --card:      rgba(22,31,61,.82);      /* thẻ/popup navy, hơi trong          */
+  --card-alt:  rgba(22,31,61,.60);
+  --text:      #e8eefc;                 /* chữ chính sáng                     */
+  --muted:     #9fb0d0;                 /* chữ phụ/mô tả                      */
+  --muted-2:   #8093bd;                 /* chữ mờ nhất (meta/placeholder)     */
+  --line:      rgba(80,140,255,.28);    /* viền mảnh phát sáng                */
+  --err:       #ff3b51;                 /* đỏ nhấn (cảnh báo/điểm nhấn)       */
+  --accent:    #2f7bff;                 /* xanh điện (nút, link, focus)       */
+  --candy:     linear-gradient(135deg,#2f7bff 0%,#4f9bff 60%,#6aa8ff 120%);
+
+  /* —— đổ bóng/glow: tối + viền glow xanh —— */
+  --sh-soft: 0 6px 20px -10px rgba(0,0,0,.60), 0 0 0 1px rgba(80,140,255,.10);
+  --sh-card: 0 22px 50px -24px rgba(0,0,0,.70), 0 0 0 1px rgba(80,140,255,.14), inset 0 1px 0 rgba(120,170,255,.10);
+  --sh-pop:  0 26px 60px -24px rgba(0,0,0,.70), 0 0 26px -6px rgba(47,123,255,.45);
+
+  /* —— bo góc sắc hơn default đôi chút —— */
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  /* —— nền trang: 1 nguồn sự thật. none = nền CSS; đổi sang url('img/<file>')
+        (đặt ảnh tại docs/assets/img/) để dùng ảnh nền — KHÔNG sửa rule nào khác. */
+  --page-bg-image:   none;
+  --page-bg-overlay: linear-gradient(rgba(10,20,48,.72), rgba(10,20,48,.82));
+}
+
+/* —— Nền trang (ghi đè 4 radial pastel hardcode của body::before) ——
+   Một rule lo cả 2 cách: --page-bg-image=none → chỉ overlay + gradient navy
+   (+ lưới mạch mờ). Đặt url(...) → ảnh hiện dưới overlay. body::before nằm sau
+   mọi nội dung (z-index:-1) nên lưới không ảnh hưởng tương phản chữ. */
+[data-theme="tech"] body::before{
+  background:
+    linear-gradient(rgba(80,140,255,.05) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(80,140,255,.05) 1px, transparent 1px) 0 0 / 44px 44px,
+    var(--page-bg-overlay),
+    var(--page-bg-image) center / cover no-repeat fixed,
+    radial-gradient(1200px 600px at 18% -6%, rgba(47,123,255,.20), transparent 60%),
+    radial-gradient(900px 520px at 92% 10%, rgba(255,59,81,.12), transparent 60%),
+    linear-gradient(180deg, #0a1430, #0d1b3a);
+}
+
+/* —— Tiêu đề: gradient chữ theo tông tech —— */
+[data-theme="tech"] h1{
+  background:linear-gradient(92deg,#6aa8ff 0%,#2f7bff 50%,#ff3b51 112%);
+  filter:drop-shadow(0 6px 14px rgba(47,123,255,.35));
+}
+
+/* ============================================================================
+   BỀ MẶT HARDCODE — các chỗ styles.css dùng màu sáng cứng (không qua token),
+   theme tối phải override để đọc rõ. (Theme mới TỐI → copy nguyên cụm này.)
+   ============================================================================ */
+
+/* tiles đội: gradient nền trộn #fff (sáng) → đổi sang navy, vẫn giữ tông --c đội */
+[data-theme="tech"] .tile{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,#101f44) 0%,#0c1838 78%);
+  box-shadow:0 14px 34px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(120,170,255,.08);
+}
+/* banner đội của bạn: gradient sáng → navy */
+[data-theme="tech"] .banner{
+  background:linear-gradient(120deg,color-mix(in srgb,var(--c) 24%,#101f44),#0c1838);
+  border-color:color-mix(in srgb,var(--c) 45%,transparent);
+}
+[data-theme="tech"] .cap-bar{background:rgba(80,140,255,.16)}
+[data-theme="tech"] .mini.more{background:rgba(80,140,255,.18);color:var(--muted)}
+[data-theme="tech"] .pick.lock{background:rgba(80,140,255,.12);color:var(--muted-2)}
+[data-theme="tech"] .ft-list .no{background:rgba(80,140,255,.14);color:var(--muted)}
+
+/* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
+[data-theme="tech"] .modal-bg{background:rgba(5,10,28,.6)}
+[data-theme="tech"] .modal{
+  background:linear-gradient(180deg,rgba(22,31,61,.97),rgba(14,24,54,.97));
+  border:1px solid var(--line);
+  box-shadow:0 30px 70px -26px rgba(0,0,0,.75), 0 0 30px -6px rgba(47,123,255,.35), inset 0 1px 0 rgba(120,170,255,.12);
+}
+[data-theme="tech"] .modal .cancel{background:rgba(80,140,255,.12);color:var(--text)}
+[data-theme="tech"] .modal .cancel:hover{background:rgba(80,140,255,.20)}
+
+/* form input: nền/viền sáng + focus nền trắng hardcode → tông tối */
+[data-theme="tech"] .field input{
+  background:rgba(80,140,255,.08);
+  border-color:rgba(80,140,255,.22);
+}
+[data-theme="tech"] .field input:focus{
+  background:rgba(80,140,255,.14);
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(47,123,255,.20);
+}
+
+/* toast: nền trắng mờ + viền trắng → navy + glow */
+[data-theme="tech"] .toast{
+  background:rgba(22,31,61,.92);
+  border:1px solid var(--line);
+  box-shadow:0 18px 40px -16px rgba(0,0,0,.7), 0 0 18px -6px rgba(47,123,255,.3);
+}
+
+/* ghi chú trống / hint / màn hình hoàn thành: nền sáng → tối */
+[data-theme="tech"] .empty-note{
+  background:rgba(22,31,61,.5);
+  border-color:rgba(80,140,255,.3);
+  color:var(--muted);
+}
+[data-theme="tech"] .hint{background:rgba(47,123,255,.12);color:var(--muted)}
+[data-theme="tech"] .all-full{
+  background:linear-gradient(180deg,rgba(16,40,40,.55),rgba(12,24,56,.7));
+  border-color:rgba(34,197,94,.30);
+}
