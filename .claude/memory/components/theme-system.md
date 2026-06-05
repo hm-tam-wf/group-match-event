@@ -58,6 +58,10 @@ Theme **tối** phải override thêm vì các chỗ này dùng màu sáng cứn
   `.field input` (+ `:focus` nền `#fff`), `.tile`/`.banner` (gradient trộn `#fff`),
   `.empty-note`/`.hint`/`.all-full`, các nút `.cancel`/`.pick.lock`/`.mini.more`.
 - `--c` (màu mỗi đội) do JS bơm runtime → theme không kiểm soát, chỉ trộn nền tối.
+- **`h1` là chữ-gradient** (`background:gradient` + `background-clip:text` + `color:
+  transparent`). Override `background` (shorthand) trong theme **RESET background-clip
+  → border-box** ⇒ gradient lấp đầy khung, chữ vô hình (MẤT tiêu đề). Phải khai lại
+  `-webkit-background-clip:text; background-clip:text;` sau khi đổi background.
 Khối `[data-theme="tech"]` đã xử lý đủ các chỗ trên — theme tối mới copy y cụm đó.
 
 ## Token có-thể-đổi-theme (dùng lại của styles.css)
