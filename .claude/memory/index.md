@@ -16,6 +16,7 @@
 
 ## UI & components
 - [[design-tokens]] — Soft Cloud Candy palette, fonts Baloo 2 + Nunito, motion
+- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME + data-theme; cách thêm theme; theme `tech`
 
 ## Decisions (ADRs)
 - [[0000-template]] — template cho mỗi quyết định kiến trúc

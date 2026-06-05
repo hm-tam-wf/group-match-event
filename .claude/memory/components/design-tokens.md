@@ -2,7 +2,7 @@
 title: design-tokens
 tags: [ui, component]
 code: [docs/assets/styles.css, docs/admin.html]
-related: [[index]], [[ui-pipeline]]
+related: [[index]], [[ui-pipeline]], [[theme-system]]
 updated: 2026-06-03
 ---
 
@@ -50,3 +50,7 @@ updated: 2026-06-03
 
 ## Responsive
 - Breakpoint: `@media (max-width: 560px)` — mobile layout
+
+## Theming
+- Default (trên) = giao diện gốc, bất biến. Đổi giao diện qua **1 cờ** — xem
+  [[theme-system]] (CSS vars + `data-theme` + `ACTIVE_THEME`; theme `tech`).
