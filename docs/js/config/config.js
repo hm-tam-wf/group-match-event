@@ -36,14 +36,8 @@ const DEFAULT_ICONS = [
 
 const POLL_MS = 3000; // chu kỳ đồng bộ (ms) — chỉ dùng ở chế độ sheet/demo
 
-// ➎ Giao diện (theme) — NGUỒN SỰ THẬT DUY NHẤT để đổi giao diện cả site.
-//    'default' = giao diện hiện tại (bất biến). Bật theme khác = đổi đúng chuỗi này.
-//    Thêm theme mới: thêm 1 khối [data-theme="..."] trong assets/themes.css rồi đổi ACTIVE_THEME.
-//    KHÔNG hardcode tên theme ở nơi khác — mọi nơi chỉ đọc qua data-theme bên dưới.
-const ACTIVE_THEME = 'default'; // 'default' | 'tech'
-// Áp ngay (config.js là script nạp sớm nhất) để tránh nháy giao diện (FOUC).
-// Cả index.html lẫn admin.html đều nạp file này nên tự áp theme.
-document.documentElement.setAttribute('data-theme', ACTIVE_THEME);
+// ➎ Giao diện (theme): chuyển sang js/config/theme.js — nạp ở <head> TRƯỚC khi vẽ
+//    để áp data-theme không nháy (FOUC). Đổi giao diện = sửa ACTIVE_THEME ở file đó.
 
 // ── Biến làm việc — được gán lại bởi boot() sau khi tải config từ Firestore ──
 // Ở chế độ demo/sheet: giữ nguyên giá trị DEFAULT_* bên trên.

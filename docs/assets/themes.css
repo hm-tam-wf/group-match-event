@@ -2,12 +2,16 @@
    themes.css — Hệ ĐỔI GIAO DIỆN (theme) cho icon-picker
    ----------------------------------------------------------------------------
    CƠ CHẾ (đơn giản, không framework, không build):
-     • config.js khai báo  const ACTIVE_THEME = 'default' | 'tech' | ...
-       rồi set  <html data-theme="<ACTIVE_THEME>">  (nguồn sự thật DUY NHẤT).
+     • js/config/theme.js (nạp ở <head>, TRƯỚC khi vẽ → 0 FOUC) khai báo
+       const ACTIVE_THEME = 'default' | 'tech' | ...  (+ ACTIVE_VARIANT tuỳ chọn)
+       rồi set  <html data-theme="<ACTIVE_THEME>" [data-variant="..."]>  — nguồn
+       sự thật DUY NHẤT.
      • File này nạp SAU styles.css; mỗi theme = 1 khối [data-theme="..."] chỉ
        OVERRIDE các CSS variable đã có trong styles.css (:root) + vài rule riêng
        cho những bề mặt hardcode-sáng (không token hoá được).
      • 'default' KHÔNG cần khối ở đây — :root trong styles.css đã là default.
+     • TRANG ADMIN (admin.html) có :root + token RIÊNG → override scope vào
+       [data-theme="tech"] body.admin (xem §ADMIN cuối file) để không lẫn app chính.
 
    THÊM THEME MỚI (không sửa JS/HTML, chỉ thêm vào file này):
      1) Copy khối TEMPLATE bên dưới → đổi "ten-theme", điền màu.
@@ -159,3 +163,75 @@
   background:linear-gradient(180deg,rgba(16,40,40,.55),rgba(12,24,56,.7));
   border-color:rgba(34,197,94,.30);
 }
+
+
+/* ============================================================================
+   §BIẾN THỂ theo SỰ KIỆN  (tuỳ chọn — kế thừa theme nền, đổi nhanh mỗi dịp)
+   ----------------------------------------------------------------------------
+   Mỗi sự kiện thường chỉ đổi ẢNH NỀN + 1–2 màu nhấn, giữ nguyên bố cục. Kế thừa
+   toàn bộ token của theme nền (vd 'tech'), chỉ override phần khác. Bật bằng
+   ACTIVE_VARIANT trong theme.js (đặt data-variant trên <html>).
+   Mặc định ACTIVE_VARIANT='' nên các khối dưới INERT (selector không khớp → ảnh
+   trong url() KHÔNG được tải). Copy 1 khối, đổi tên + màu cho dịp mới.
+   ============================================================================ */
+[data-theme="tech"][data-variant="eventX"]{
+  --page-bg-image: url('img/bg-eventX.jpg'); /* đặt ảnh tại docs/assets/img/ */
+  --accent:        #00c2a8;                   /* màu chủ đạo của sự kiện X     */
+  --err:           #ffd166;                   /* nhấn phụ của sự kiện X        */
+}
+
+
+/* ============================================================================
+   §ADMIN — THEME 'tech' cho admin.html
+   ----------------------------------------------------------------------------
+   admin.html có :root + bộ token RIÊNG (--ink/--pri/--grad/--card-2/--accent-soft
+   /--danger…) và nằm CHUNG file này với app chính. Vì vài token trùng tên
+   (--bg/--card/--line/--accent/--r-lg) nên override admin được SCOPE vào
+   `body.admin` (specificity cao hơn :root inline → thắng dù nạp trước/sau; và
+   KHÔNG đụng app chính vì app chính không có body.admin). Default admin bất biến.
+   ============================================================================ */
+[data-theme="tech"] body.admin{
+  --bg:#0a1430; --card:rgba(22,31,61,.86); --card-2:rgba(14,24,54,.70); --line:rgba(80,140,255,.22);
+  --ink:#e8eefc; --mut:#9fb0d0; --mut-2:#8093bd;
+  --pri:#2f7bff; --accent:#4f9bff; --accent-soft:rgba(80,140,255,.16);
+  --bad:#ff5d6c; --danger:#ff3b51; --danger-soft:rgba(255,59,81,.16); --ok:#34d399; --ok-soft:rgba(34,211,153,.15);
+  --ring:0 0 0 3px rgba(47,123,255,.45);
+  --sh:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -18px rgba(0,0,0,.6);
+  --sh-lg:0 22px 50px -24px rgba(0,0,0,.7), 0 0 24px -8px rgba(47,123,255,.4);
+  --grad:linear-gradient(135deg,#2f7bff,#5a9bff);
+  --r-lg:14px;                       /* chặn rò --r-lg:16px từ khối tech app chính */
+  /* nền trang admin: thay 2 radial sáng hardcode trong styles inline */
+  background-image:
+    radial-gradient(900px 480px at 100% -8%, rgba(47,123,255,.18), transparent 60%),
+    radial-gradient(720px 420px at -5% 0%, rgba(255,59,81,.10), transparent 55%);
+}
+/* — bề mặt hardcode-sáng của admin → tối/đọc rõ — */
+[data-theme="tech"] body.admin code{background:rgba(80,140,255,.16);color:#bcd2ff}
+[data-theme="tech"] body.admin .btn-ghost{background:rgba(80,140,255,.12);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+[data-theme="tech"] body.admin .btn-ghost:hover{background:rgba(80,140,255,.20)}
+[data-theme="tech"] body.admin .btn-ok{color:#7ef0bf}
+[data-theme="tech"] body.admin .btn-ok:hover{background:rgba(34,211,153,.22)}
+[data-theme="tech"] body.admin .btn-del{color:#ff8fa3}
+[data-theme="tech"] body.admin .btn-del:hover{background:rgba(255,59,81,.22)}
+[data-theme="tech"] body.admin input:focus,
+[data-theme="tech"] body.admin select:focus,
+[data-theme="tech"] body.admin textarea:focus,
+[data-theme="tech"] body.admin #loginView input:focus{background:rgba(80,140,255,.14)}
+[data-theme="tech"] body.admin #fId[readonly]{background:rgba(80,140,255,.08);color:var(--mut)}
+[data-theme="tech"] body.admin .ev-status{background:rgba(80,140,255,.12)}
+[data-theme="tech"] body.admin .form-mode.edit{background:rgba(245,176,39,.16);color:#ffcf6b;box-shadow:inset 0 0 0 1px rgba(245,176,39,.3)}
+[data-theme="tech"] body.admin .form-mode.dup{color:#cdb8ff}
+[data-theme="tech"] body.admin .chip{color:#cdd9ff}
+[data-theme="tech"] body.admin .chip b{color:#bcd2ff}
+[data-theme="tech"] body.admin .dw-head,
+[data-theme="tech"] body.admin .dw-list b{color:#ff8fa3}
+[data-theme="tech"] body.admin .dw-list li{background:rgba(255,255,255,.06)}
+[data-theme="tech"] body.admin .dup-warn{background:linear-gradient(120deg,var(--danger-soft),rgba(14,24,54,.6));border-color:rgba(255,59,81,.3)}
+[data-theme="tech"] body.admin .al-warn{color:#ff9db0;border-color:rgba(255,59,81,.3)}
+[data-theme="tech"] body.admin .skeleton{background:linear-gradient(90deg,var(--card-2) 25%,rgba(80,140,255,.10) 37%,var(--card-2) 63%);background-size:400% 100%}
+/* — modal admin (cm-box trắng hardcode) → navy + glow — */
+[data-theme="tech"] body.admin .cm-bg{background:rgba(5,10,28,.6)}
+[data-theme="tech"] body.admin .cm-box{background:linear-gradient(180deg,rgba(22,31,61,.97),rgba(14,24,54,.97));box-shadow:var(--sh-lg)}
+[data-theme="tech"] body.admin .cm-cancel{background:rgba(80,140,255,.12);color:var(--ink)}
+[data-theme="tech"] body.admin .cm-cancel:hover{background:rgba(80,140,255,.20)}
+[data-theme="tech"] body.admin .cm-input:focus{background:rgba(80,140,255,.14)}

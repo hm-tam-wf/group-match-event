@@ -7,6 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+<!-- Áp theme TRƯỚC khi vẽ (0 FOUC). Nguồn sự thật: ACTIVE_THEME trong theme.js. -->
+<script src="js/config/theme.js"></script>
+<!-- Theme overrides cho admin (scope [data-theme="tech"] body.admin). Cao specificity
+     hơn :root inline bên dưới nên thắng cascade dù nạp trước; default thì INERT. -->
+<link rel="stylesheet" href="assets/themes.css">
 <style>
   :root{
     /* ── Cloud Candy back-office: nền trung tính + nhấn tím "Linh Thú" ── */
@@ -254,7 +259,7 @@
   }
 </style>
 </head>
-<body>
+<body class="admin">
 <div class="wrap">
 
   <!-- A) CHƯA ĐĂNG NHẬP -->
