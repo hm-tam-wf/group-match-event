@@ -98,9 +98,13 @@
     linear-gradient(180deg, #0a1430, #0d1b3a);
 }
 
-/* —— Tiêu đề: gradient chữ theo tông tech —— */
+/* —— Tiêu đề: gradient chữ theo tông tech ——
+   LƯU Ý: shorthand `background` RESET background-clip → phải khai lại clip:text,
+   nếu không gradient lấp đầy khung và chữ (color:transparent) biến mất. */
 [data-theme="tech"] h1{
   background:linear-gradient(92deg,#6aa8ff 0%,#2f7bff 50%,#ff3b51 112%);
+  -webkit-background-clip:text;
+  background-clip:text;
   filter:drop-shadow(0 6px 14px rgba(47,123,255,.35));
 }
 
