@@ -75,3 +75,38 @@ giữ tương phản). 1 rule `body::before` lo cả nền-CSS lẫn nền-ảnh
 ## Theme `tech` (đã có)
 Concept công nghệ: navy `#0a1430`, xanh điện `#2f7bff`, đỏ nhấn `#ff3b51`, viền
 mảnh glow, chữ sáng. Verify: contrast đạt, default không đổi (screenshot so sánh).
+
+## Tầng §D.2 — chiều sâu + neon (cụm cuối khối tech, trước §BIẾN THỂ)
+Lớp tăng độ sâu/neon, **chỉ thêm** (không reset thuộc tính sẵn có), không đổi layout:
+- **Vignette nền**: `body::before` đổi gradient phẳng `180deg` → `radial-gradient(... at
+  50% 42%, #0c1a3e, #070f25 72%)` (tâm sáng, rìa tối) + glow xanh đỉnh + 2 vệt đỏ góc.
+- **Vạch neon đầu modal**: `.modal{position:relative;overflow:hidden}` +
+  `.modal::before` thanh 3px gradient xanh→đỏ (overflow:hidden để ôm bo góc). Áp cho
+  CẢ confirm/profile/joined-modal.
+- **Mép kính card đủ**: `.full-team::before` đường 1px gradient ở đỉnh.
+- **Divider**: `.hr` xám phẳng → gradient mảnh phát sáng.
+- **Icon modal**: `.modal .mic,.pm-emoji` glow XANH (giữ `.jm-icon` glow theo màu đội).
+- **Progress**: `.cap-bar span` chỉ thêm ánh kính **inset** (giữ màu đội).
+
+### GOTCHA §D.2 (2 cái dễ sụp)
+- **KHÔNG override `box-shadow` của `.full-team`** để làm "kính": `.full-team.mine`
+  (vòng sáng đội của bạn) cùng specificity, nằm styles.css → bị themes.css ghi đè
+  MẤT vòng. Dùng `::before` cho mép kính thay vì đụng box-shadow.
+- **Outer-glow trên `.cap-bar span` vô dụng**: track `.cap-bar` có `overflow:hidden`
+  → cắt mất bóng tràn ra ngoài. Chỉ `inset` shadow mới hiện.
+
+## §A·TECH — trang pick "Glass Dashboard" (premium như admin)
+Nâng trang pick lên ngang admin (quyết định qua workflow 3-hướng → hội đồng chấm,
+winner "Glass Dashboard" + grafts). Tile candy-gradient nhiều màu → **THẺ KÍNH navy
+thống nhất**; `.pick` về **MỘT** màu nhấn xanh-điện ĐẶC (`var(--accent)`, chữ trắng
+~16:1); **màu đội `--c` rút còn 3 điểm nhấn nhỏ**: glow `.ic` + chấm `.nm::before` +
+fill `.cap-bar span` (`color-mix ~28% --c`) → vẫn phân biệt đội qua icon+tên+chấm.
+- **Cascade-order BẮT BUỘC:** khối §A·TECH nằm CUỐI vùng `[data-theme="tech"]` (sau
+  §D.2). Cùng specificity class-level → nguồn-sau-thắng, nên phải đặt sau mới override
+  được `.tile/.banner/.cap-bar/.mini/.pick.lock/.ft-list .no/.empty-note/.hint`. Các
+  rule hardcode CŨ của những selector này đã **GỠ** (không để rule chết).
+- **GIỮ nguyên:** `h1` chữ-gradient, `box-shadow .full-team` (vòng `.mine`), `.hr` &
+  `.full-team::before` của §D.2 (khối §A·TECH cố ý KHÔNG khai lại) — chỉ đổi
+  background/border của `.full-team`, viền của `.full-team.mine`.
+- Verify: screenshot pick **default** (candy bất biến) vs **tech** (glass) — chấm đội
+  xanh-navy (Sói `#7a8cff`) vẫn nổi, contrast AA/AAA. Default 0 đổi (mọi rule scope tech).

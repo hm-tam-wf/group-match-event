@@ -93,9 +93,11 @@
     linear-gradient(90deg, rgba(80,140,255,.05) 1px, transparent 1px) 0 0 / 44px 44px,
     var(--page-bg-overlay),
     var(--page-bg-image) center / cover no-repeat fixed,
-    radial-gradient(1200px 600px at 18% -6%, rgba(47,123,255,.20), transparent 60%),
-    radial-gradient(900px 520px at 92% 10%, rgba(255,59,81,.12), transparent 60%),
-    linear-gradient(180deg, #0a1430, #0d1b3a);
+    radial-gradient(1100px 560px at 50% -8%, rgba(47,123,255,.22), transparent 60%),
+    radial-gradient(820px 460px at 92% 8%, rgba(255,59,81,.12), transparent 60%),
+    radial-gradient(760px 460px at 86% 102%, rgba(255,59,81,.08), transparent 60%),
+    /* §D.2 vignette: tâm sáng hơn rìa → chiều sâu (thay gradient phẳng 180deg) */
+    radial-gradient(1500px 1050px at 50% 42%, #0c1a3e 0%, #070f25 72%);
 }
 
 /* —— Tiêu đề: gradient chữ theo tông tech ——
@@ -113,20 +115,9 @@
    theme tối phải override để đọc rõ. (Theme mới TỐI → copy nguyên cụm này.)
    ============================================================================ */
 
-/* tiles đội: gradient nền trộn #fff (sáng) → đổi sang navy, vẫn giữ tông --c đội */
-[data-theme="tech"] .tile{
-  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,#101f44) 0%,#0c1838 78%);
-  box-shadow:0 14px 34px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(120,170,255,.08);
-}
-/* banner đội của bạn: gradient sáng → navy */
-[data-theme="tech"] .banner{
-  background:linear-gradient(120deg,color-mix(in srgb,var(--c) 24%,#101f44),#0c1838);
-  border-color:color-mix(in srgb,var(--c) 45%,transparent);
-}
-[data-theme="tech"] .cap-bar{background:rgba(80,140,255,.16)}
-[data-theme="tech"] .mini.more{background:rgba(80,140,255,.18);color:var(--muted)}
-[data-theme="tech"] .pick.lock{background:rgba(80,140,255,.12);color:var(--muted-2)}
-[data-theme="tech"] .ft-list .no{background:rgba(80,140,255,.14);color:var(--muted)}
+/* tiles · banner · cap-bar · mini.more · pick.lock · ft-list .no:
+   ĐÃ NÂNG CẤP sang "Glass Dashboard" — rule cũ gỡ khỏi đây; xem khối §A·TECH ở
+   CUỐI khối tech (đặt sau §D.2 để thắng cascade). */
 
 /* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
 [data-theme="tech"] .modal-bg{background:rgba(5,10,28,.6)}
@@ -156,16 +147,245 @@
   box-shadow:0 18px 40px -16px rgba(0,0,0,.7), 0 0 18px -6px rgba(47,123,255,.3);
 }
 
-/* ghi chú trống / hint / màn hình hoàn thành: nền sáng → tối */
-[data-theme="tech"] .empty-note{
-  background:rgba(22,31,61,.5);
-  border-color:rgba(80,140,255,.3);
-  color:var(--muted);
-}
-[data-theme="tech"] .hint{background:rgba(47,123,255,.12);color:var(--muted)}
+/* màn hình hoàn thành: nền sáng → tối. (.empty-note/.hint nâng cấp ở §A·TECH cuối khối) */
 [data-theme="tech"] .all-full{
   background:linear-gradient(180deg,rgba(16,40,40,.55),rgba(12,24,56,.7));
   border-color:rgba(34,197,94,.30);
+}
+
+
+/* ============================================================================
+   §D.2 — CHIỀU SÂU + NEON (tinh tế, vẫn đủ tương phản — không đổi layout)
+   ----------------------------------------------------------------------------
+   Nền vignette (tối dần ra rìa) đã nằm ở body::before phía trên. Cụm dưới chỉ
+   THÊM highlight/viền sáng/divider/glow — không reset thuộc tính sẵn có.
+   ============================================================================ */
+
+/* (kính) Mép sáng 1px ở đỉnh thẻ "đội đã đủ". Dùng ::before, KHÔNG đụng box-shadow
+   để không xoá vòng sáng .full-team.mine (cùng specificity, sẽ bị ghi đè). */
+[data-theme="tech"] .full-team{position:relative}
+[data-theme="tech"] .full-team::before{
+  content:"";position:absolute;left:16px;right:16px;top:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(150,190,255,.45),transparent);
+}
+
+/* (vạch nhấn) Thanh gradient mảnh ở MÉP TRÊN mọi modal (xác nhận/hồ sơ/chúc mừng).
+   overflow:hidden để vạch ôm theo bo góc. */
+[data-theme="tech"] .modal{position:relative;overflow:hidden}
+[data-theme="tech"] .modal::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;pointer-events:none;
+  background:linear-gradient(90deg,var(--accent) 0%,#57a6ff 45%,var(--err) 100%);
+}
+
+/* (icon) Icon modal xác nhận: vầng tím default → glow XANH đồng bộ tech.
+   (.jm-icon của popup chúc mừng GIỮ glow theo màu đội — bản sắc đội.) */
+[data-theme="tech"] .modal .mic,
+[data-theme="tech"] .pm-emoji{
+  filter:drop-shadow(0 0 16px rgba(47,123,255,.55)) drop-shadow(0 6px 12px rgba(0,0,0,.45));
+}
+
+/* (divider) Vạch section: xám phẳng → gradient mảnh phát sáng. */
+[data-theme="tech"] .hr{
+  background:linear-gradient(90deg,transparent,rgba(120,160,255,.5),transparent);
+}
+
+/* (progress) .cap-bar + .cap-bar span: nâng cấp đầy đủ (track tối + fill xanh-điện +
+   ánh kính inset) ở §A·TECH cuối khối. GOTCHA giữ: track overflow:hidden → span CHỈ
+   dùng inset shadow. */
+
+
+/* ============================================================================
+   §A·TECH — TRANG PICK "GLASS DASHBOARD" (premium như admin)   [WINNER + GRAFTS]
+   ----------------------------------------------------------------------------
+   Nâng trang pick lên phong cách dashboard: tile candy-gradient nhiều màu → THẺ
+   KÍNH navy thống nhất; nút .pick về MỘT màu nhấn xanh-điện đặc; màu đội (--c, JS
+   bơm runtime) rút còn 3 điểm nhấn nhỏ: glow icon + chấm trước tên + fill cap-bar.
+   Đặt CUỐI khối tech (sau §D.2) → cùng specificity, nguồn-sau-thắng nên override
+   các rule .tile/.banner/.cap-bar/.mini/.pick.lock/.ft-list .no/.empty-note/.hint
+   (bản cũ đã gỡ ở trên). CHỈ đổi MÀU/NỀN/VIỀN/GLOW/bo góc/bóng/weight — KHÔNG layout.
+   GIỮ: h1 chữ-gradient, box-shadow .full-team (vòng .mine), .hr & .full-team::before
+   của §D.2 (cố ý KHÔNG khai lại ở đây). styles.css + :root default BẤT BIẾN.
+   ============================================================================ */
+
+/* —— TILE: thẻ kính navy thống nhất (nền navy đặc, viền mảnh glow, bóng sâu).
+   --r-lg tech=16px; trừ 4px cho mật độ cao, sắc nét hơn 1 nhịp. —— */
+[data-theme="tech"] .tile{
+  border:1px solid var(--line);
+  border-radius:calc(var(--r-lg) - 4px);
+  background:linear-gradient(180deg,rgba(26,38,72,.92),rgba(14,24,54,.94));
+  box-shadow:0 18px 40px -22px rgba(0,0,0,.72),
+             0 0 0 1px rgba(80,140,255,.08),
+             inset 0 1px 0 rgba(140,180,255,.14);
+}
+/* sheen mép-trên + hạ vầng glow màu đội (::before §74 vốn radial --c .22) xuống mờ. */
+[data-theme="tech"] .tile::before{
+  background:
+    linear-gradient(180deg,rgba(140,180,255,.10),transparent 38%),
+    radial-gradient(120px 80px at 50% -10%,
+      color-mix(in srgb,var(--c) 55%,transparent),transparent 72%);
+  opacity:.5;
+}
+/* Icon: glow màu đội (điểm nhấn nhỏ #1). */
+[data-theme="tech"] .tile .ic{
+  filter:drop-shadow(0 0 14px color-mix(in srgb,var(--c) 55%,transparent))
+         drop-shadow(0 4px 8px rgba(0,0,0,.5));
+}
+/* Tên + chấm tròn màu đội trước tên (điểm nhấn nhỏ #2). */
+[data-theme="tech"] .tile .nm{color:var(--text);font-weight:700}
+[data-theme="tech"] .tile .nm::before{
+  content:"";display:inline-block;vertical-align:middle;
+  width:7px;height:7px;margin-right:7px;border-radius:50%;
+  background:var(--c);
+  box-shadow:0 0 7px color-mix(in srgb,var(--c) 75%,transparent);
+}
+/* Sĩ số canh đều kiểu bảng số liệu dashboard. */
+[data-theme="tech"] .tile .cap{
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;
+}
+
+/* HOVER (tile chọn được): nhấc nhẹ (bỏ scale §78) + viền + glow xanh-điện. */
+[data-theme="tech"] .tile.sel:hover{
+  transform:translateY(-2px);
+  border-color:rgba(80,140,255,.55);
+  box-shadow:0 26px 50px -24px rgba(0,0,0,.8),
+             0 0 22px -6px rgba(47,123,255,.45),
+             inset 0 1px 0 rgba(140,180,255,.2);
+}
+[data-theme="tech"] .tile.sel:hover::before{opacity:.7}
+[data-theme="tech"] .tile.sel:active{transform:translateY(0)}
+/* Vạch quét ::after khi hover (an toàn: styles.css không có .tile::after). */
+[data-theme="tech"] .tile.sel{position:relative}
+[data-theme="tech"] .tile.sel::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(47,123,255,.9),transparent);
+  opacity:0;transition:opacity .25s ease;
+}
+[data-theme="tech"] .tile.sel:hover::after{opacity:1}
+
+/* disabled: trầm rõ ràng, vẫn đọc được. */
+[data-theme="tech"] .tile.disabled{opacity:.5;filter:saturate(.7) brightness(.92)}
+/* mine: vòng nhấn XANH-ĐIỆN (đè ring màu-đội §85). */
+[data-theme="tech"] .tile.mine{
+  border-color:rgba(80,140,255,.6);
+  box-shadow:0 0 0 1px rgba(80,140,255,.5) inset,
+             0 0 24px -8px rgba(47,123,255,.55),
+             0 18px 40px -22px rgba(0,0,0,.7);
+}
+
+/* —— PICK: nút primary MỘT màu nhấn xanh-điện đặc (chữ trắng ~16:1). —— */
+[data-theme="tech"] .pick{
+  background:var(--accent);
+  color:#fff;
+  box-shadow:0 12px 24px -12px rgba(47,123,255,.7),
+             inset 0 1px 0 rgba(255,255,255,.25);
+}
+[data-theme="tech"] .pick:hover{
+  filter:brightness(1.06);
+  box-shadow:0 16px 30px -12px rgba(47,123,255,.8),
+             inset 0 1px 0 rgba(255,255,255,.3);
+}
+/* lock: xám-navy trầm "đã khoá", thêm viền, bỏ glow. */
+[data-theme="tech"] .pick.lock{
+  background:rgba(80,140,255,.1);
+  color:var(--muted-2);
+  box-shadow:inset 0 0 0 1px rgba(80,140,255,.18);
+}
+
+/* —— CAP-BAR: track tối + fill xanh-điện giữ ~28% màu đội.
+   GOTCHA: track overflow:hidden → span CHỈ inset shadow (outer-glow bị cắt). —— */
+[data-theme="tech"] .cap-bar{
+  background:rgba(8,16,40,.7);
+  box-shadow:inset 0 0 0 1px rgba(80,140,255,.14);
+}
+[data-theme="tech"] .cap-bar span{
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--c) 28%,#2f7bff),
+    color-mix(in srgb,var(--c) 22%,#6aa8ff));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),
+             inset 0 -2px 4px rgba(0,0,0,.25);
+}
+
+/* —— MINI avatars: gradient navy kính, viền glow mảnh. —— */
+[data-theme="tech"] .mini{
+  background:linear-gradient(135deg,
+    color-mix(in srgb,var(--c) 45%,#16223f),
+    color-mix(in srgb,var(--c) 70%,#0c1838));
+  color:#eaf1ff;
+  box-shadow:inset 0 0 0 1px rgba(80,140,255,.25),
+             0 4px 9px -4px rgba(0,0,0,.6);
+}
+[data-theme="tech"] .mini.more{
+  background:rgba(80,140,255,.16);
+  color:var(--muted);
+  box-shadow:inset 0 0 0 1px rgba(80,140,255,.22);
+}
+[data-theme="tech"] .mini.empty{
+  background:transparent;color:var(--muted-2);box-shadow:none;
+}
+
+/* —— BANNER "đội của bạn": gradient sáng → thẻ kính navy + mép-trên sáng. —— */
+[data-theme="tech"] .banner{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(80,140,255,.3);
+  border-radius:calc(var(--r-lg) + 4px);
+  background:linear-gradient(120deg,rgba(26,38,72,.92),rgba(14,24,54,.94));
+  box-shadow:0 18px 44px -24px rgba(0,0,0,.72),
+             0 0 22px -10px rgba(47,123,255,.35),
+             inset 0 1px 0 rgba(140,180,255,.12);
+}
+[data-theme="tech"] .banner::before{
+  content:"";position:absolute;left:18px;right:18px;top:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(150,190,255,.5),transparent);
+}
+[data-theme="tech"] .banner .bi{
+  filter:drop-shadow(0 0 12px color-mix(in srgb,var(--c) 55%,transparent));
+}
+[data-theme="tech"] .banner .bt{color:var(--text);font-weight:700}
+[data-theme="tech"] .banner .bs{color:var(--muted)}
+
+/* —— FULL-TEAM (đội đã đủ): thẻ kính navy. GOTCHA: KHÔNG đụng box-shadow (giữ vòng
+   .full-team.mine §108); mép kính đã ở §D.2 .full-team::before. —— */
+[data-theme="tech"] .full-team{
+  border:1px solid var(--line);
+  border-radius:calc(var(--r-lg) - 2px);
+  background:linear-gradient(180deg,rgba(24,35,66,.86),rgba(14,24,54,.9));
+}
+[data-theme="tech"] .full-team.mine{
+  border-color:rgba(80,140,255,.55);
+}
+[data-theme="tech"] .ft-badge{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+[data-theme="tech"] .ft-meta .ft-name{color:var(--text);font-weight:700}
+[data-theme="tech"] .ft-list li{color:var(--text)}
+[data-theme="tech"] .ft-list .no{
+  background:rgba(80,140,255,.14);color:var(--muted);
+}
+
+/* —— SECTION HEADER: nhãn kiểu dashboard (.hr giữ gradient §D.2 — KHÔNG khai lại). —— */
+[data-theme="tech"] .section-h h2{
+  color:var(--text);
+  font-weight:700;
+  letter-spacing:-.005em;
+}
+[data-theme="tech"] .section-h .count{
+  color:#7fa4e8;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+
+/* —— EMPTY / HINT: nền sáng → tấm kính navy mảnh. —— */
+[data-theme="tech"] .empty-note{
+  background:rgba(14,24,54,.5);
+  border:2px dashed rgba(80,140,255,.3);
+  color:var(--muted);
+}
+[data-theme="tech"] .hint{
+  background:rgba(47,123,255,.12);
+  color:var(--muted);
+  box-shadow:inset 0 0 0 1px rgba(80,140,255,.16);
 }
 
 
