@@ -9,9 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
 <!-- Áp theme TRƯỚC khi vẽ (0 FOUC). Nguồn sự thật: ACTIVE_THEME trong theme.js. -->
 <script src="js/config/theme.js"></script>
-<!-- Theme overrides cho admin (scope [data-theme="tech"] body.admin). Cao specificity
-     hơn :root inline bên dưới nên thắng cascade dù nạp trước; default thì INERT. -->
-<link rel="stylesheet" href="assets/themes.css">
+<!-- Theme 'tech' cho admin: khối §ADMIN ([data-theme="tech"] body.admin) nằm trong tech.css
+     (gói fe/themes/tech/). Specificity cao hơn :root inline bên dưới → thắng cascade dù nạp
+     trước; theme khác/default thì INERT. -->
+<link rel="stylesheet" href="themes/tech/tech.css">
 <style>
   :root{
     /* ── Cloud Candy back-office: nền trung tính + nhấn tím "Linh Thú" ── */
@@ -281,6 +282,7 @@
       <h1 style="margin:0;">ADMIN</h1>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="who" id="who"></span>
+        <button id="themeToggle" class="btn-ghost" type="button" aria-label="Đổi giao diện" title="Đổi giao diện (tech ⇄ mặc định)">🌓</button>
         <button id="btnLogout" class="btn-ghost">Đăng xuất</button>
       </div>
     </div>
@@ -505,6 +507,15 @@
 
   const auth = firebase.auth();
   const FV   = firebase.firestore.FieldValue;
+
+  // Nút đổi giao diện — CHỈ ở admin (trang công khai không cho end-user đổi). Lật data-theme
+  // tech ⇄ default + nhớ localStorage; theme.js (<head>, cả 2 trang) đọc lại khi tải để áp.
+  const _themeBtn = $("themeToggle");
+  if (_themeBtn) _themeBtn.onclick = () => {
+    const next = (document.documentElement.getAttribute("data-theme") === "tech") ? "default" : "tech";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  };
 
   // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
   function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "" }) {

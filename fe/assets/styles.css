@@ -241,44 +241,8 @@ body.initial-load .full-team{
   animation: popOut 0.25s cubic-bezier(.25, 1, .5, 1) forwards;
 }
 
-/* Floating Theme Toggle */
-.theme-toggle {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-  background: var(--card);
-  backdrop-filter: blur(8px);
-  box-shadow: var(--sh-soft);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  z-index: 40;   /* trên nội dung trang, DƯỚI modal-bg (default 50 / tech 1000) → modal luôn che nút toggle */
-  transition: transform 0.25s var(--bounce), border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
-}
-.theme-toggle:hover {
-  transform: scale(1.1);
-  border-color: var(--accent);
-}
-.theme-toggle:active {
-  transform: scale(0.95);
-}
-
-/* Specific styling for theme-toggle in tech theme */
-[data-theme="tech"] .theme-toggle {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surf-top) 92%, transparent), color-mix(in srgb, var(--surf-bot) 94%, transparent));
-  border-color: var(--line);
-  box-shadow: 0 0 12px -4px var(--c-electric);
-}
-[data-theme="tech"] .theme-toggle:hover {
-  border-color: var(--c-accent-cyan);
-  box-shadow: 0 0 16px -2px var(--c-accent-cyan);
-}
+/* (Nút đổi theme .theme-toggle đã GỠ khỏi trang công khai — chuyển sang admin.html,
+   dùng .btn-ghost của admin; xem wiring trong admin inline script.) */
 
 @media(prefers-reduced-motion:reduce){
   .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark{animation:none!important;transition:none!important}

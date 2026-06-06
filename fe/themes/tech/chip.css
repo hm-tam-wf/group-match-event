@@ -1,0 +1,47 @@
+/* ============================================================================
+   chip.css (fe/themes/tech/) — TÙY BIẾN theo THEME: icon đội = CHIP cyan ĐỒNG NHẤT
+   ----------------------------------------------------------------------------
+   Lớp tùy biến TÁCH RIÊNG khỏi tech.css (theme nền "Glass Dashboard" §A·TECH).
+   Thay GLYPH/SỐ to của đội — ở lưới (.tile .ic) VÀ banner "đội của bạn" (.banner
+   .bi) — bằng 1 CHIP cyan GIỐNG NHAU mọi đội + glow cyan. Đội vẫn phân biệt qua
+   chấm màu --c (.nm::before) + fill cap-bar → màu đội còn 2 điểm nhấn.
+
+   CHỈ KÍCH HOẠT khi <html data-theme="tech"> — MỌI rule scope [data-theme="tech"],
+   nên INERT (không match) ở theme khác dù file vẫn được <link>. Cùng cơ chế "gate
+   bằng data-theme" của cả theme system ([[theme-system]]) — không cần JS. Nạp THỨ
+   TỰ: SAU tech.css ở index.html (cùng specificity → nguồn-sau-thắng để đè .ic/.bi).
+   CHỈ index.html nạp (admin.html không có lưới/banner đội).
+
+   KỸ THUẬT — background-image (KHÔNG mask):
+   - font-size:0 ẩn glyph/số (em=0 ⇒ PHẢI đặt width/height THỰC, khớp glyph gốc).
+   - background:url('img/chip.svg') center/contain → vẽ chip; filter drop-shadow cyan
+     = glow (ghi đè glow --c per-team của styles.css + tech.css ⇒ MỘT nguồn glow).
+   - GOTCHA (đã vấp & loại): CSS `mask:url(svg)` KHÔNG render ổn định ở môi trường này
+     (file:// + headless, và RỖNG hẳn trên flex-item .bi). Dùng background-image (đã
+     verify render chắc trên cả tile lẫn banner) → chip màu nằm SẴN trong chip.svg.
+   - VÌ THẾ màu chip (#55E8FF trong chip.svg) phải KHỚP token --c-accent-cyan; đổi
+     accent cyan ⇒ phải sửa cả chip.svg. Glow vẫn token-driven (var bên dưới).
+
+   Token-first ([[theme-system]] "không hex rời" trong RULE CSS): rule dưới chỉ
+   var()/color-mix() (màu nằm ở asset chip.svg, như chip cũ vốn mang #fff). url('img
+   /...') giải tương đối theo VỊ TRÍ FILE CSS = fe/themes/tech/img/chip.svg (như tech.css).
+   ============================================================================ */
+
+[data-theme="tech"] .tile .ic,
+[data-theme="tech"] .banner .bi{
+  font-size:0;
+  background:url('img/chip.svg') center / contain no-repeat;
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--c-accent-cyan) 60%,transparent));
+}
+/* tile: khớp clamp glyph §90 styles.css; canh giữa trong .tile{text-align:center}. */
+[data-theme="tech"] .tile .ic{
+  margin:0 auto;
+  width:clamp(42px,8vw,52px);
+  height:clamp(42px,8vw,52px);
+}
+/* banner: khớp .bi font-size:38px §54 styles.css; là flex item → khoá co/giãn. */
+[data-theme="tech"] .banner .bi{
+  flex:0 0 auto;
+  width:38px;
+  height:38px;
+}

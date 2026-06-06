@@ -16,20 +16,45 @@ function askConfirm(iconDef) {
   modalBgEl.querySelector("#c1").onclick   = () => { dismissModal(modalBgEl, () => doClaim(iconDef)); };
 }
 
+// Hoạt ảnh "vào" của popup mừng (jmPop .6s là dài nhất — xem styles.css §181). Việc vẽ
+// lại nền (lấy state thật + rebuild lưới) bị HOÃN tới sau mốc này để khung hình popup
+// không bị giật do reflow đè lên lớp backdrop-blur (xem ghi chú trong nhánh join OK).
+const JOIN_POPUP_SETTLE_MS = 600;
+
 async function doClaim(iconDef) {
   if (busy) { toast(TEXT.toast.processing); return; }   // bấm lúc đang ghi nhận → báo, không câm
   busy = true;
   document.body.classList.add("claiming");      // khoá mọi tile trong lúc ghi nhận
   toast(TEXT.toast.saving, true);                // toast dính: apiClaim có thể retry vài giây
+  let joined = false;   // join OK ⇒ nhánh tự quản hoãn-render & nhả-khoá → finally BỎ QUA
   try {
     const res = await apiClaim({ icon: iconDef.icon, playerId: me.id, fields: me.fields });
     if (res && res.ok) {
       myIcon = iconDef.icon;
       _skipSelfHeal = true;
       await saveMe();
-      showJoinedModal(iconDef);         // popup chúc mừng + confetti (thay toast nhỏ)
+      // Vẽ lưới/banner về trạng thái ĐÃ KHOÁ *trước* khi mở popup: lúc này chưa có lớp
+      // .modal-bg{backdrop-filter:blur} phủ lên, nên reflow của renderState (layoutFreeGrid
+      // đọc clientWidth/getComputedStyle = ép layout đồng bộ) KHÔNG phải đua với hoạt ảnh
+      // → triệt nhịp giật thứ nhất.
       renderProfile();            // khoá "Sửa thông tin" ngay lập tức
       renderStateIfChanged(true); // khoá toàn bộ tile ngay lập tức
+      // Popup vẽ ĐÈ lên nền đã tĩnh → entrance (fade/popIn/jmPop) chạy mượt.
+      showJoinedModal(iconDef);         // popup chúc mừng + confetti (thay toast nhỏ)
+      joined = true;              // từ đây nhánh join tự nhả khoá trong setTimeout bên dưới
+      // HOÃN lấy state thật + vẽ lại tới SAU khi popup vào xong: rebuild lưới lần 2 sau lớp
+      // backdrop-blur giữa chừng chính là nhịp giật thứ hai. Giữ busy=true suốt cửa sổ này
+      // để chặn luôn render realtime (apiSubscribe). Lưới bị popup che ⇒ cập nhật trễ vô hình.
+      setTimeout(async () => {
+        try {
+          await refresh(true);      // state thật từ server (sĩ số chuẩn)
+          renderProfile();
+        } finally {
+          document.body.classList.remove("claiming");
+          _skipSelfHeal = false;
+          busy = false;
+        }
+      }, JOIN_POPUP_SETTLE_MS);
     } else {
       const reason = res && res.reason;
       if      (reason === REASON.FULL)      toast(TEXT.toast.full(iconDef.name, CAPACITY));
@@ -41,17 +66,19 @@ async function doClaim(iconDef) {
       else if (reason === REASON.MISSING)   toast(TEXT.toast.missing);   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
       else                        toast(TEXT.toast.network);
+      await refresh(true);
+      renderProfile();
     }
-    await refresh(true);
-    renderProfile();
   } catch (err) {
     // mạng trục trặc — kiểm tra lại bằng poll
     toast(TEXT.toast.checkingResult);
     await refresh(true);
   } finally {
-    document.body.classList.remove("claiming");
-    _skipSelfHeal = false;
-    busy = false;
+    if (!joined) {            // nhánh join OK tự nhả khoá trong setTimeout ở trên
+      document.body.classList.remove("claiming");
+      _skipSelfHeal = false;
+      busy = false;
+    }
   }
 }
 
@@ -88,18 +115,7 @@ async function saveMe() {
 // ── Hàm init(): chạy SAU KHI boot() đã nạp xong config từ Firestore ──────────
 async function init() {
   await loadMe();
-  // Khởi tạo nút đổi theme
-  const btnToggle = document.getElementById("themeToggle");
-  if (btnToggle) {
-    btnToggle.onclick = () => {
-      const currentTheme = document.documentElement.getAttribute("data-theme") || "tech";
-      const newTheme = currentTheme === "tech" ? "default" : "tech";
-      document.documentElement.setAttribute("data-theme", newTheme);
-      try {
-        localStorage.setItem("theme", newTheme);
-      } catch (e) {}
-    };
-  }
+  // (Nút đổi theme đã CHUYỂN sang admin.html — trang công khai không cho end-user đổi giao diện.)
   // RESET THEO "THẾ HỆ" DỮ LIỆU: admin "Xóa dữ liệu" sẽ tăng meta/config.dataEpoch. Nếu server MỚI HƠN lần ghé
   // trước ⇒ localStorage cũ (RESERVED_KEY giữ chỗ + myIcon đã chọn đội) đã LỖI THỜI: khóa chống trùng trên server
   // đã bị xóa nhưng máy này vẫn tưởng "chỗ của mình". Nhả hết để vào lại như mới (GIỮ me.fields — khỏi gõ lại).

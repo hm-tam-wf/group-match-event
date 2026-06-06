@@ -15,8 +15,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
-<!-- Theme overrides — nạp SAU styles.css để khối [data-theme] thắng cascade. -->
+<!-- Base/registry của lớp theme (token default ở styles.css; recipe thêm theme ở file này). -->
 <link rel="stylesheet" href="assets/themes.css">
+<!-- Theme 'tech' (gói trong fe/themes/tech/) — nạp SAU themes.css để [data-theme] thắng cascade. -->
+<link rel="stylesheet" href="themes/tech/tech.css">
+<!-- Addon tùy biến của tech: icon đội = chip cyan (nạp SAU tech.css để đè .ic/.bi; index-only). -->
+<link rel="stylesheet" href="themes/tech/chip.css">
 <!-- Áp theme TRƯỚC khi vẽ (0 FOUC). Nguồn sự thật DUY NHẤT: ACTIVE_THEME trong theme.js. -->
 <script src="js/config/theme.js"></script>
 <style>
@@ -34,9 +38,6 @@
 
   <!-- Nội dung chính — bị ẩn cho đến khi boot() nạp xong config -->
   <div id="appContent" hidden>
-    <!-- Floating Theme Toggle -->
-    <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme">🌓</button>
-
     <h1>Group Match</h1>
     <p class="sub">Mỗi icon là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
@@ -75,16 +76,17 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <!-- Nạp ĐÚNG THỨ TỰ phụ thuộc biến toàn cục (script thường, KHÔNG type=module):
-     config → [strings-tech] → firebase-config → storage → api → ui-utils → ui-render → app -->
+     config → [themes/tech/strings] → firebase-config → storage → api → ui-utils → ui-render → app -->
 <script src="js/config/config.js"></script>
-<!-- Text riêng-theo-theme (terminal boot của theme `tech`) — merge vào STRINGS, phải nạp SAU config.js. -->
-<script src="js/config/strings-tech.js"></script>
+<!-- Text riêng-theo-theme (terminal boot của theme `tech`, gói trong fe/themes/tech/) — merge vào STRINGS, phải nạp SAU config.js. -->
+<script src="themes/tech/strings.js"></script>
 <script src="js/config/firebase-config.js"></script>
 <script src="js/data/storage.js"></script>
 <script src="js/data/api.js"></script>
 <script src="js/ui/ui-utils.js"></script>
 <script src="js/ui/ui-render.js"></script>
 <script src="js/app.js"></script>
-<script src="js/ui/circuit-animation.js"></script>
+<!-- Hoạt ảnh canvas riêng theme `tech` (gói trong fe/themes/tech/) — IIFE độc lập, nạp CUỐI body. -->
+<script src="themes/tech/circuit.js"></script>
 </body>
 </html>

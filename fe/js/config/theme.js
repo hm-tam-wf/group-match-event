@@ -7,9 +7,9 @@
 // nên đặt ngoài chuỗi nạp "thiêng" config→firebase→storage→api→ui→app.
 //
 //   • Đổi giao diện cả site = đổi ĐÚNG chuỗi ACTIVE_THEME bên dưới.
-//   • Thêm theme mới: thêm 1 khối [data-theme="..."] trong assets/themes.css.
+//   • Thêm theme mới: tạo thư mục fe/themes/<tên>/ + <tên>.css (recipe ở assets/themes.css).
 //   • Biến thể sự kiện (tuỳ chọn): đặt ACTIVE_VARIANT = 'tên' để kế thừa theme
-//     nền và chỉ override ảnh nền + vài màu nhấn (xem khối §BIẾN THỂ trong themes.css).
+//     nền và chỉ override ảnh nền + vài màu nhấn (xem §BIẾN THỂ trong themes/<tên>/<tên>.css).
 // ============================================================================
 let activeTheme = 'tech';
 try {

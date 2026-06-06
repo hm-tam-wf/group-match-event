@@ -10,19 +10,26 @@ updated: 2026-06-03
 
 ## Script loading order (SACRED — đừng thay đổi)
 ```
-config.js → strings-tech.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
+config.js → themes/tech/strings.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
 ```
 Mỗi file phụ thuộc vào globals của file trước. Sai thứ tự = `ReferenceError` ngay lập tức.
-`strings-tech.js` (text riêng-theo-theme, merge vào `STRINGS` — xem [[i18n-system]]) chỉ phụ thuộc
-config.js; CHỈ index.html nạp (admin.html không có). Nếu thiếu/sai chỗ ⇒ `TEXT.tech` undefined.
+`themes/tech/strings.js` (text riêng-theo-theme, merge vào `STRINGS` — xem [[i18n-system]]) chỉ phụ
+thuộc config.js; CHỈ index.html nạp (admin.html không có). Nếu thiếu/sai chỗ ⇒ `TEXT.tech` undefined.
 
 **Ngoài chuỗi (2 file):**
 1. `js/config/theme.js` nạp ở `<head>` (TRƯỚC chuỗi trên, trên cả 2 trang) để áp
    `data-theme` trước khi vẽ → 0 FOUC. Chỉ `setAttribute` trên `<html>`.
-2. `js/ui/circuit-animation.js` nạp ở CUỐI body **sau `app.js`** (chỉ ở index.html,
+2. `themes/tech/circuit.js` nạp ở CUỐI body **sau `app.js`** (chỉ ở index.html,
    KHÔNG ở admin). IIFE độc lập, 0 global, không phụ thuộc chuỗi → an toàn. Tạo
    `<canvas id="circuit-canvas">` (prepend body) vẽ xung điện cho theme `tech`.
 Cả hai không phụ thuộc / không bị phụ thuộc → không phá chuỗi thiêng. Xem [[theme-system]].
+
+**Thứ tự CSS `<link>` ở `<head>` (cascade, riêng với chuỗi JS):**
+`styles.css` (base/`:root` default) → `themes.css` (BASE/registry, KHÔNG rule active) →
+`themes/tech/tech.css` (khối `[data-theme="tech"]`) → `themes/tech/chip.css` (tùy biến chip
+cyan — index.html-only, phải SAU tech.css để đè `.tile .ic`/`.banner .bi`; INERT nếu
+data-theme≠tech). admin.html chỉ nạp `themes/tech/tech.css` (chứa §ADMIN body.admin).
+Mỗi theme gói trong `fe/themes/<tên>/` — xem [[theme-system]].
 
 ## app.js — Main init flow
 1. Chờ DOM ready

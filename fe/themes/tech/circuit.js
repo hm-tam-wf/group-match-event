@@ -1,10 +1,10 @@
 /**
- * circuit-animation.js
+ * circuit.js (fe/themes/tech/)
  * Hiệu ứng Canvas xung điện chạy sáng (glowing circuit pulses) trên nền ảnh bo mạch.
  * Thiết kế cho theme "tech" của Group Match.
  */
 (function () {
-  // --- Màu lấy TỪ palette CSS của theme 'tech' (1 nguồn chân lý: themes.css --c-*) ---
+  // --- Màu lấy TỪ palette CSS của theme 'tech' (1 nguồn chân lý: tech.css --c-*) ---
   // resolveColors() đọc biến CSS rồi đổi hex→"r, g, b" cho ctx; nếu var rỗng thì giữ
   // fallback dưới (đúng giá trị palette). Tránh nhân đôi bảng màu giữa CSS và JS.
   let COLOR_CYAN = "85, 232, 255"; // --c-accent-cyan #55E8FF (Accent Cyan)

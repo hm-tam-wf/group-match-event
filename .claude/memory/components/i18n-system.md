@@ -1,7 +1,7 @@
 ---
 title: i18n-system
 tags: [ui, component, i18n]
-code: [fe/js/config/config.js, fe/js/config/strings-tech.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
+code: [fe/js/config/config.js, fe/themes/tech/strings.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
 related: [[conventions]], [[ui-pipeline]], [[theme-system]], [[firestore-schema]], [[index]]
 updated: 2026-06-06
 ---
@@ -29,28 +29,33 @@ trọng [[ui-pipeline]] (thứ tự script). Thêm 2026-06-06 (refactor từ chu
 ## Danh từ ĐƠN VỊ (Team/Squad/Group) — 1 token/ngôn ngữ
 Tên đơn vị đội/nhóm gom vào `const UNIT = { en:{one,many}, vi:{one,many} }` (khai báo TRƯỚC
 STRINGS; alias `UE = UNIT.en`, `UV = UNIT.vi`). Đổi Team↔Squad↔Group = sửa **1 dòng/ngôn ngữ**;
-mọi chuỗi tự đổi theo (verified: đổi `UNIT.en`→team/teams ⇒ "Teams with Open Spots"/"Join Team X?").
+mọi chuỗi KHÁI NIỆM tự đổi theo (verified: đổi `UNIT.en`→team/teams ⇒ "Teams with Open Spots"/"Your Team").
 - Lưu dạng THƯỜNG; helper `_cap(s)` viết hoa khi đầu câu/nhãn/ghép tên riêng
-  (vd `headings`, `ftLabel`, `toast.full`, `confirm.title` → "Join Squad X?"). EN có số ít/nhiều
+  (vd `headOpen/headFull`, `ftLabel`, `profile.greeting`, `celebrate.title`). EN có số ít/nhiều
   (one="squad", many="squads"); VI dùng chung "đội".
+- **ĐỊNH DANH ĐỘI = TÊN ADMIN, KHÔNG ghép đơn vị** (2026-06-06, theo yêu cầu): mọi chỗ hiển thị
+  1 đội CỤ THỂ chỉ dùng `${name}` (tên đội admin điền = nhãn ĐẦY ĐỦ) — đã bỏ tiền tố đơn vị ở
+  `confirm.title`, `banner.title`, `celebrate.body`, `toast.full` (cả EN+VI). UNIT (Squad/đội) giờ
+  CHỈ còn cho nhãn/khái niệm CHUNG (headings, tile labels, `ftLabel`, `profile.*`, `*.body`,
+  `celebrate.title`) — KHÔNG ghép trực tiếp với tên đội nữa.
 - Chuỗi TĨNH chứa đơn vị đã chuyển thành template literal `` `…${UE.one}…` `` (nội suy lúc dựng
   object vì UNIT khai báo trước). `grid.headFull` EN = `` `${_cap(UE.one)} completed Successfully` ``
   (text tuỳ biến theo event Squad — KHÔNG song song "…with Open Spots").
 - "đồng đội"/"teammates" (celebrate.body) KHÔNG dùng token — là từ ghép, không phải đơn vị đứng lẻ.
 
-## Text RIÊNG-theo-theme (tách file `strings-tech.js`) — 2026-06-06
+## Text RIÊNG-theo-theme (tách file `themes/tech/strings.js`) — 2026-06-06
 Chuỗi CHỈ dùng cho 1 theme (vd màn "terminal boot" của theme `tech`, chỉ render khi
 `data-theme="tech"`) KHÔNG để chung namespace dùng-chung (`profile`…) — dễ lẫn. Tách ra
-[strings-tech.js](../../fe/js/config/strings-tech.js): IIFE `STRINGS.en.tech = {…}; STRINGS.vi.tech = {…}`
+[strings.js](../../fe/themes/tech/strings.js) (gói theo theme — xem [[theme-system]]): IIFE `STRINGS.en.tech = {…}; STRINGS.vi.tech = {…}`
 → dùng qua `TEXT.tech.<key>`. **Cơ chế:** `TEXT` là *tham chiếu* tới `STRINGS[LANG]` (cùng object),
 nên merge thêm namespace SAU khi config.js gán `TEXT` vẫn thấy được — không cần gán lại `TEXT`.
 - **Thứ tự nạp:** ngay SAU `config.js` (cần `STRINGS` tồn tại), TRƯỚC ui-render. Đã thêm 1 dòng
-  `<script>` vào chuỗi index.html ⇒ chuỗi thiêng [[ui-pipeline]] giờ là `config → strings-tech → …`.
+  `<script>` vào chuỗi index.html ⇒ chuỗi thiêng [[ui-pipeline]] giờ là `config → themes/tech/strings → …`.
   File guard `if (typeof STRINGS === "undefined") return` (an toàn nếu nạp sai/ngoài browser).
 - **CHỈ index.html nạp** — admin.html không có terminal boot nên không thêm (admin để VI inline).
 - Parity en.tech vs vi.tech vẫn phải khớp (verified: 4 key 2 bên, `terminalLine2` = hàm `(title)=>…`).
-  Cú pháp tách-file đã test bằng vm: **nối** config+strings-tech thành 1 script (mô phỏng browser
-  chia-sẻ-scope) rồi probe `TEXT.tech` — chạy 2 `runInContext` riêng sẽ FALSE PASS (strings-tech
+  Cú pháp tách-file đã test bằng vm: **nối** config+strings.js thành 1 script (mô phỏng browser
+  chia-sẻ-scope) rồi probe `TEXT.tech` — chạy 2 `runInContext` riêng sẽ FALSE PASS (strings.js
   thấy `STRINGS` undefined → âm thầm `return`, không merge).
 - **Quyết định:** user chọn file vật lý riêng (rõ ràng hơn) dù note cũ khuyên "không thêm file";
   đánh đổi = +1 `<script>` trong chuỗi nạp. Theme strings tương lai → thêm vào `tech`/namespace mới

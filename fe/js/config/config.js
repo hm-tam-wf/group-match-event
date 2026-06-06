@@ -97,11 +97,11 @@ const STRINGS = {
     },
     celebrate: {
       title: `${_cap(UE.one)} Joined Successfully!`,
-      body:  (name) => `You are now a member of <b>${_cap(UE.one)} ${name}</b>. Get ready and connect with your teammates to prepare for the challenges ahead!`,
+      body:  (name) => `You are now a member of <b>${name}</b>. Get ready and connect with your teammates to prepare for the challenges ahead!`,
       ok:    "Get Ready for Company Trip 2026!",
     },
     banner: {
-      title: (name, icon) => `You're on ${_cap(UE.one)} ${name} ${icon}`,
+      title: (name, icon) => `You're on ${name} ${icon}`,
       sub:   "",  // EN: tắt sub banner cho Company Trip 2026 (bật lại: thay "" bằng dòng dưới)
       // sub:   `Your info has been recorded. Each person can join only one ${UE.one}.`,
     },
@@ -122,7 +122,7 @@ const STRINGS = {
       player:       "Player",
     },
     confirm: {
-      title: (name) => `Join ${_cap(UE.one)} ${name}?`,
+      title: (name) => `Join ${name}?`,   // KHÔNG ghép đơn vị: tên đội (admin điền) là nhãn đầy đủ
       body:  (capacity) => `Each person can join only one ${UE.one} (up to ${capacity} per ${UE.one}). Confirming will record your information.`,
       back:  "Back",
       ok:    "Confirm",
@@ -130,7 +130,7 @@ const STRINGS = {
     toast: {
       processing:     "Processing your join…",
       saving:         "Saving…",
-      full:           (name, capacity) => `${_cap(UE.one)} ${name} just filled up with ${capacity} members!`,
+      full:           (name, capacity) => `${name} just filled up with ${capacity} members!`,
       already:        `You've already joined a ${UE.one}.`,
       dup:            (label) => `This ${label} is already registered (including on other devices). Each code can join only once.`,
       dupConfig:      "This event's duplicate check is misconfigured (identifier field not found). Please contact the organizer.",
@@ -177,11 +177,11 @@ const STRINGS = {
     },
     celebrate: {
       title: `Tham gia ${UV.one} thành công!`,
-      body:  (name) => `Bạn đã là thành viên của <b>${UV.one} ${name}</b>. Hãy sẵn sàng và kết nối với đồng đội để chuẩn bị cho những thử thách phía trước!`,
+      body:  (name) => `Bạn đã là thành viên của <b>${name}</b>. Hãy sẵn sàng và kết nối với đồng đội để chuẩn bị cho những thử thách phía trước!`,
       ok:    "Sẵn sàng cho Company Trip 2026!",
     },
     banner: {
-      title: (name, icon) => `Bạn đang ở ${UV.one} ${name} ${icon}`,
+      title: (name, icon) => `Bạn đang ở ${name} ${icon}`,
       sub:   `Đã ghi nhận thông tin của bạn. Mỗi người chỉ tham gia 1 ${UV.one}.`,
     },
     grid: {
@@ -201,7 +201,7 @@ const STRINGS = {
       player:       "Người chơi",
     },
     confirm: {
-      title: (name) => `Tham gia ${UV.one} ${name}?`,
+      title: (name) => `Tham gia ${name}?`,   // KHÔNG ghép đơn vị: tên đội (admin điền) là nhãn đầy đủ
       body:  (capacity) => `Mỗi người chỉ tham gia 1 ${UV.one} (tối đa ${capacity} người/${UV.one}). Xác nhận xong sẽ ghi nhận thông tin của bạn.`,
       back:  "Quay lại",
       ok:    "Xác nhận",
@@ -209,7 +209,7 @@ const STRINGS = {
     toast: {
       processing:     "Đang xử lý lượt tham gia của bạn…",
       saving:         "Đang ghi nhận…",
-      full:           (name, capacity) => `${_cap(UV.one)} ${name} vừa đủ ${capacity} người rồi!`,
+      full:           (name, capacity) => `${name} vừa đủ ${capacity} người rồi!`,
       already:        `Bạn đã tham gia một ${UV.one} rồi.`,
       dup:            (label) => `${label} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`,
       dupConfig:      "Cấu hình chống trùng của sự kiện chưa đúng (không tìm thấy field định danh). Vui lòng liên hệ ban tổ chức.",
