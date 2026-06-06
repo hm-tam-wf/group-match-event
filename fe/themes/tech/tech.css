@@ -113,11 +113,55 @@
 /* —— Tiêu đề: gradient chữ theo tông Tech Future KV ——
    LƯU Ý: shorthand `background` RESET background-clip → phải khai lại clip:text,
    nếu không gradient lấp đầy khung và chữ (color:transparent) biến mất. */
+[data-theme="tech"] .tech-logo-only {
+  display: block;
+  text-align: center;
+  margin-bottom: 24px;
+  margin-top: 0;
+}
+[data-theme="tech"] .tech-logo-only .logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+[data-theme="tech"] .tech-logo-only .logo-icon {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  object-position: left center;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c-accent-cyan) 30%, transparent));
+  transition: transform 0.2s ease;
+  will-change: transform;
+}
+[data-theme="tech"] .tech-logo-only .logo-text {
+  font-family: var(--body);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--c-white);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 50%, transparent);
+  transition: color 0.2s ease;
+}
+[data-theme="tech"] .tech-logo-only .logo-wrap:hover .logo-icon {
+  transform: scale(1.04);
+}
+[data-theme="tech"] .tech-logo-only .logo-wrap:hover .logo-text {
+  color: var(--c-accent-cyan);
+}
+
 [data-theme="tech"] h1{
-  background:linear-gradient(92deg,var(--c-light-cyan) 0%,var(--c-electric) 50%,var(--c-magenta) 112%);
-  -webkit-background-clip:text;
-  background-clip:text;
-  filter:drop-shadow(0 6px 14px color-mix(in srgb,var(--c-electric) 35%,transparent));
+  background: linear-gradient(90deg, var(--c-accent-cyan) 0%, var(--c-magenta) 33%, var(--c-electric) 66%, var(--c-accent-cyan) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: techRGBText 6s linear infinite;
+  font-size: clamp(44px, 8.5vw, 80px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 900;
+  will-change: background-position;
 }
 
 /* ============================================================================
@@ -198,6 +242,17 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes techBorderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes techRGBText {
+  0% { background-position: 0% center; }
+  100% { background-position: -200% center; }
 }
 
 
@@ -408,12 +463,28 @@
 
 /* disabled: trầm rõ ràng, vẫn đọc được. */
 [data-theme="tech"] .tile.disabled{opacity:.5;filter:saturate(.7) brightness(.92)}
-/* mine: vòng nhấn ELECTRIC BLUE (đè ring màu-đội §85). */
 [data-theme="tech"] .tile.mine{
-  border-color:color-mix(in srgb,var(--c-electric) 60%,transparent);
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--c-electric) 50%,transparent) inset,
-             0 0 24px -8px color-mix(in srgb,var(--c-accent-cyan) 55%,transparent),
-             0 18px 40px -22px color-mix(in srgb,var(--shade) 70%,transparent);
+  border-color: transparent;
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 0 32px -6px color-mix(in srgb, var(--c-accent-cyan) 55%, transparent),
+              0 18px 40px -22px color-mix(in srgb, var(--shade) 70%, transparent);
+}
+
+[data-theme="tech"] .tile.mine::after {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: calc(var(--r-lg) - 4px);
+  padding: 1.5px;
+  background: linear-gradient(135deg, var(--c-electric) 0%, var(--c-accent-cyan) 30%, var(--c-magenta) 70%, var(--c-electric) 100%);
+  background-size: 300% 300%;
+  animation: techBorderFlow 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* —— PICK: nút primary MỘT màu nhấn Electric Blue đặc (chữ trắng). —— */

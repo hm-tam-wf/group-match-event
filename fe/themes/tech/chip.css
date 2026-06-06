@@ -45,3 +45,22 @@
   width:38px;
   height:38px;
 }
+
+/* ----------------------------------------------------------------------------
+   EMPTY-STATE icon: đám mây cười (EMPTY_SVG inline trong ui-render.js, class
+   .empty-ic) → CHIP MAGENTA. CỐ Ý khác chip đội (cyan) để tạo ĐIỂM NHẤN: empty-
+   state hiếm gặp + cần hút mắt, magenta là màu "nhấn hiếm 5%" của palette tech
+   ([[theme-system]] tỉ lệ 70/15/10/5) → tương phản mạnh với lưới chip đội cyan.
+   Kỹ thuật GIỐNG .ic/.bi: ẩn vector cloud gốc rồi vẽ chip bằng background-image
+   (mask không ổn định ở môi trường này). Màu #FF5CA8 baked trong chip-pink.svg →
+   PHẢI khớp token --c-magenta (đổi token ⇒ sửa chip-pink.svg). Scope tech ⇒ INERT
+   theme khác (default vẫn giữ đám mây candy). */
+[data-theme="tech"] .empty-note .empty-ic{
+  width:54px;            /* cloud gốc 64×46 → chip vuông cân đối, hơi nhỏ hơn */
+  height:54px;
+  margin:0 auto 12px;
+  background:url('img/chip-pink.svg') center / contain no-repeat;
+  filter:drop-shadow(0 0 7px color-mix(in srgb,var(--c-magenta) 60%,transparent));
+}
+/* ẩn 6 path/circle đám mây gốc → chỉ còn background chip hiện ra. */
+[data-theme="tech"] .empty-note .empty-ic > *{ display:none; }

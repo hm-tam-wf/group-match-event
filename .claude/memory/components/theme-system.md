@@ -1,7 +1,7 @@
 ---
 title: theme-system
 tags: [ui, component, theme]
-code: [fe/js/config/theme.js, fe/assets/styles.css, fe/assets/themes.css, fe/themes/tech/tech.css, fe/themes/tech/chip.css, fe/themes/tech/strings.js, fe/themes/tech/circuit.js, fe/themes/tech/img/chip.svg, fe/index.html, fe/admin.html]
+code: [fe/js/config/theme.js, fe/assets/styles.css, fe/assets/themes.css, fe/themes/tech/tech.css, fe/themes/tech/chip.css, fe/themes/tech/strings.js, fe/themes/tech/circuit.js, fe/themes/tech/img/chip.svg, fe/themes/tech/img/chip-pink.svg, fe/index.html, fe/admin.html]
 related: [[design-tokens]], [[ui-pipeline]], [[conventions]], [[index]]
 updated: 2026-06-06
 ---
@@ -186,6 +186,13 @@ phân biệt qua fill cap-bar ⇒ `--c` rút 3→1 nhấn (bỏ glow icon + bỏ
   banner lẫn tile; default (số to) 0 đổi; mobile 0 méo. (Chấm tên về sau đã BỎ — xem §A·TECH.)
 - Các chỗ icon đội KHÁC còn để NGUYÊN (chưa chip-hoá): `.jm-icon` (mừng join),
   `.mic`/`.pm-emoji` (modal) — tải danh tính đội-đã-chọn; chip-hoá nếu muốn đồng bộ tiếp.
+- **Empty-state icon = CHIP MAGENTA (2026-06-06):** đám mây cười `EMPTY_SVG` (inline trong
+  ui-render.js, class `.empty-ic`, khung rỗng "No squad reached N") → chip **magenta**
+  `#FF5CA8` (asset `img/chip-pink.svg`) trong `chip.css`. CỐ Ý khác chip đội (cyan) để
+  tạo ĐIỂM NHẤN — magenta là màu "nhấn hiếm 5%" palette tech, hút mắt cho empty-state.
+  Kỹ thuật giống `.ic/.bi`: ẩn 6 path cloud gốc (`.empty-ic > *{display:none}`) + vẽ chip
+  bằng `background-image` + glow `drop-shadow(var(--c-magenta))`. Màu baked trong
+  chip-pink.svg ⇒ đổi `--c-magenta` phải sửa SVG. Scope tech ⇒ default giữ cloud candy.
 - **Cascade-order BẮT BUỘC:** khối §A·TECH nằm CUỐI vùng `[data-theme="tech"]` (sau
   §D.2). Cùng specificity class-level → nguồn-sau-thắng, nên phải đặt sau mới override
   được `.tile/.banner/.cap-bar/.mini/.pick.lock/.ft-list .no/.empty-note/.hint`. Các

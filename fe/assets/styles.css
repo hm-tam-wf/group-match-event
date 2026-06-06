@@ -29,6 +29,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:
 .wrap{max-width:1200px;margin:0 auto;padding:46px clamp(22px,4vw,56px) 96px}
 
 /* header */
+.tech-logo-only{display:none}
 h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:1.02;font-size:clamp(40px,8vw,72px);margin:0;
   background:linear-gradient(92deg,#FF7AC0 0%,#A98CFF 52%,#7DD3FC 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 6px 14px rgba(169,140,255,.18))}
