@@ -96,7 +96,16 @@ function showProfileModal() {
       </div>
       ` : ""}
       <div class="modal-content-wrap">
+        ${isTech ? `
+        <div class="tech-logo-only" style="margin-top: 10px;">
+          <div class="logo-wrap">
+            <img src="themes/tech/img/logo-faraday.png" alt="Faraday Icon" class="logo-icon">
+            <span class="logo-text">FARADAY</span>
+          </div>
+        </div>
+        ` : `
         <div class="pm-emoji">🐾</div>
+        `}
         <h3>${TEXT.profile.greeting}</h3>
         <p>${TEXT.profile.subtitle}</p>
         <div class="form" id="pmForm">

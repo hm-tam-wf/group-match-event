@@ -183,7 +183,7 @@
   will-change: opacity;
 }
 [data-theme="tech"] .modal{
-  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 98%,transparent),color-mix(in srgb,var(--surf-bot) 98%,transparent));
+  background:linear-gradient(180deg, var(--surf-top), var(--surf-bot));
   border:1px solid color-mix(in srgb,var(--c-accent-cyan) 40%,transparent);
   box-shadow:0 30px 70px -26px color-mix(in srgb,var(--shade) 75%,transparent), 0 0 24px -2px color-mix(in srgb,var(--c-accent-cyan) 40%,transparent), inset 0 1px 0 color-mix(in srgb,var(--hi) 12%,transparent);
   position: relative;
@@ -675,7 +675,7 @@
 [data-theme="tech"] body.admin .skeleton{background:linear-gradient(90deg,var(--card-2) 25%,color-mix(in srgb,var(--c-electric) 10%,transparent) 37%,var(--card-2) 63%);background-size:400% 100%}
 /* — modal admin (cm-box trắng hardcode) → navy + glow — */
 [data-theme="tech"] body.admin .cm-bg{background:color-mix(in srgb,var(--c-deep-navy) 60%,transparent)}
-[data-theme="tech"] body.admin .cm-box{background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 97%,transparent),color-mix(in srgb,var(--surf-bot) 97%,transparent));box-shadow:var(--sh-lg)}
+[data-theme="tech"] body.admin .cm-box{background:linear-gradient(180deg, var(--surf-top), var(--surf-bot));box-shadow:var(--sh-lg)}
 [data-theme="tech"] body.admin .cm-cancel{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--ink)}
 [data-theme="tech"] body.admin .cm-cancel:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
 [data-theme="tech"] body.admin .cm-input:focus{background:color-mix(in srgb,var(--c-electric) 14%,transparent)}
