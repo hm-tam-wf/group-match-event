@@ -166,13 +166,12 @@
    CUỐI khối tech (đặt sau §D.2 để thắng cascade). */
 
 /* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
-/* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
 [data-theme="tech"] .modal-bg{
   background:color-mix(in srgb,var(--c-deep-navy) 65%,transparent);
   backdrop-filter: blur(10px) saturate(1.2);
   position: fixed;
   inset: 0;
-  z-index: 1000; /* Đảm bảo lớp phủ luôn nằm trên cùng */
+  z-index: 50; /* khớp .modal-bg base: trên toggle(40)/canvas(-1)/nội dung, DƯỚI toast(60) — đồng nhất 2 theme */
   will-change: opacity;
 }
 [data-theme="tech"] .modal{

@@ -258,7 +258,7 @@ body.initial-load .full-team{
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  z-index: 100;
+  z-index: 40;   /* trên nội dung trang, DƯỚI modal-bg (default 50 / tech 1000) → modal luôn che nút toggle */
   transition: transform 0.25s var(--bounce), border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 .theme-toggle:hover {

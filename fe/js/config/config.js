@@ -233,3 +233,4 @@ try {
   if (langParam === "en" || langParam === "vi") LANG = langParam;
 } catch (e) {}
 const TEXT = STRINGS[LANG] || STRINGS.en;   // bảng chuỗi theo ngôn ngữ đang chọn (fallback EN)
+try { document.documentElement.lang = LANG; } catch (e) {}   // đồng bộ <html lang> với ngôn ngữ UI (a11y/SEO)

@@ -174,6 +174,12 @@ async function init() {
     }
     // Demo/sheet: dùng DEFAULT_* đã có sẵn, chạy thẳng
     rebuildByEmoji();
+    // Demo/sheet KHÔNG qua bước nạp config Firestore (nơi nhánh firebase ẩn loading + hiện nội dung) →
+    // tự tay làm ở đây, nếu không demo kẹt vĩnh viễn ở màn "Loading event…" với #appContent vẫn hidden.
+    const demoLoadingEl = document.getElementById("appLoading");
+    const demoContentEl = document.getElementById("appContent");
+    if (demoLoadingEl) demoLoadingEl.hidden = true;
+    if (demoContentEl) demoContentEl.hidden = false;
     await init();
     return;
   }
