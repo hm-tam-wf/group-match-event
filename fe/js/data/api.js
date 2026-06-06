@@ -87,12 +87,15 @@ async function apiRegReserve(value) {
   const key = _dedupKey(value);
   if (!key) return { ok: true };                          // không có MSNV ⇒ không đặt chỗ (như dedupVal rỗng)
   const mineKey = await sGet(SK.RESERVED_KEY, false);
-  if (mineKey === key) return { ok: true };               // đúng chỗ mình đã giữ ⇒ cho qua (sửa lại hồ sơ)
   try {
     const ref = col(COL.REG_KEYS).doc(key);
     const res = await db.runTransaction(async tx => {
       const snap = await tx.get(ref);
-      if (snap.exists) return { ok: false, reason: REASON.DUP }; // người khác đã giữ chỗ MSNV này
+      // ĐÃ có khóa trên server: là chỗ MÌNH (mineKey===key) ⇒ cho qua (sửa lại hồ sơ); của NGƯỜI KHÁC ⇒ trùng.
+      if (snap.exists) return (mineKey === key) ? { ok: true } : { ok: false, reason: REASON.DUP };
+      // CHƯA có khóa — sự kiện mới HOẶC admin vừa "Xóa dữ liệu" xóa mất khóa cũ. TẠO LẠI kể cả khi đây là "chỗ
+      // của mình": KHÔNG tin localStorage suông, LUÔN bảo đảm server có khóa thật. Bịt lỗ: sau khi Xóa dữ liệu,
+      // máy chủ cũ từng short-circuit "chỗ mình" và bỏ qua nên MSNV bỏ ngỏ trên server → máy khác đăng ký trùng.
       tx.set(ref, { at: firebase.firestore.FieldValue.serverTimestamp() });
       return { ok: true };
     });

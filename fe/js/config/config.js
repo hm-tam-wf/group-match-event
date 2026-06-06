@@ -47,6 +47,8 @@ let DEDUP_FIELD = DEFAULT_DEDUP_FIELD;
 let EVENT_ID    = DEFAULT_EVENT_ID;
 let CAPACITY    = DEFAULT_CAPACITY;
 let ICONS       = DEFAULT_ICONS;
+let DATA_EPOCH  = 0;   // "thế hệ" dữ liệu sự kiện — admin "Xóa dữ liệu" tăng số này (events/{id}/meta/config.dataEpoch)
+                       // để máy người chơi biết khóa chống trùng trên server đã bị xóa → tự nhả localStorage cũ.
 
 // ── ➏ Văn bản giao diện (i18n) — registry SONG NGỮ + cờ LANG ──────────────────
 // Gom MỌI chuỗi UI tầng HARDCODE về một nguồn sự thật. Đổi ngôn ngữ = đổi LANG

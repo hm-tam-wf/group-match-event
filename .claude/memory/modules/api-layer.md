@@ -82,9 +82,13 @@ Khắc phục giới hạn cũ: dedup_keys chỉ ghi lúc JOIN nên 2 người n
 signup → admin thấy 2 dòng trùng. signups KHOÁ ĐỌC → client không tự dò được. Giải pháp: **giữ chỗ công
 khai `reg_keys/{key}` NGAY khi điền form** (key = `_dedupKey(MSNV)`, giống dedup_keys; doc chỉ `{at}`,
 KHÔNG chứa pid → không lộ token).
-- **`apiRegReserve(value)`** — transaction: reg_keys/{key} đã có & KHÔNG phải chỗ mình ⇒ `{ok:false,
-  reason:"dup"}`; chưa có ⇒ `set {at}` + nhớ `reservedKey` (localStorage per-event, `sSet`). Đổi MSNV
-  (typo) ⇒ tự `delete` chỗ cũ để không khoá nhầm mã người khác. Fail-open (lỗi mạng/không bật ⇒ `{ok:true}`).
+- **`apiRegReserve(value)`** — transaction VERIFY-AND-RECREATE (2026-06-06): đọc reg_keys/{key} → TỒN TẠI &
+  chỗ mình (`reservedKey===key`) ⇒ `{ok:true}`; tồn tại & của người khác ⇒ `{ok:false,reason:"dup"}`; **CHƯA
+  tồn tại ⇒ `set {at}` KỂ CẢ khi là "chỗ của mình"** (không còn return sớm theo localStorage suông) + nhớ
+  `reservedKey` (per-event). Đổi MSNV (typo) ⇒ tự `delete` chỗ cũ. Fail-open (lỗi mạng/không bật ⇒ `{ok:true}`).
+  **Vì sao bỏ short-circuit cũ `if(mineKey===key) return ok` (bug 2026-06-06):** sau khi admin "Xóa dữ liệu",
+  khóa server bị xóa nhưng `reservedKey` localStorage còn sót → máy chủ cũ cho qua mà KHÔNG tạo lại khóa → MSNV
+  bỏ ngỏ → máy khác đăng ký TRÙNG. Giờ luôn bảo đảm khóa thật tồn tại trên server. Đi kèm dataEpoch (xem dưới).
 - **PHẢI gọi apiRegReserve TRƯỚC MỌI apiSaveProfile** — có 2 chỗ ghi signups: `save()` (ui-render, sau
   các cổng dedup/allowlist/namecheck) VÀ `init()` (app.js, đồng bộ hồ sơ phiên trước). **Bug 2026-06-04:**
   ban đầu chỉ `save()` đặt-chỗ; `init()` ghi signup KHÔNG đặt-chỗ → hồ sơ điền phiên trước (localStorage)
@@ -120,6 +124,13 @@ KHÔNG chứa pid → không lộ token).
 - Demo/sheet: no-op (`{ok:true}`/`false`) — không có signups trên server nên không có vấn đề dòng-trùng.
 → Rule `reg_keys` (get:true, create hasOnly['at'], **delete:if true** cho typo-recovery) xem [[firestore-schema]].
 clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
+- **RESET "thế hệ" dữ liệu sau "Xóa dữ liệu" (dataEpoch, 2026-06-06):** verify-and-recreate ở trên bịt phần
+  khóa-server, nhưng `reservedKey`/`myIcon` localStorage vẫn LỖI THỜI sau khi admin clear (server KHÔNG xóa được
+  localStorage của từng máy) → 2 máy có thể cùng tưởng "chỗ của mình" → trùng. Chốt cứng: `clearEvent` (admin)
+  tăng `meta/config.dataEpoch` qua `FV.increment(1)`; `boot()` đọc vào global `DATA_EPOCH`; `init()` so với
+  `SK.DATA_EPOCH` localStorage (per-event) — server MỚI HƠN ⇒ nhả `reservedKey` + `myIcon` (GIỮ `me.fields` để
+  khỏi gõ lại), lưu epoch mới. Sau reset: máy re-sync như mới → `apiRegReserve` tạo khóa thật; nếu MSNV đã bị máy
+  khác chiếm sau clear ⇒ bị chặn trùng đúng. Kết quả: đúng 1 signup/MSNV, hết dòng trùng "ma" sau khi Xóa dữ liệu.
 
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).

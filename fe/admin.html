@@ -849,6 +849,11 @@
     if (!ok) return;
     try {
       await clearEventData(eid);
+      // Tăng "thế hệ" dữ liệu: mọi máy người chơi đang giữ localStorage cũ sẽ TỰ NHẢ (RESERVED_KEY giữ chỗ + đội
+      // đã chọn) khi vào lại trang ⇒ không còn "chỗ của mình" ảo sau khi khóa server (reg_keys/dedup_keys) bị xóa.
+      // Bịt lỗ đăng ký TRÙNG xảy ra SAU KHI "Xóa dữ liệu". (boot() đọc dataEpoch; app.js init() so & reset cục bộ.)
+      await db.collection("events").doc(eid).collection("meta").doc("config")
+              .set({ dataEpoch: FV.increment(1) }, { merge: true });
       await loadEventList();
       await confirmModal({ title: "Đã xóa dữ liệu", message: `"${name}" đã được reset về 0 người.`, confirmText: "OK", cancelText: "" });
     } catch (err) {

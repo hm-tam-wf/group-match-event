@@ -42,9 +42,13 @@ signups/{playerId}
   — UPDATE: cho phép nếu GIỮ NGUYÊN playerId (gắn đội / sửa lại hồ sơ của chính mình)
 
 meta/config
-  title, fields, icons, capacity, eventId
+  title, fields, icons, capacity, eventId, dataEpoch
   — READ: public
   — WRITE: admin only
+  — `dataEpoch` (number, 2026-06-06): "thế hệ" dữ liệu. `clearEvent` ("Xóa dữ liệu") tăng `FV.increment(1)` SAU
+    khi clearEventData. Client `boot()`→`DATA_EPOCH`, `init()` so với localStorage `SK.DATA_EPOCH`: server mới hơn
+    ⇒ nhả `reservedKey`+`myIcon` cũ (server đã xóa khóa chống trùng nhưng KHÔNG xóa được localStorage máy người
+    chơi → "chỗ của mình" ảo → trùng). Đi kèm apiRegReserve verify-and-recreate. Xem [[api-layer]].
 ```
 
 ## `meta/config.fields` — hợp đồng BẮT BUỘC có key "name"

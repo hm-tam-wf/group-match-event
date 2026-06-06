@@ -12,6 +12,7 @@ const SK = {
   ME:             "me",
   CLAIMS:         "claims",
   RESERVED_KEY:   "reservedKey",
+  DATA_EPOCH:     "dataEpoch",     // "thế hệ" dữ liệu đã đồng bộ — so với meta/config.dataEpoch để biết admin đã "Xóa dữ liệu" chưa
   ALLOWLIST_MODE: "allowlistMode",
   ALLOWLIST:      "allowlist",
 };

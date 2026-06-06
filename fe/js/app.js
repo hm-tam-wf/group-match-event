@@ -100,6 +100,20 @@ async function init() {
       } catch (e) {}
     };
   }
+  // RESET THEO "THẾ HỆ" DỮ LIỆU: admin "Xóa dữ liệu" sẽ tăng meta/config.dataEpoch. Nếu server MỚI HƠN lần ghé
+  // trước ⇒ localStorage cũ (RESERVED_KEY giữ chỗ + myIcon đã chọn đội) đã LỖI THỜI: khóa chống trùng trên server
+  // đã bị xóa nhưng máy này vẫn tưởng "chỗ của mình". Nhả hết để vào lại như mới (GIỮ me.fields — khỏi gõ lại).
+  // Bịt lỗ: sau khi Xóa dữ liệu, máy chủ cũ short-circuit "chỗ mình" cho qua mà MSNV bỏ ngỏ → máy khác đăng ký trùng.
+  if (MODE === MODE_FIREBASE) {
+    const seenEpoch = Number(await sGet(SK.DATA_EPOCH, false)) || 0;
+    if (DATA_EPOCH > seenEpoch) {
+      myIcon = null;                          // đội cũ đã bị xóa ⇒ bỏ chọn (người dùng chọn lại)
+      await sDel(SK.RESERVED_KEY, false);     // nhả chỗ giữ cũ ⇒ apiRegReserve sẽ TẠO LẠI khóa thật trên server
+      await saveMe();
+      await sSet(SK.DATA_EPOCH, String(DATA_EPOCH), false);
+    }
+  }
+
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); await sDel(SK.RESERVED_KEY, false); }   // danh tính MỚI ⇒ NHẢ reservedKey cũ (bịt lỗ H2: nếu "me" bị xoá nhưng reservedKey còn sót → cổng trùng short-circuit "chỗ của mình" cho qua nhầm)
 
@@ -223,6 +237,7 @@ async function init() {
     if (typeof cfg.capacity   === "number")                 CAPACITY    = cfg.capacity;
     if (typeof cfg.dedupField === "string")                 DEDUP_FIELD = cfg.dedupField;
     if (typeof cfg.blockDup   === "boolean")                BLOCK_DUP   = cfg.blockDup;
+    if (typeof cfg.dataEpoch  === "number")                 DATA_EPOCH  = cfg.dataEpoch;
     if (typeof cfg.allowlistMode === "boolean")             ALLOWLIST_MODE = cfg.allowlistMode;
     if (typeof cfg.allowlistNameCheck === "boolean")        ALLOWLIST_NAMECHECK = cfg.allowlistNameCheck;
 
