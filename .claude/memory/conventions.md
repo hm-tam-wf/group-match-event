@@ -11,7 +11,9 @@ updated: 2026-06-03
 - Dev: `npx serve fe` hoặc VS Code Live Server trên `fe/index.html`
 - Export signups: `npm run export` (cần `serviceAccountKey.json`)
 - Load test: `node backend/scripts/loadtest.js` (500 concurrent signups)
-- Deploy: `firebase deploy --only hosting` — Firebase Hosting serve `fe/` (site `group-match-event` → group-match-event.web.app, không có build step). GitHub Pages KHÔNG còn dùng (Pages không serve `/fe`).
+- Deploy (SONG SONG 2 hosting, cùng serve `fe/`, cùng Firestore project `icon-picker`):
+  - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → group-match-event.web.app (site `group-match-event`, không build step).
+  - **GitHub Pages** (tự động): `.github/workflows/pages.yml` upload `fe/` làm artifact + `deploy-pages` mỗi khi push master đụng `fe/` → https://hm-tam-wf.github.io/group-match-event/. Cần 1 lần bật Settings → Pages → Source = GitHub Actions. Trang admin trên domain Pages cần thêm `hm-tam-wf.github.io` vào Firebase Auth → Authorized domains.
 
 ## Code style
 - **Language:** Vanilla HTML/CSS/JS — không framework, không module system, không bundler
