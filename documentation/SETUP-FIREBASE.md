@@ -8,7 +8,7 @@ App này có 3 chế độ chạy, tự nhận diện trong [fe/js/ui/ui-utils.j
 | `sheet` | Có `SCRIPT_URL` (Apps Script) | Google Sheet | ⚠️ chỉ vài chục người |
 | `demo` | Không cấu hình gì | localStorage / RAM | Chạy thử 1 máy |
 
-Hướng dẫn này bật chế độ **`firebase`** — frontend nằm trên **Firebase Hosting** (`group-match-event.web.app`), dữ liệu nằm trên **Firestore**. **Không cần Apps Script nữa.**
+Hướng dẫn này bật chế độ **`firebase`** — frontend deploy **song song** trên **Firebase Hosting** (`group-match-event.web.app`) và **GitHub Pages** (`hm-tam-wf.github.io/group-match-event/`, tự động qua Actions), dữ liệu nằm trên **Firestore**. **Không cần Apps Script nữa.**
 
 ---
 
@@ -45,7 +45,10 @@ firebase deploy --only hosting
 ```
 
 Sau khi deploy có URL `https://group-match-event.web.app`.
-> ⚠️ Dự án **không còn dùng GitHub Pages** (Pages chỉ serve `/docs` hoặc root, không serve `/fe`).
+> 💡 App còn deploy **song song** trên **GitHub Pages** qua [.github/workflows/pages.yml](../.github/workflows/pages.yml)
+> (tự động khi push `master` đụng `fe/`) → `https://hm-tam-wf.github.io/group-match-event/`. Bật 1 lần ở repo
+> **Settings → Pages → Source = GitHub Actions**; trang admin trên domain Pages cần thêm `hm-tam-wf.github.io`
+> vào **Firebase Auth → Authorized domains**. Hai hosting dùng chung Firestore nên dữ liệu signup là một.
 
 ## 5. Lấy data người tham gia
 
