@@ -75,8 +75,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <!-- Nạp ĐÚNG THỨ TỰ phụ thuộc biến toàn cục (script thường, KHÔNG type=module):
-     config → firebase-config → storage → api → ui-utils → ui-render → app -->
+     config → [strings-tech] → firebase-config → storage → api → ui-utils → ui-render → app -->
 <script src="js/config/config.js"></script>
+<!-- Text riêng-theo-theme (terminal boot của theme `tech`) — merge vào STRINGS, phải nạp SAU config.js. -->
+<script src="js/config/strings-tech.js"></script>
 <script src="js/config/firebase-config.js"></script>
 <script src="js/data/storage.js"></script>
 <script src="js/data/api.js"></script>

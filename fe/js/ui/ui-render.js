@@ -79,6 +79,9 @@ function showProfileModal() {
   const showBoot = isTech && !canCancel;
   const bootClass = showBoot ? " tech-booting" : "";
 
+  const headerEl = document.querySelector("#appContent h1");
+  const headerTitle = headerEl ? headerEl.textContent.trim() : "Group Match";
+
   const modalBgEl = document.createElement("div");
   modalBgEl.className = "modal-bg";
   modalBgEl.id = "profileModal";
@@ -86,10 +89,10 @@ function showProfileModal() {
     <div class="modal profile-modal${bootClass}">
       ${showBoot ? `
       <div class="terminal-boot">
-        <div class="term-row">> INITIALIZING SECURE TERMINAL...</div>
-        <div class="term-row">> MOUNTING USER DATABASE...</div>
-        <div class="term-row">> ESTABLISHING PROTOCOLS...</div>
-        <div class="term-row">> STATUS: READY [ACCESS GRANTED]</div>
+        <div class="term-row">> ${TEXT.tech.terminalLine1}</div>
+        <div class="term-row">> ${TEXT.tech.terminalLine2(esc(headerTitle))}</div>
+        <div class="term-row">> ${TEXT.tech.terminalLine3}</div>
+        <div class="term-row">> ${TEXT.tech.terminalLine4}</div>
       </div>
       ` : ""}
       <div class="modal-content-wrap">

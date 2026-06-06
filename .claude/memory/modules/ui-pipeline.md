@@ -10,9 +10,11 @@ updated: 2026-06-03
 
 ## Script loading order (SACRED — đừng thay đổi)
 ```
-config.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
+config.js → strings-tech.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
 ```
 Mỗi file phụ thuộc vào globals của file trước. Sai thứ tự = `ReferenceError` ngay lập tức.
+`strings-tech.js` (text riêng-theo-theme, merge vào `STRINGS` — xem [[i18n-system]]) chỉ phụ thuộc
+config.js; CHỈ index.html nạp (admin.html không có). Nếu thiếu/sai chỗ ⇒ `TEXT.tech` undefined.
 
 **Ngoài chuỗi (2 file):**
 1. `js/config/theme.js` nạp ở `<head>` (TRƯỚC chuỗi trên, trên cả 2 trang) để áp
