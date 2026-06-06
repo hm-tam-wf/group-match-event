@@ -1,0 +1,50 @@
+# Deploy thư mục fe/ lên GitHub Pages (chạy SONG SONG với Firebase Hosting).
+# Cơ chế: upload fe/ làm artifact rồi deploy-pages — KHÔNG cần dời file vào /docs,
+# KHÔNG cần branch gh-pages, KHÔNG cần secret. Firebase deploy vẫn làm thủ công.
+#
+# ⚠️ Bắt buộc 1 lần: GitHub repo → Settings → Pages → Build and deployment →
+#    Source = "GitHub Actions" (nếu chưa bật, lần chạy đầu sẽ fail; bật rồi Re-run).
+# URL sau khi deploy: https://hm-tam-wf.github.io/group-match-event/
+
+name: Deploy fe/ to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'fe/**'                        # chỉ deploy lại khi nội dung fe/ đổi
+      - '.github/workflows/pages.yml'  # hoặc khi sửa chính workflow này
+  workflow_dispatch:                   # cho phép chạy tay từ tab Actions
+
+# Quyền tối thiểu để deploy Pages bằng OIDC
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Không chạy chồng; hủy lần deploy đang dở nếu có push mới
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload fe/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: fe          # serve nguyên thư mục fe/ (artifact không qua Jekyll)
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
