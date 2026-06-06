@@ -39,6 +39,7 @@ const REASON = {
   NOT_ALLOWED:   "notAllowed",
   NAME_MISMATCH: "nameMismatch",
   FULL:          "full",
+  DEDUP_CONFIG:  "dedupConfig",   // chống trùng BẬT mà không lấy được giá trị để dedup (cấu hình sai) → fail-closed
   ERROR:         "error",
 };
 
@@ -203,6 +204,12 @@ async function apiRemoveProfile(playerId) {
 }
 
 async function apiClaim(payload) {
+  // FAIL-CLOSED (cấu hình chống trùng hỏng): chống trùng đang BẬT (BLOCK_DUP && DEDUP_FIELD) nhưng KHÔNG
+  // lấy được giá trị để dedup — DEDUP_FIELD trỏ field không có trong fields, hoặc giá trị để trống → dedupVal
+  // sẽ rỗng ⇒ transaction BỎ QUA chốt trùng (đúng lỗ khiến 2 trình duyệt cùng MSNV cùng lọt). TỪ CHỐI join
+  // thay vì âm thầm cho qua. Mode-agnostic (chặn ở mọi backend). Bình thường UI đã validate nên không chạm tới.
+  if (BLOCK_DUP && DEDUP_FIELD && !String((payload.fields || {})[DEDUP_FIELD] || "").trim())
+    return { ok: false, reason: REASON.DEDUP_CONFIG };
   if (MODE === MODE_FIREBASE) {
     const icon     = String(payload.icon     || "").trim();
     const pid      = String(payload.playerId || "").trim();

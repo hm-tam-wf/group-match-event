@@ -24,16 +24,19 @@
   .boot-msg b { color:#1f2a44; }
 </style>
 </head>
-<body>
+<body class="initial-load">
 <div class="wrap">
 
   <!-- Trạng thái khởi động (chỉ hiện ở chế độ firebase, biến mất sau khi tải config xong) -->
-  <div id="appLoading" class="boot-msg">Đang tải sự kiện…</div>
-  <div id="noEvent"    class="boot-msg" hidden><b>Hiện chưa có sự kiện nào đang mở.</b><br>Vui lòng quay lại sau.</div>
+  <div id="appLoading" class="boot-msg">Loading event…</div>
+  <div id="noEvent"    class="boot-msg" hidden><b>No event is open right now.</b><br>Please check back later.</div>
   <div id="appError"   class="boot-msg" hidden></div>
 
   <!-- Nội dung chính — bị ẩn cho đến khi boot() nạp xong config -->
   <div id="appContent" hidden>
+    <!-- Floating Theme Toggle -->
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme">🌓</button>
+
     <h1>Group Match</h1>
     <p class="sub">Mỗi icon là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
@@ -45,7 +48,7 @@
 
     <!-- đội còn chỗ -->
     <div class="section-h">
-      <h2>Đội còn chỗ</h2>
+      <h2 id="freeHead">Teams with Open Spots</h2>
       <span class="count" id="freeCount"></span>
       <span class="hr"></span>
     </div>
@@ -55,7 +58,7 @@
 
     <!-- đội đã đủ -->
     <div class="section-h">
-      <h2>Đội đã đủ</h2>
+      <h2 id="takenHead">Full Teams</h2>
       <span class="count" id="takenCount"></span>
       <span class="hr"></span>
     </div>

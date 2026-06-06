@@ -50,9 +50,49 @@ function fieldError(f, v) {
   // Field "name" là hợp đồng BẮT BUỘC của app (apiClaim + ui-render dùng me.fields.name làm tên hiển thị)
   // → ép required dù config lỡ để required:false (vá lỗ "tên rỗng lọt" ở sự kiện cấu hình cũ).
   const required = f.required || f.key === "name";
-  if (required && !v) return "Bắt buộc nhập";
+  if (required && !v) return TEXT.validate.required;
   if (!v) return "";
-  if (f.key === "employeeId" && !validEmployeeId(v)) return "Mã số nhân viên không hợp lệ (chỉ chữ và số, 3–20 ký tự)";
-  if (f.key === "name" && !validName(v)) return "Họ tên chưa hợp lệ (nhập đúng họ tên, tối thiểu 2 ký tự)";
+  if (f.key === "employeeId" && !validEmployeeId(v)) return TEXT.validate.employeeId;
+  if (f.key === "name" && !validName(v)) return TEXT.validate.name;
   return "";
 }
+
+// --- Cấu hình dùng chung cho Hoạt ảnh Modal ---
+window.ModalConfig = {
+  exitDuration: 300, // Thời gian chạy animation tối đa (ms)
+  exitClass: "closing" // Tên CSS class khi đóng modal
+};
+
+// --- Hàm dùng chung đóng modal với hiệu ứng chuyển cảnh mượt mà ---
+window.dismissModal = function (modalBgEl, callback) {
+  if (!modalBgEl) {
+    if (callback) callback();
+    return;
+  }
+
+  // Nếu đang đóng thì bỏ qua để tránh bấm đúp sinh lỗi
+  if (modalBgEl.classList.contains(window.ModalConfig.exitClass)) return;
+
+  modalBgEl.classList.add(window.ModalConfig.exitClass);
+
+  const onEnd = (e) => {
+    // Chỉ phản hồi sự kiện kết thúc chuyển động của chính lớp phủ nền (modalBgEl)
+    if (e.target === modalBgEl) {
+      modalBgEl.removeEventListener("animationend", onEnd);
+      modalBgEl.removeEventListener("transitionend", onEnd);
+      modalBgEl.remove();
+      if (callback) callback();
+    }
+  };
+
+  modalBgEl.addEventListener("animationend", onEnd);
+  modalBgEl.addEventListener("transitionend", onEnd);
+
+  // Cơ chế dự phòng (fallback) nếu trình duyệt tắt hoạt ảnh hoặc lỗi sự kiện
+  setTimeout(() => {
+    if (document.body.contains(modalBgEl)) {
+      modalBgEl.remove();
+      if (callback) callback();
+    }
+  }, window.ModalConfig.exitDuration + 50);
+};

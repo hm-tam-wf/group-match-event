@@ -61,6 +61,20 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .section-h .count{font-size:13px;color:var(--muted-2);font-weight:800}
 .hr{height:2px;background:var(--line);flex:1;border-radius:2px}
 
+/* ── CĂN GIỮA layout: title, subtitle, profile bar, banner, section header ──
+   Chỉ đổi alignment (layout) — KHÔNG đụng màu/nền (việc đó của themes.css).
+   Đặt SAU các rule gốc ở trên để thắng cascade; theme `tech` kế thừa vì các
+   override tech không set justify-content/text-align. */
+h1{text-align:center}
+.sub{margin-left:auto;margin-right:auto;text-align:center}
+.summary{justify-content:center}
+.summary .s-spacer{display:none}          /* spacer cũ đẩy nội dung sang trái (nút Sửa đã tắt) */
+.summary .s-txt{align-items:center;text-align:center}
+.banner{justify-content:center}
+.banner .bt,.banner .bs{text-align:center}
+.section-h{flex-wrap:wrap;justify-content:center}
+.section-h .hr{flex:1 1 100%}             /* đường kẻ tách xuống dòng riêng, full-width dưới tiêu đề đã căn giữa */
+
 /* grid đội còn chỗ */
 /* --min-tile = bề ngang tối thiểu 1 tile (nguồn sự thật chung cho JS chia đều cột).
    grid-template-columns ở đây chỉ là fallback nếu JS chưa chạy; layoutFreeGrid() sẽ
@@ -69,7 +83,8 @@ h1{font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:
 .tile{position:relative;border:1.5px solid var(--line);border-radius:var(--r-lg);padding:22px 16px 16px;text-align:center;overflow:hidden;
   background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,#fff) 0%,#fff 70%);
   box-shadow:0 14px 34px -20px rgba(124,115,150,.38),inset 0 1px 0 rgba(255,255,255,.9);
-  transition:transform .3s var(--bounce),box-shadow .25s ease,border-color .25s ease,opacity .35s ease;
+  transition:transform .3s var(--bounce),box-shadow .25s ease,border-color .25s ease,opacity .35s ease;}
+body.initial-load .tile{
   animation:rise .5s var(--bounce) both}
 .tile::before{content:"";position:absolute;inset:0;border-radius:var(--r-lg);background:radial-gradient(130px 100px at 50% -8%, var(--c), transparent 70%);opacity:.22;pointer-events:none;transition:opacity .25s}
 .tile .ic{font-size:clamp(42px,8vw,52px);line-height:1;filter:drop-shadow(0 6px 10px color-mix(in srgb,var(--c) 40%,transparent))}
@@ -104,7 +119,9 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
 
 /* đội đã đủ */
 .taken-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:16px}
-.full-team{border:1.5px solid var(--line);border-radius:var(--r-lg);padding:16px 18px 14px;background:var(--card);box-shadow:var(--sh-soft);backdrop-filter:blur(8px);animation:rise .5s var(--bounce) both}
+.full-team{border:1.5px solid var(--line);border-radius:var(--r-lg);padding:16px 18px 14px;background:var(--card);box-shadow:var(--sh-soft);backdrop-filter:blur(8px)}
+body.initial-load .full-team{
+  animation:rise .5s var(--bounce) both}
 .full-team.mine{border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent) inset,var(--sh-soft)}
 .ft-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}
 .ft-head .ti{font-size:34px;filter:drop-shadow(0 4px 8px color-mix(in srgb,var(--c) 35%,transparent))}
@@ -207,6 +224,62 @@ body.claiming .tile.sel{pointer-events:none;opacity:.6}
   .jm-icon{font-size:96px}
   .confetti i{width:13px;height:20px}
 }
+/* —— Modal exit animations —— */
+@keyframes fadeOut {
+  from { opacity: 1; backdrop-filter: blur(8px) saturate(1.1); }
+  to { opacity: 0; backdrop-filter: blur(0px) saturate(1); }
+}
+@keyframes popOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: translateY(12px) scale(0.95); }
+}
+
+.modal-bg.closing {
+  animation: fadeOut 0.25s ease forwards;
+}
+.modal-bg.closing .modal {
+  animation: popOut 0.25s cubic-bezier(.25, 1, .5, 1) forwards;
+}
+
+/* Floating Theme Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--sh-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 100;
+  transition: transform 0.25s var(--bounce), border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+.theme-toggle:hover {
+  transform: scale(1.1);
+  border-color: var(--accent);
+}
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Specific styling for theme-toggle in tech theme */
+[data-theme="tech"] .theme-toggle {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surf-top) 92%, transparent), color-mix(in srgb, var(--surf-bot) 94%, transparent));
+  border-color: var(--line);
+  box-shadow: 0 0 12px -4px var(--c-electric);
+}
+[data-theme="tech"] .theme-toggle:hover {
+  border-color: var(--c-accent-cyan);
+  box-shadow: 0 0 16px -2px var(--c-accent-cyan);
+}
+
 @media(prefers-reduced-motion:reduce){
   .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark{animation:none!important;transition:none!important}
   .tile.sel:hover{transform:none}

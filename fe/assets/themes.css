@@ -64,6 +64,7 @@
    (cảnh báo/CTA/badge hiếm). Success → Accent Cyan; 'đang sửa' → Neon Pink.
    ============================================================================ */
 [data-theme="tech"]{
+  --bounce:        cubic-bezier(0.19, 1, 0.22, 1);
   /* —— PALETTE THÔ — 11 màu "Tech Future KV" (NGUỒN CHÂN LÝ DUY NHẤT) —— */
   --c-deep-navy:   #0F193D;   /* nền sâu nhất / bóng / vignette rìa          */
   --c-dark-blue:   #17316A;   /* navy chuyển tiếp                            */
@@ -165,14 +166,157 @@
    CUỐI khối tech (đặt sau §D.2 để thắng cascade). */
 
 /* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
-[data-theme="tech"] .modal-bg{background:color-mix(in srgb,var(--c-deep-navy) 60%,transparent)}
-[data-theme="tech"] .modal{
-  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 97%,transparent),color-mix(in srgb,var(--surf-bot) 97%,transparent));
-  border:1px solid var(--line);
-  box-shadow:0 30px 70px -26px color-mix(in srgb,var(--shade) 75%,transparent), 0 0 30px -6px color-mix(in srgb,var(--c-electric) 35%,transparent), inset 0 1px 0 color-mix(in srgb,var(--hi) 12%,transparent);
+/* modal/popup: nền gradient trắng + viền trắng hardcode → navy + viền glow */
+[data-theme="tech"] .modal-bg{
+  background:color-mix(in srgb,var(--c-deep-navy) 65%,transparent);
+  backdrop-filter: blur(10px) saturate(1.2);
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* Đảm bảo lớp phủ luôn nằm trên cùng */
+  will-change: opacity;
 }
-[data-theme="tech"] .modal .cancel{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--text)}
+[data-theme="tech"] .modal{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 98%,transparent),color-mix(in srgb,var(--surf-bot) 98%,transparent));
+  border:1px solid color-mix(in srgb,var(--c-accent-cyan) 40%,transparent);
+  box-shadow:0 30px 70px -26px color-mix(in srgb,var(--shade) 75%,transparent), 0 0 24px -2px color-mix(in srgb,var(--c-accent-cyan) 40%,transparent), inset 0 1px 0 color-mix(in srgb,var(--hi) 12%,transparent);
+  position: relative;
+  overflow: hidden;
+  /* Hiệu ứng mở rộng từ nhỏ ra to mượt mà & mạch điện nhấp nháy tuần hoàn */
+  animation: techScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both, electricGlow 2.5s infinite ease-in-out;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Giao diện quét dòng CRT/Hologram bên trong popup */
+[data-theme="tech"] .modal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgba(255, 255, 255, 0) 50%, rgba(85, 232, 255, 0.08) 50%);
+  background-size: 100% 4px;
+  opacity: 0.35;
+  z-index: 0;
+}
+
+
+/* Các khung hoạt ảnh công nghệ */
+@keyframes techScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes techGlitchOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) skewX(0);
+    filter: none;
+  }
+  30% {
+    opacity: 0.6;
+    transform: scale(1.02) skewX(4deg);
+    filter: brightness(1.5) contrast(1.2) hue-rotate(-20deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px) skewX(-6deg);
+    filter: brightness(2) contrast(1.5) hue-rotate(-45deg);
+  }
+}
+
+@keyframes electricGlow {
+  0%, 100% {
+    border-color: color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--c-accent-cyan) 75%, transparent);
+  }
+}
+
+@keyframes techTileRise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+[data-theme="tech"] .modal-bg.closing .modal {
+  animation: techGlitchOut 0.25s ease forwards;
+}
+
+[data-theme="tech"] .modal .cancel{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--text);position: relative;z-index: 10;}
 [data-theme="tech"] .modal .cancel:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
+
+/* Giao diện quét dòng khởi động Terminal của popup nhập thông tin */
+[data-theme="tech"] .profile-modal .terminal-boot {
+  display: none;
+  font-family: ui-monospace, Consolas, Menlo, Monaco, monospace;
+  background: #070b1a;
+  border: 1px solid color-mix(in srgb, var(--c-electric) 40%, transparent);
+  padding: 30px 24px;
+  text-align: left;
+  color: var(--c-accent-cyan);
+  font-size: 13.5px;
+  min-height: 220px;
+  border-radius: var(--r-md);
+  box-shadow: inset 0 0 15px rgba(85, 232, 255, 0.1);
+}
+
+[data-theme="tech"] .profile-modal.tech-booting .terminal-boot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+[data-theme="tech"] .profile-modal.tech-booting .modal-content-wrap {
+  display: none;
+}
+
+[data-theme="tech"] .profile-modal .modal-content-wrap {
+  animation: techScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Hoạt ảnh gõ chữ mô phỏng thiết bị đầu cuối */
+[data-theme="tech"] .term-row {
+  opacity: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 2px solid transparent;
+}
+[data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(1) {
+  animation: typeLine 0.15s steps(20) forwards;
+  animation-delay: 0.1s;
+}
+[data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(2) {
+  animation: typeLine 0.15s steps(30) forwards;
+  animation-delay: 0.3s;
+}
+[data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(3) {
+  animation: typeLine 0.15s steps(25) forwards;
+  animation-delay: 0.5s;
+}
+[data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(4) {
+  animation: typeLine 0.15s steps(15) forwards;
+  animation-delay: 0.75s;
+  color: #4dd47a; /* Màu xanh lá chỉ thị sẵn sàng */
+}
+
+@keyframes typeLine {
+  from { opacity: 0; width: 0; }
+  to { opacity: 1; width: 100%; }
+}
 
 /* form input: nền/viền sáng + focus nền trắng hardcode → tông tối, focus ring cyan */
 [data-theme="tech"] .field input{
@@ -262,6 +406,11 @@
   box-shadow:0 18px 40px -22px color-mix(in srgb,var(--shade) 72%,transparent),
              0 0 0 1px color-mix(in srgb,var(--glow-edge) 8%,transparent),
              inset 0 1px 0 color-mix(in srgb,var(--c-light-cyan) 14%,transparent);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+[data-theme="tech"] body.initial-load .tile{
+  animation: techTileRise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 /* sheen mép-trên + hạ vầng glow màu đội (::before §74 vốn radial --c .22) xuống mờ. */
 [data-theme="tech"] .tile::before{
@@ -397,6 +546,11 @@
   border:1px solid var(--line);
   border-radius:calc(var(--r-lg) - 2px);
   background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 86%,transparent),color-mix(in srgb,var(--surf-bot) 90%,transparent));
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+[data-theme="tech"] body.initial-load .full-team{
+  animation: techTileRise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 [data-theme="tech"] .full-team.mine{
   border-color:color-mix(in srgb,var(--c-electric) 55%,transparent);

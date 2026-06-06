@@ -65,7 +65,10 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 ## Security rules — critical points
 1. **Capacity check:** `teams/{icon}.count < cap()` — `cap()` đọc `meta/config.capacity`
 2. **Admin UID hardcoded:** `function isAdmin() { return request.auth.uid in ['UID1', 'UID2'] }`
-3. **1-person-1-team:** Dùng `getAfter()` trong transaction để verify atomically
+3. **1-person-1-team:** KHÔNG dùng `getAfter()` (rules KHÔNG có) — ép phía CLIENT bằng transactional read
+   `members/{pid}` trong `apiClaim` (đọc trước, abort `ALREADY` nếu tồn tại). **`pid` theo TỪNG TRÌNH DUYỆT**
+   (`me.id="u"+random`) ⇒ guard này **KHÔNG liên kết 2 browser**. Liên kết cross-browser (1 MSNV = 1 đội) **chỉ**
+   nhờ `dedup_keys` (key theo MSNV, server-serialized qua transaction conflict + `update:if false`). Xem [[api-layer]].
 4. **Admin delete (từ 2026-06-03):** `teams/members/dedup_keys` có `allow delete: if isAdmin()`
    → admin xóa được từ browser (cho tính năng Xóa dữ liệu / Xóa sự kiện). `members/dedup_keys`
    thêm `list: if isAdmin()` (admin cần liệt kê khi clear). **`signups` delete xem điểm 7.**

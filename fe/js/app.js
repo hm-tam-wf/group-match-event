@@ -3,24 +3,24 @@ function askConfirm(iconDef) {
   modalBgEl.className = "modal-bg";
   modalBgEl.innerHTML = `<div class="modal" style="--c:${iconDef.color}">
       <div class="mic">${iconDef.icon}</div>
-      <h3>Tham gia đội ${esc(iconDef.name)}?</h3>
-      <p>Mỗi người chỉ tham gia 1 đội (tối đa ${CAPACITY} người/đội). Xác nhận xong sẽ ghi nhận thông tin của bạn.</p>
+      <h3>${TEXT.confirm.title(esc(iconDef.name))}</h3>
+      <p>${TEXT.confirm.body(CAPACITY)}</p>
       <div class="row">
-        <button class="cancel"  id="c0">Quay lại</button>
-        <button class="confirm" id="c1">Xác nhận</button>
+        <button class="cancel"  id="c0">${TEXT.confirm.back}</button>
+        <button class="confirm" id="c1">${TEXT.confirm.ok}</button>
       </div>
     </div>`;
   document.body.appendChild(modalBgEl);
-  modalBgEl.querySelector("#c0").onclick   = () => modalBgEl.remove();
-  modalBgEl.addEventListener("click", e => { if (e.target === modalBgEl) modalBgEl.remove(); });
-  modalBgEl.querySelector("#c1").onclick   = async () => { modalBgEl.remove(); await doClaim(iconDef); };
+  modalBgEl.querySelector("#c0").onclick   = () => dismissModal(modalBgEl);
+  modalBgEl.addEventListener("click", e => { if (e.target === modalBgEl) dismissModal(modalBgEl); });
+  modalBgEl.querySelector("#c1").onclick   = () => { dismissModal(modalBgEl, () => doClaim(iconDef)); };
 }
 
 async function doClaim(iconDef) {
-  if (busy) { toast("Đang xử lý lượt tham gia của bạn…"); return; }   // bấm lúc đang ghi nhận → báo, không câm
+  if (busy) { toast(TEXT.toast.processing); return; }   // bấm lúc đang ghi nhận → báo, không câm
   busy = true;
   document.body.classList.add("claiming");      // khoá mọi tile trong lúc ghi nhận
-  toast("Đang ghi nhận…", true);                // toast dính: apiClaim có thể retry vài giây
+  toast(TEXT.toast.saving, true);                // toast dính: apiClaim có thể retry vài giây
   try {
     const res = await apiClaim({ icon: iconDef.icon, playerId: me.id, fields: me.fields });
     if (res && res.ok) {
@@ -32,20 +32,21 @@ async function doClaim(iconDef) {
       renderStateIfChanged(true); // khoá toàn bộ tile ngay lập tức
     } else {
       const reason = res && res.reason;
-      if      (reason === REASON.FULL)      toast(`Đội ${iconDef.name} vừa đủ ${CAPACITY} người rồi!`);
-      else if (reason === REASON.ALREADY)   toast("Bạn đã tham gia một đội rồi.");
-      else if (reason === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(`${labelOf(DEDUP_FIELD)} này đã được đăng ký rồi (kể cả trên thiết bị khác). Mỗi mã chỉ tham gia một lần.`); }   // thua đua join → dọn signup trùng của mình
-      else if (reason === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast("Bạn không có trong danh sách được phép tham gia sự kiện này. Vui lòng liên hệ ban tổ chức."); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
-      else if (reason === REASON.NAME_MISMATCH) { editing = true; toast("Họ tên không khớp với danh sách được phép. Vui lòng nhập đúng họ tên đã đăng ký."); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
-      else if (reason === REASON.MISSING)   toast("Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.");   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
+      if      (reason === REASON.FULL)      toast(TEXT.toast.full(iconDef.name, CAPACITY));
+      else if (reason === REASON.ALREADY)   toast(TEXT.toast.already);
+      else if (reason === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.dup(labelOf(DEDUP_FIELD))); }   // thua đua join → dọn signup trùng của mình
+      else if (reason === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.notAllowed); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
+      else if (reason === REASON.NAME_MISMATCH) { editing = true; toast(TEXT.toast.nameMismatch); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
+      else if (reason === REASON.DEDUP_CONFIG) toast(TEXT.toast.dupConfig);   // chống trùng bật mà không lấy được giá trị để dedup (cấu hình sai) → báo rõ, KHÔNG cho join trùng
+      else if (reason === REASON.MISSING)   toast(TEXT.toast.missing);   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
-      else                        toast("Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.");
+      else                        toast(TEXT.toast.network);
     }
     await refresh(true);
     renderProfile();
   } catch (err) {
     // mạng trục trặc — kiểm tra lại bằng poll
-    toast("Đang kiểm tra kết quả…");
+    toast(TEXT.toast.checkingResult);
     await refresh(true);
   } finally {
     document.body.classList.remove("claiming");
@@ -87,6 +88,18 @@ async function saveMe() {
 // ── Hàm init(): chạy SAU KHI boot() đã nạp xong config từ Firestore ──────────
 async function init() {
   await loadMe();
+  // Khởi tạo nút đổi theme
+  const btnToggle = document.getElementById("themeToggle");
+  if (btnToggle) {
+    btnToggle.onclick = () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "tech";
+      const newTheme = currentTheme === "tech" ? "default" : "tech";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      try {
+        localStorage.setItem("theme", newTheme);
+      } catch (e) {}
+    };
+  }
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); await sDel(SK.RESERVED_KEY, false); }   // danh tính MỚI ⇒ NHẢ reservedKey cũ (bịt lỗ H2: nếu "me" bị xoá nhưng reservedKey còn sót → cổng trùng short-circuit "chỗ của mình" cho qua nhầm)
 
@@ -139,11 +152,26 @@ async function init() {
   } else {
     setInterval(() => { if (!busy) refresh(); }, POLL_MS); // poll ngầm 3s (sheet/demo)
   }
+
+  // Remove initial-load class after entrance animations complete
+  setTimeout(() => {
+    document.body.classList.remove("initial-load");
+  }, 1200);
 }
 
 // ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
 (async function boot() {
   if (MODE !== MODE_FIREBASE) {
+    // Cấu hình CÓ projectId (định chạy firebase) nhưng SDK chưa nạp được (CDN lỗi/offline) → FIREBASE_ON
+    // false ⇒ âm thầm rơi về DEMO (đội + dedup chỉ còn cục bộ per-browser ⇒ MẤT chống trùng cross-browser).
+    // FAIL-CLOSED: báo lỗi rõ thay vì degrade lặng lẽ. (Muốn chạy demo/sheet thật thì để TRỐNG projectId.)
+    if (typeof FIREBASE_CONFIG !== "undefined" && FIREBASE_CONFIG.projectId && !FIREBASE_ON) {
+      const appLoadingEl = document.getElementById("appLoading");
+      const appErrorEl   = document.getElementById("appError");
+      if (appLoadingEl) appLoadingEl.hidden = true;
+      if (appErrorEl) { appErrorEl.hidden = false; appErrorEl.innerHTML = TEXT.boot.errLoad; }
+      return;
+    }
     // Demo/sheet: dùng DEFAULT_* đã có sẵn, chạy thẳng
     rebuildByEmoji();
     await init();
@@ -155,6 +183,10 @@ async function init() {
   const noEvent     = document.getElementById("noEvent");
   const appError    = document.getElementById("appError");
   const appContent  = document.getElementById("appContent");
+
+  // i18n: đồng bộ chữ màn boot theo LANG (HTML tĩnh trong index.html là fallback pre-JS)
+  if (appLoading) appLoading.textContent = TEXT.boot.loading;
+  if (noEvent)    noEvent.innerHTML      = TEXT.boot.noEvent;
 
   function showMsg(el, html) {
     if (appLoading) appLoading.hidden = true;
@@ -192,7 +224,15 @@ async function init() {
     // để hiển thị tên trong danh sách đội). Thiếu → người chơi vào được lưới nhưng KHÔNG join được
     // (claim trả "missing"). Báo rõ NGAY thay vì để lỗi khó hiểu ở bước chọn đội.
     if (!FIELDS.some(f => f && f.key === "name")) {
-      showMsg(appError, "Sự kiện này thiếu trường tên (key \"name\") trong cấu hình. Vui lòng liên hệ ban tổ chức để cập nhật.");
+      showMsg(appError, TEXT.boot.errNoName);
+      return;
+    }
+
+    // CHẶN CỨNG cấu hình chống trùng SAI: bật chống trùng (blockDup) mà dedupField KHÔNG trỏ tới field nhập
+    // nào → apiClaim sẽ có dedupVal rỗng ⇒ chốt trùng bị BỎ QUA (đúng lỗ khiến 2 trình duyệt cùng MSNV cùng
+    // lọt). FAIL-CLOSED: báo lỗi cấu hình, KHÔNG cho vào lưới (an toàn hơn là để lọt đăng ký trùng).
+    if (BLOCK_DUP && DEDUP_FIELD && !FIELDS.some(f => f && f.key === DEDUP_FIELD)) {
+      showMsg(appError, TEXT.boot.errDedupField);
       return;
     }
 
@@ -215,7 +255,7 @@ async function init() {
 
   } catch (e) {
     // Lỗi mạng hoặc Firestore không phản hồi
-    const msg = "Lỗi tải cấu hình sự kiện. Vui lòng thử lại.";
+    const msg = TEXT.boot.errLoad;
     showMsg(appError, msg);
   }
 })();

@@ -28,6 +28,24 @@ Claim 1 slot trong 1 team:
 3. Kiểm tra `teams/{icon}.count < CAPACITY`
 4. Nếu tất cả pass → ghi atomically: teams, members, dedup_keys, signups
 
+> **Chốt trùng là TRANSACTION (server-serialized), KHÔNG phải rules.** `dedup_keys/{key}` đọc-trong-readset
+> rồi ghi: 2 trình duyệt CÙNG key không thể cùng join (kẻ commit sau conflict → retry → thấy `exists` → `DUP`).
+> Rules chỉ validate shape (`create: hasOnly(['at'])`, `update:if false`). → double-JOIN thật (loại A) **chỉ**
+> xảy ra khi chốt bị BỎ QUA, tức `dedupVal` rỗng: `const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? fields[DEDUP_FIELD]…`
+> (api.js:211) ⇒ `dedupRef=null` (api.js:224) ⇒ transaction không đọc/ghi dedup. `dedupVal` rỗng khi: (a) `blockDup`
+> runtime ≠ true, (b) **`DEDUP_FIELD` không khớp key field thật** trong `fields` (cause hay gặp nhất; cùng class với
+> bug key `"hoten"` ≠ `"name"`), (c) giá trị field để trống, (d) **âm thầm rơi về DEMO** (SDK firebase không nạp →
+> dedup chỉ localStorage per-browser). Chuẩn hoá `_dedupKey` (api.js:48) KHÔNG bỏ dấu/zero-width — vô hại với
+> `employeeId` (đã ép `/^[A-Za-z0-9]{3,20}$/`), nhưng là rủi ro nếu dedupField là field có dấu/unicode.
+
+### Chốt cứng cấu hình (FAIL-CLOSED, "C2" — chống lỗ loại A do cấu hình)
+Ba lớp chặn "âm thầm bỏ dedup" thay vì để lọt trùng:
+- **boot() (app.js):** `blockDup` bật mà `dedupField` không khớp field nào ⇒ màn lỗi `errDedupField`, KHÔNG vào lưới
+  (mirror check key `"name"`). + projectId có nhưng `FIREBASE_ON` false (SDK lỗi) ⇒ báo lỗi, KHÔNG chạy demo lặng lẽ.
+- **apiClaim (api.js, đầu hàm, mode-agnostic):** `BLOCK_DUP && DEDUP_FIELD` mà giá trị dedup rỗng ⇒ trả
+  `reason:"dedupConfig"` (REASON.DEDUP_CONFIG), từ chối join. doClaim map sang `TEXT.toast.dupConfig`.
+- Đây là fix CLIENT, KHÔNG migration. Fix gốc thật khi gặp loại A thường là sửa CONFIG (`meta/config.blockDup`/`dedupField`).
+
 Khi `ALLOWLIST_MODE`: đọc thêm `allowlist/{key}` trong CÙNG `Promise.all` → `reason:"notAllowed"` (ngoài
 danh sách) hoặc `reason:"nameMismatch"` (doc có `name` & tên nhập lệch sau `_normName`). So trên doc ĐÃ
 đọc — KHÔNG thêm read, KHÔNG đổi thứ tự đọc-ghi. Xem [[allowlist]].

@@ -50,7 +50,7 @@ function renderProfile() {
       <div class="summary">
         <div class="ava" style="background:${myIcon ? byEmoji[myIcon].color : 'var(--accent)'}">${initial(me.fields.name)}</div>
         <div class="s-txt">
-          <span class="nm">${esc(me.fields.name) || "Người chơi"}</span>
+          <span class="nm">${esc(me.fields.name) || TEXT.grid.player}</span>
           <span class="meta">${esc(metaBits)}</span>
         </div>
         <div class="s-spacer"></div>
@@ -67,7 +67,7 @@ function renderProfile() {
 
 function closeProfileModal() {
   const modalEl = $("profileModal");
-  if (modalEl) modalEl.remove();
+  if (modalEl) dismissModal(modalEl);
 }
 
 // Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
@@ -75,27 +75,40 @@ function closeProfileModal() {
 function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
   const canCancel = profileValid();
+  const isTech = document.documentElement.getAttribute("data-theme") === "tech";
+  const showBoot = isTech && !canCancel;
+  const bootClass = showBoot ? " tech-booting" : "";
 
   const modalBgEl = document.createElement("div");
   modalBgEl.className = "modal-bg";
   modalBgEl.id = "profileModal";
   modalBgEl.innerHTML = `
-    <div class="modal profile-modal">
-      <div class="pm-emoji">🐾</div>
-      <h3>Chào bạn!</h3>
-      <p>Điền một chút thông tin để bắt đầu tham gia đội của bạn nhé.</p>
-      <div class="form" id="pmForm">
-        ${FIELDS.map(f => `
-          <div class="field full">
-            <label>${esc(f.label)}${f.required ? " *" : ""}</label>
-            <input id="f_${f.key}" type="${f.type}" placeholder="${esc(f.placeholder || "")}"
-                   value="${esc(me.fields[f.key] || "")}" autocomplete="off" inputmode="text">
-            <span class="msg" id="m_${f.key}"></span>
-          </div>`).join("")}
+    <div class="modal profile-modal${bootClass}">
+      ${showBoot ? `
+      <div class="terminal-boot">
+        <div class="term-row">> INITIALIZING SECURE TERMINAL...</div>
+        <div class="term-row">> MOUNTING USER DATABASE...</div>
+        <div class="term-row">> ESTABLISHING PROTOCOLS...</div>
+        <div class="term-row">> STATUS: READY [ACCESS GRANTED]</div>
       </div>
-      <div class="row">
-        ${canCancel ? `<button class="cancel" id="pmCancel">Quay lại</button>` : ""}
-        <button class="confirm" id="pmSave">Bắt đầu tham gia đội →</button>
+      ` : ""}
+      <div class="modal-content-wrap">
+        <div class="pm-emoji">🐾</div>
+        <h3>${TEXT.profile.greeting}</h3>
+        <p>${TEXT.profile.subtitle}</p>
+        <div class="form" id="pmForm">
+          ${FIELDS.map(f => `
+            <div class="field full">
+              <label>${esc(f.label)}${f.required ? " *" : ""}</label>
+              <input id="f_${f.key}" type="${f.type}" placeholder="${esc(f.placeholder || "")}"
+                     value="${esc(me.fields[f.key] || "")}" autocomplete="off" inputmode="text">
+              <span class="msg" id="m_${f.key}"></span>
+            </div>`).join("")}
+        </div>
+        <div class="row">
+          ${canCancel ? `<button class="cancel" id="pmCancel">${TEXT.profile.back}</button>` : ""}
+          <button class="confirm" id="pmSave">${TEXT.profile.start}</button>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(modalBgEl);
@@ -128,12 +141,12 @@ function showProfileModal() {
     // CỔNG chống trùng — KIỂM TRA TRƯỚC KHI GHI: MSNV đã đăng ký rồi → chặn & KHÔNG ghi signups.
     // (Trước đây ghi data trước cổng → cố nhập lại đúng mã đã có vẫn lưu được hồ sơ trùng → bug.)
     const btn = $("pmSave");
-    if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
+    if (btn) { btn.disabled = true; btn.textContent = TEXT.profile.checking; }
     let taken = false;
     if (!myIcon && typeof apiDedupTaken === "function") {   // đã vào đội ⇒ mã dedup là của CHÍNH MÌNH, đừng tự coi là trùng rồi xoá hồ sơ
       try { taken = await apiDedupTaken(me.fields[DEDUP_FIELD]); } catch (e) {}
     }
-    if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
+    if (btn) { btn.disabled = false; btn.textContent = TEXT.profile.start; }
     if (taken) {
       dupBlocked = true;
       if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn signup trùng nếu lỡ lưu ở phiên trước (lúc MSNV còn trống)
@@ -146,9 +159,9 @@ function showProfileModal() {
     // apiAllowlistInfo trả {allowed, name}: name = tên đã đăng ký (để đối chiếu họ tên ngay bên dưới).
     let allow = { allowed: true, name: "" };
     if (typeof apiAllowlistInfo === "function") {
-      if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
+      if (btn) { btn.disabled = true; btn.textContent = TEXT.profile.checking; }
       try { allow = await apiAllowlistInfo(me.fields[DEDUP_FIELD]); } catch (e) {}
-      if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
+      if (btn) { btn.disabled = false; btn.textContent = TEXT.profile.start; }
     }
     if (!allow.allowed) {
       allowBlocked = true;
@@ -163,7 +176,7 @@ function showProfileModal() {
     // GIỮ ở popup để sửa (KHÔNG ghi). Cờ tắt (mặc định) ⇒ bỏ qua bước này, chỉ kiểm có-trong-danh-sách.
     if (ALLOWLIST_NAMECHECK && allow.name && typeof _normName === "function" && _normName(me.fields.name) !== _normName(allow.name)) {
       const msg = $("m_name"), inp = $("f_name");
-      if (msg) msg.textContent = "Họ tên không khớp với danh sách được phép — kiểm tra lại.";
+      if (msg) msg.textContent = TEXT.profile.nameMismatch;
       if (inp) inp.classList.add("bad");
       return;
     }
@@ -171,10 +184,10 @@ function showProfileModal() {
     // CỔNG đặt-chỗ TIỀN-JOIN — SAU mọi cổng trên, TRƯỚC khi ghi signups: giữ MSNV để KHÔNG ai tạo
     // dòng signup thứ hai cùng mã (kể cả khi chưa ai join). Người khác đã giữ ⇒ chặn như trùng MSNV.
     if (!myIcon && typeof apiRegReserve === "function") {   // đã vào đội ⇒ chỗ giữ là của mình, không cần đặt lại
-      if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra…"; }
+      if (btn) { btn.disabled = true; btn.textContent = TEXT.profile.checking; }
       let reserved = { ok: true };
       try { reserved = await apiRegReserve(me.fields[DEDUP_FIELD]); } catch (e) {}
-      if (btn) { btn.disabled = false; btn.textContent = "Bắt đầu tham gia đội →"; }
+      if (btn) { btn.disabled = false; btn.textContent = TEXT.profile.start; }
       if (reserved && reserved.ok === false) {
         dupBlocked = true;
         if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn signup trùng nếu lỡ lưu trước đó
@@ -190,7 +203,7 @@ function showProfileModal() {
     closeProfileModal();
     renderProfile();
     renderStateIfChanged(true);
-    toast("Đã lưu thông tin. Giờ hãy chọn 1 đội để tham gia 👇");
+    toast(TEXT.profile.saved);
   };
 
   $("pmSave").onclick = save;
@@ -202,8 +215,17 @@ function showProfileModal() {
     inp.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
     inp.addEventListener("input",   () => { $("m_" + f.key).textContent = ""; inp.classList.remove("bad"); });
   });
-  const firstInputEl = $("f_" + FIELDS[0].key);
-  if (firstInputEl) setTimeout(() => firstInputEl.focus(), 40);
+  if (showBoot) {
+    setTimeout(() => {
+      const modalEl = modalBgEl.querySelector(".profile-modal");
+      if (modalEl) modalEl.classList.remove("tech-booting");
+      const firstInputEl = $("f_" + FIELDS[0].key);
+      if (firstInputEl) firstInputEl.focus();
+    }, 1050);
+  } else {
+    const firstInputEl = $("f_" + FIELDS[0].key);
+    if (firstInputEl) setTimeout(() => firstInputEl.focus(), 40);
+  }
 }
 
 // Modal CHẶN khi MSNV đã đăng ký rồi — không thể bỏ qua (không click nền/Esc), chỉ cho "Nhập mã khác".
@@ -217,18 +239,17 @@ function showDupBlockedModal() {
   modalBgEl.innerHTML = `
     <div class="modal">
       <div class="mic">🔒</div>
-      <h3>Mã này đã đăng ký rồi</h3>
-      <p><b>${esc(fieldLabel)}</b> bạn nhập đã được dùng để tham gia một đội (kể cả trên thiết bị khác).<br>
-         Mỗi mã chỉ tham gia <b>một lần</b>.</p>
-      <div class="row"><button class="confirm" id="dupBack">Nhập mã khác</button></div>
+      <h3>${TEXT.dup.title}</h3>
+      <p>${TEXT.dup.body(esc(fieldLabel))}</p>
+      <div class="row"><button class="confirm" id="dupBack">${TEXT.dup.btn}</button></div>
     </div>`;
   document.body.appendChild(modalBgEl);
-  $("dupBack").onclick = () => { modalBgEl.remove(); editing = true; renderProfile(); };
+  $("dupBack").onclick = () => { dismissModal(modalBgEl, () => { editing = true; renderProfile(); }); };
 }
 
 function closeDupBlockedModal() {
   const modalEl = $("dupBlockedModal");
-  if (modalEl) modalEl.remove();
+  if (modalEl) dismissModal(modalEl);
 }
 
 // Modal CHẶN khi MSNV KHÔNG nằm trong danh sách cho phép — không thể bỏ qua, chỉ cho "Nhập mã khác".
@@ -242,18 +263,17 @@ function showAllowBlockedModal() {
   modalBgEl.innerHTML = `
     <div class="modal">
       <div class="mic">🔒</div>
-      <h3>Bạn chưa có trong danh sách</h3>
-      <p><b>${esc(fieldLabel)}</b> bạn nhập không nằm trong danh sách được phép tham gia sự kiện này.<br>
-         Vui lòng kiểm tra lại hoặc liên hệ ban tổ chức.</p>
-      <div class="row"><button class="confirm" id="allowBack">Nhập mã khác</button></div>
+      <h3>${TEXT.allow.title}</h3>
+      <p>${TEXT.allow.body(esc(fieldLabel))}</p>
+      <div class="row"><button class="confirm" id="allowBack">${TEXT.allow.btn}</button></div>
     </div>`;
   document.body.appendChild(modalBgEl);
-  $("allowBack").onclick = () => { modalBgEl.remove(); editing = true; renderProfile(); };
+  $("allowBack").onclick = () => { dismissModal(modalBgEl, () => { editing = true; renderProfile(); }); };
 }
 
 function closeAllowBlockedModal() {
   const modalEl = $("allowBlockedModal");
-  if (modalEl) modalEl.remove();
+  if (modalEl) dismissModal(modalEl);
 }
 
 // ── Popup chúc mừng sau khi vào đội thành công ─────────────────────
@@ -268,9 +288,9 @@ function showJoinedModal(iconDef) {
     <div class="modal joined-modal" style="--c:${iconDef.color}">
       <div class="confetti">${"<i></i>".repeat(CONFETTI_COUNT)}</div>
       <div class="jm-icon">${iconDef.icon}</div>
-      <h3>Chúc mừng! 🎉</h3>
-      <p>Bạn đã tham gia <b>đội ${esc(iconDef.name)}</b>.<br>Hẹn gặp bạn cùng đồng đội nhé!</p>
-      <div class="row"><button class="confirm" id="jmOk">Tuyệt vời!</button></div>
+      <h3>${TEXT.celebrate.title}</h3>
+      <p>${TEXT.celebrate.body(esc(iconDef.name))}</p>
+      <div class="row"><button class="confirm" id="jmOk">${TEXT.celebrate.ok}</button></div>
     </div>`;
   document.body.appendChild(modalBgEl);
 
@@ -284,7 +304,7 @@ function showJoinedModal(iconDef) {
   });
 
   // close() gỡ CẢ listener keydown ở cả 3 lối đóng (nút / click nền / Esc) → không rò listener.
-  const close = () => { modalBgEl.remove(); document.removeEventListener("keydown", onKey); };
+  const close = () => { dismissModal(modalBgEl); document.removeEventListener("keydown", onKey); };
   function onKey(e) { if (e.key === "Escape") close(); }
   modalBgEl.querySelector("#jmOk").onclick = close;
   modalBgEl.addEventListener("click", e => { if (e.target === modalBgEl) close(); });
@@ -349,8 +369,8 @@ function renderState() {
     bannerWrapEl.innerHTML = `<div class="banner" style="--c:${iconDef.color}">
         <span class="bi">${iconDef.icon}</span>
         <div>
-          <div class="bt">Bạn đang ở đội ${iconDef.name} ${iconDef.icon}</div>
-          <div class="bs">Đã ghi nhận thông tin của bạn. Mỗi người chỉ tham gia 1 đội.</div>
+          <div class="bt">${TEXT.banner.title(iconDef.name, iconDef.icon)}</div>
+          <div class="bs">${TEXT.banner.sub}</div>
         </div></div>`;
   } else {
     bannerWrapEl.innerHTML = "";
@@ -361,6 +381,7 @@ function renderState() {
   // ── Đội còn chỗ (count < CAPACITY) ──
   const grid = $("grid"); grid.innerHTML = "";
   let open = 0;
+  let tileIndex = 0;
   ICONS.forEach(iconDef => {
     const team = teamOf(iconDef.icon);
     if (team.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
@@ -371,11 +392,13 @@ function renderState() {
     const avatarChips = team.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
                   + (team.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${team.count - AVATAR_PREVIEW_MAX}</span>` : "")
                   || `<span class="mini empty">·</span>`;
-    const label   = !ready ? "Điền thông tin" : (myIcon ? (mine ? "Đội của bạn" : "Đã có đội") : "Tham gia");
+    const label   = !ready ? TEXT.grid.tileFill : (myIcon ? (mine ? TEXT.grid.tileMine : TEXT.grid.tileOther) : TEXT.grid.tileJoin);
 
     const tileEl = document.createElement("div");
     tileEl.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "");
     tileEl.style.setProperty("--c", iconDef.color);
+    tileEl.style.animationDelay = (tileIndex * 0.035) + "s";
+    tileIndex++;
     tileEl.innerHTML = `
       <div class="ic">${iconDef.icon}</div>
       <div class="nm">${iconDef.name}</div>
@@ -391,8 +414,9 @@ function renderState() {
     grid.appendChild(tileEl);
   });
   layoutFreeGrid();   // chia đều số cột theo số đội còn chỗ hiện tại (vd 10 → 5/5)
-  $("freeCount").textContent = `${open}/${ICONS.length} đội`;
-  $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">→ Điền thông tin để mở khoá việc tham gia đội.</div>` : "";
+  $("freeHead").textContent  = TEXT.grid.headOpen;
+  $("freeCount").textContent = TEXT.grid.count(open, ICONS.length);
+  $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">${TEXT.grid.hint}</div>` : "";
   // open === 0 ⇒ MỌI đội đã đủ người → màn hình "hoàn thành" nổi bật (chỉ khi đã tải state thật
   // từ server, tránh chớp nhoáng lúc mới vào trang khi state chưa về).
   $("freeEmpty").innerHTML = (stateLoaded && open === 0)
@@ -405,14 +429,15 @@ function renderState() {
            <span class="af-spark s1">✦</span><span class="af-spark s2">✧</span>
            <span class="af-spark s3">✦</span><span class="af-spark s4">✧</span>
          </div>
-         <div class="af-title">Tất cả các đội đã đủ người! 🎉</div>
-         <div class="af-sub">Cả ${ICONS.length} đội đều đã kín chỗ. Cảm ơn cả nhà đã tham gia — hẹn gặp ở sự kiện sau nhé!</div>
+         <div class="af-title">${TEXT.grid.allFullTitle}</div>
+         <div class="af-sub">${TEXT.grid.allFullSub(ICONS.length)}</div>
        </div>`
     : "";
 
   // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
   const takenEl = $("taken"); takenEl.innerHTML = "";
   let done = 0;
+  let doneIndex = 0;
   ICONS.forEach(iconDef => {
     const team = teamOf(iconDef.icon);
     if (team.count < CAPACITY) return;
@@ -422,15 +447,18 @@ function renderState() {
     const teamEl = document.createElement("div");
     teamEl.className = "full-team" + (mine ? " mine" : "");
     teamEl.style.setProperty("--c", iconDef.color);
+    teamEl.style.animationDelay = (doneIndex * 0.045) + "s";
+    doneIndex++;
     teamEl.innerHTML = `
       <div class="ft-head">
         <span class="ti">${iconDef.icon}</span>
-        <div class="ft-meta"><div class="lab">Đội</div><div class="ft-name">${iconDef.name}</div></div>
-        <span class="ft-badge">${team.count}/${CAPACITY}${mine ? " · bạn" : ""}</span>
+        <div class="ft-meta"><div class="lab">${TEXT.grid.ftLabel}</div><div class="ft-name">${iconDef.name}</div></div>
+        <span class="ft-badge">${team.count}/${CAPACITY}${mine ? TEXT.grid.ftYou : ""}</span>
       </div>
       <ol class="ft-list">${memberItems}</ol>`;
     takenEl.appendChild(teamEl);
   });
-  $("takenCount").textContent = `${done}/${ICONS.length} đội`;
-  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">${EMPTY_SVG}Chưa có đội nào đủ ${CAPACITY} người. Cùng rủ thêm bạn nào!</div>` : "";
+  $("takenHead").textContent  = TEXT.grid.headFull;
+  $("takenCount").textContent = TEXT.grid.count(done, ICONS.length);
+  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">${EMPTY_SVG}${TEXT.grid.takenEmpty(CAPACITY)}</div>` : "";
 }
