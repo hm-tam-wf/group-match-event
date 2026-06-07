@@ -32,7 +32,25 @@
 <div class="wrap">
 
   <!-- Trạng thái khởi động (chỉ hiện ở chế độ firebase, biến mất sau khi tải config xong) -->
-  <div id="appLoading" class="boot-msg">Loading event…</div>
+  <div id="appLoading" class="boot-loader" role="status" aria-live="polite">
+    <div class="loader-spinner" aria-hidden="true">
+      <!-- Spinner mặc định cho Cloud Candy theme -->
+      <div class="default-spinner"></div>
+      <!-- Con chip cho Tech theme -->
+      <svg class="tech-chip" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Pins -->
+        <path d="M12 20h-6 M12 32h-6 M12 44h-6 M52 20h6 M52 32h6 M52 44h6 M20 12v-6 M32 12v-6 M44 12v-6 M20 52v6 M32 52v6 M44 52v6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <!-- Chip body -->
+        <rect x="12" y="12" width="40" height="40" rx="5" fill="#070b1a" stroke="currentColor" stroke-width="3"/>
+        <!-- Inner ring / radar scanner -->
+        <circle cx="32" cy="32" r="12" stroke="currentColor" stroke-width="2.2" stroke-dasharray="6 6" class="radar"/>
+        <!-- Inner Core -->
+        <rect x="25" y="25" width="14" height="14" rx="2" fill="currentColor" class="core"/>
+      </svg>
+    </div>
+    <!-- Chữ trạng thái: đồng bộ theo LANG trong app.js (HTML tĩnh = fallback pre-JS) -->
+    <div class="loader-text">Loading event…</div>
+  </div>
   <div id="noEvent"    class="boot-msg" hidden><b>No event is open right now.</b><br>Please check back later.</div>
   <div id="appError"   class="boot-msg" hidden></div>
 

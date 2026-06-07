@@ -78,6 +78,67 @@
   --page-bg-overlay: linear-gradient(color-mix(in srgb,var(--c-deep-navy) 72%,transparent), color-mix(in srgb,var(--c-deep-navy) 82%,transparent));
 }
 
+/* —— BOOT LOADER: phong cách bảng điều khiển công nghệ cao —— */
+[data-theme="tech"] .boot-loader {
+  background: radial-gradient(1500px 1050px at 50% 42%, var(--c-dark-blue) 0%, var(--c-deep-navy) 72%);
+  border: 1px solid color-mix(in srgb, var(--c-accent-cyan) 16%, transparent);
+}
+[data-theme="tech"] .boot-loader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(color-mix(in srgb, var(--c-electric) 5%, transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, color-mix(in srgb, var(--c-electric) 5%, transparent) 1px, transparent 1px) 0 0 / 44px 44px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+[data-theme="tech"] .default-spinner {
+  display: none;
+}
+[data-theme="tech"] .tech-chip {
+  display: block;
+  width: 78px;
+  height: 78px;
+  color: var(--c-accent-cyan);
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--c-accent-cyan) 45%, transparent));
+  animation: chipPulse 2s ease-in-out infinite;
+}
+[data-theme="tech"] .tech-chip .radar {
+  transform-origin: 32px 32px;
+  animation: spin 3s linear infinite;
+  color: var(--c-magenta);
+}
+[data-theme="tech"] .tech-chip .core {
+  animation: corePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes chipPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px color-mix(in srgb, var(--c-accent-cyan) 40%, transparent)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 20px color-mix(in srgb, var(--c-accent-cyan) 60%, transparent)); }
+}
+@keyframes corePulse {
+  0%, 100% { opacity: 0.4; fill: var(--c-magenta); }
+  50% { opacity: 1; fill: var(--c-accent-cyan); }
+}
+[data-theme="tech"] .loader-text {
+  font-family: ui-monospace, Consolas, Menlo, Monaco, monospace;
+  color: var(--c-accent-cyan);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c-accent-cyan) 65%, transparent);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+/* Tôn trọng prefers-reduced-motion: tắt animation loader chip + viền chạy tile "của mình" (theme tech).
+   Block reduced-motion toàn cục trong styles.css là danh sách selector cố định, KHÔNG vươn vào class theme. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="tech"] .tech-chip,
+  [data-theme="tech"] .tech-chip .radar,
+  [data-theme="tech"] .tech-chip .core,
+  [data-theme="tech"] .tile.mine::after { animation: none !important; }
+}
+
 /* —— Canvas hiệu ứng mạch điện chạy sáng —— */
 #circuit-canvas {
   position: fixed;
@@ -239,15 +300,20 @@
     transform: translateY(8px);
   }
   100% {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @keyframes techBorderFlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  to {
+    --angle: 360deg;
+  }
 }
 
 @keyframes techRGBText {
@@ -467,6 +533,7 @@
   border-color: transparent;
   opacity: 1;
   filter: none;
+  overflow: visible;
   box-shadow: 0 0 32px -6px color-mix(in srgb, var(--c-accent-cyan) 55%, transparent),
               0 18px 40px -22px color-mix(in srgb, var(--shade) 70%, transparent);
 }
@@ -477,9 +544,8 @@
   inset: -1.5px;
   border-radius: calc(var(--r-lg) - 4px);
   padding: 1.5px;
-  background: linear-gradient(135deg, var(--c-electric) 0%, var(--c-accent-cyan) 30%, var(--c-magenta) 70%, var(--c-electric) 100%);
-  background-size: 300% 300%;
-  animation: techBorderFlow 4s linear infinite;
+  background: conic-gradient(from var(--angle), var(--c-electric), var(--c-accent-cyan), var(--c-magenta), var(--c-electric));
+  animation: techBorderFlow 3s linear infinite;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;

@@ -207,7 +207,7 @@ body.initial-load .full-team{
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.show::after{content:"";position:absolute;left:16px;right:16px;bottom:7px;height:3px;border-radius:var(--pill);background:linear-gradient(90deg,#A98CFF,#FFB3D1);transform-origin:left;animation:toastBar 2.4s linear forwards}
 
-@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.96)}to{transform:none}}
 @keyframes wobble{0%{transform:rotate(0)}25%{transform:rotate(-7deg) scale(1.08)}55%{transform:rotate(6deg) scale(1.06)}100%{transform:rotate(0) scale(1)}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes popIn{from{opacity:0;transform:translateY(18px) scale(.92)}to{opacity:1;transform:none}}
@@ -242,10 +242,84 @@ body.initial-load .full-team{
   animation: popOut 0.25s cubic-bezier(.25, 1, .5, 1) forwards;
 }
 
+/* App Content fade-in prep */
+#appContent {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#appContent.loaded {
+  opacity: 1;
+}
+
+/* Boot loader styles */
+.boot-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.6s;
+}
+.boot-loader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.loader-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+}
+.default-spinner {
+  width: 56px;
+  height: 56px;
+  border: 4.5px solid rgba(169, 140, 255, 0.15);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent));
+}
+.tech-chip {
+  display: none;
+}
+.loader-text {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Profile Summary Glide-in animation */
+.summary {
+  animation: summaryGlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes summaryGlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* (Nút đổi theme .theme-toggle đã GỠ khỏi trang công khai — chuyển sang admin.html,
    dùng .btn-ghost của admin; xem wiring trong admin inline script.) */
 
 @media(prefers-reduced-motion:reduce){
-  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark{animation:none!important;transition:none!important}
+  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark,.boot-loader,.default-spinner,.loader-text,#appContent,.summary{animation:none!important;transition:none!important}
   .tile.sel:hover{transform:none}
 }

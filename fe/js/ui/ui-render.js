@@ -65,9 +65,10 @@ function renderProfile() {
   showProfileModal();
 }
 
-function closeProfileModal() {
+function closeProfileModal(callback) {
   const modalEl = $("profileModal");
-  if (modalEl) dismissModal(modalEl);
+  if (modalEl) dismissModal(modalEl, callback);
+  else if (callback) callback();
 }
 
 // Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
@@ -212,14 +213,15 @@ function showProfileModal() {
     apiSaveProfile({ playerId: me.id, fields: me.fields });
     closeDupBlockedModal();
     closeAllowBlockedModal();
-    closeProfileModal();
-    renderProfile();
-    renderStateIfChanged(true);
-    toast(TEXT.profile.saved);
+    closeProfileModal(() => {
+      renderProfile();
+      renderStateIfChanged(true);
+      toast(TEXT.profile.saved);
+    });
   };
 
   $("pmSave").onclick = save;
-  if (canCancel) $("pmCancel").onclick = () => { editing = false; closeProfileModal(); renderProfile(); };
+  if (canCancel) $("pmCancel").onclick = () => { editing = false; closeProfileModal(() => renderProfile()); };
   // CHỦ ĐÍCH: không gắn sự kiện click nền / Esc → popup không thể bỏ qua khi chưa hợp lệ.
 
   FIELDS.forEach(f => {

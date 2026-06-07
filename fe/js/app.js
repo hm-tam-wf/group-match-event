@@ -187,10 +187,27 @@ async function init() {
   setTimeout(() => {
     document.body.classList.remove("initial-load");
   }, 1200);
+
+  // Fade out loader, fade in content
+  const appLoadingEl = document.getElementById("appLoading");
+  const appContentEl = document.getElementById("appContent");
+  if (appLoadingEl) {
+    appLoadingEl.classList.add("fade-out");
+    setTimeout(() => {
+      appLoadingEl.hidden = true;
+    }, 600); // match CSS fade-out transition duration (0.6s)
+  }
+  if (appContentEl) {
+    appContentEl.classList.add("loaded");
+  }
 }
 
 // ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
 (async function boot() {
+  // i18n: chữ "đang tải" trên màn loader theo LANG (HTML tĩnh = fallback pre-JS). Set sớm cho MỌI mode.
+  const loaderTextEl = document.querySelector("#appLoading .loader-text");
+  if (loaderTextEl && typeof TEXT !== "undefined") loaderTextEl.textContent = TEXT.boot.loading;
+
   if (MODE !== MODE_FIREBASE) {
     // Cấu hình CÓ projectId (định chạy firebase) nhưng SDK chưa nạp được (CDN lỗi/offline) → FIREBASE_ON
     // false ⇒ âm thầm rơi về DEMO (đội + dedup chỉ còn cục bộ per-browser ⇒ MẤT chống trùng cross-browser).
@@ -206,9 +223,8 @@ async function init() {
     rebuildByEmoji();
     // Demo/sheet KHÔNG qua bước nạp config Firestore (nơi nhánh firebase ẩn loading + hiện nội dung) →
     // tự tay làm ở đây, nếu không demo kẹt vĩnh viễn ở màn "Loading event…" với #appContent vẫn hidden.
-    const demoLoadingEl = document.getElementById("appLoading");
+    // Giữ màn appLoading hiển thị để chạy hiệu ứng mờ dần sau khi init() hoàn tất.
     const demoContentEl = document.getElementById("appContent");
-    if (demoLoadingEl) demoLoadingEl.hidden = true;
     if (demoContentEl) demoContentEl.hidden = false;
     await init();
     return;
@@ -221,7 +237,6 @@ async function init() {
   const appContent  = document.getElementById("appContent");
 
   // i18n: đồng bộ chữ màn boot theo LANG (HTML tĩnh trong index.html là fallback pre-JS)
-  if (appLoading) appLoading.textContent = TEXT.boot.loading;
   if (noEvent)    noEvent.innerHTML      = TEXT.boot.noEvent;
 
   function showMsg(el, html) {
@@ -286,7 +301,7 @@ async function init() {
     rebuildByEmoji();
 
     // ── Hiện nội dung chính, chạy app ──
-    if (appLoading) appLoading.hidden = true;
+    // Giữ màn appLoading hiển thị để chạy hiệu ứng mờ dần sau khi init() hoàn tất.
     if (appContent) appContent.hidden = false;
     await init();
 
