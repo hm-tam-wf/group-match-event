@@ -75,7 +75,7 @@
   /* —— nền trang: 1 nguồn sự thật. none = nền CSS; đổi sang url('img/<file>')
         (đặt ảnh tại fe/themes/tech/img/) để dùng ảnh nền — KHÔNG sửa rule nào khác. */
   --page-bg-image:   url('img/bg-tech.jpg');
-  --page-bg-overlay: linear-gradient(color-mix(in srgb,var(--c-deep-navy) 72%,transparent), color-mix(in srgb,var(--c-deep-navy) 82%,transparent));
+  --page-bg-overlay: linear-gradient(color-mix(in srgb,var(--c-deep-navy) 94%,transparent), var(--c-deep-navy));
 }
 
 /* —— BOOT LOADER: phong cách bảng điều khiển công nghệ cao —— */
@@ -160,15 +160,15 @@
    mọi nội dung (z-index:-1) nên lưới không ảnh hưởng tương phản chữ. */
 [data-theme="tech"] body::before{
   background:
-    linear-gradient(color-mix(in srgb,var(--c-electric) 8%,transparent) 1px, transparent 1px) 0 0 / 44px 44px,
-    linear-gradient(90deg, color-mix(in srgb,var(--c-electric) 8%,transparent) 1px, transparent 1px) 0 0 / 44px 44px,
-    radial-gradient(1100px 560px at 50% -8%, color-mix(in srgb,var(--c-accent-cyan) 20%,transparent), transparent 60%),
-    radial-gradient(820px 460px at 92% 8%, color-mix(in srgb,var(--c-magenta) 12%,transparent), transparent 60%),
-    radial-gradient(760px 460px at 86% 102%, color-mix(in srgb,var(--c-magenta) 8%,transparent), transparent 60%),
+    linear-gradient(color-mix(in srgb,var(--c-electric) 6%,transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, color-mix(in srgb,var(--c-electric) 6%,transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    radial-gradient(1100px 560px at 50% -8%, color-mix(in srgb,var(--c-accent-cyan) 12%,transparent), transparent 60%),
+    radial-gradient(820px 460px at 92% 8%, color-mix(in srgb,var(--c-magenta) 8%,transparent), transparent 60%),
+    radial-gradient(760px 460px at 86% 102%, color-mix(in srgb,var(--c-magenta) 5%,transparent), transparent 60%),
     var(--page-bg-overlay),
     var(--page-bg-image) center / cover no-repeat fixed,
-    /* vignette: tâm sáng hơn rìa → chiều sâu (dark-blue tâm → deep-navy rìa) */
-    radial-gradient(1500px 1050px at 50% 42%, var(--c-dark-blue) 0%, var(--c-deep-navy) 72%);
+    /* vignette: tâm sáng hơn rìa → chiều sâu (deep-navy pha nhẹ dark-blue ở tâm → deep-navy rìa) */
+    radial-gradient(1500px 1050px at 50% 42%, color-mix(in srgb, var(--c-deep-navy) 70%, var(--c-dark-blue)) 0%, var(--c-deep-navy) 85%);
 }
 
 /* —— Tiêu đề: gradient chữ theo tông Tech Future KV ——

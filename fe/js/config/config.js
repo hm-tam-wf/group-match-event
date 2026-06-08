@@ -101,7 +101,7 @@ const STRINGS = {
       ok:    "Get Ready for Company Trip 2026!",
     },
     banner: {
-      title: (name, icon) => `You're on ${name} ${icon}`,
+      title: (name) => `You're on ${name}`,   // chỉ dùng tên đội (icon đã hiện ở .bi) — tránh "Squad 1 1"
       sub:   "",  // EN: tắt sub banner cho Company Trip 2026 (bật lại: thay "" bằng dòng dưới)
       // sub:   `Your info has been recorded. Each person can join only one ${UE.one}.`,
     },
@@ -181,7 +181,7 @@ const STRINGS = {
       ok:    "Sẵn sàng cho Company Trip 2026!",
     },
     banner: {
-      title: (name, icon) => `Bạn đang ở ${name} ${icon}`,
+      title: (name) => `Bạn đang ở ${name}`,   // chỉ dùng tên đội (icon đã hiện ở .bi) — tránh "Squad 1 1"
       sub:   `Đã ghi nhận thông tin của bạn. Mỗi người chỉ tham gia 1 ${UV.one}.`,
     },
     grid: {

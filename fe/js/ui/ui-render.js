@@ -100,7 +100,7 @@ function showProfileModal() {
         ${isTech ? `
         <div class="tech-logo-only" style="margin-top: 10px;">
           <div class="logo-wrap">
-            <img src="themes/tech/img/logo-faraday.png" alt="Faraday Icon" class="logo-icon">
+            <img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">
             <span class="logo-text">FARADAY</span>
           </div>
         </div>
@@ -383,7 +383,7 @@ function renderState() {
     bannerWrapEl.innerHTML = `<div class="banner" style="--c:${iconDef.color}">
         <span class="bi">${iconDef.icon}</span>
         <div>
-          <div class="bt">${TEXT.banner.title(iconDef.name, iconDef.icon)}</div>
+          <div class="bt">${TEXT.banner.title(iconDef.name)}</div>
           <div class="bs">${TEXT.banner.sub}</div>
         </div></div>`;
   } else {
