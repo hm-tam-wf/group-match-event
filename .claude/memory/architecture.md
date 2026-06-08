@@ -11,7 +11,7 @@ updated: 2026-06-03
 **Group Match** là app đăng ký sự kiện theo team, dành cho sự kiện nội bộ (~500 người đồng thời). Mỗi icon/emoji đại diện cho 1 đội. Người dùng điền tên + mã nhân viên → chọn đội → join. Đội tự khoá khi đầy (mặc định 10 người). Mỗi người chỉ join được 1 đội. Không cần đăng nhập để tham gia.
 
 ## Big pieces
-- **Frontend (`fe/`)** — Static HTML/CSS/JS, không build, ship thẳng (path tương đối → chạy được cả root lẫn subpath). Deploy **SONG SONG 2 nơi**: Firebase Hosting (site `group-match-event` → group-match-event.web.app, deploy thủ công) **và** GitHub Pages (https://hm-tam-wf.github.io/group-match-event/, tự động qua Actions). Tất cả logic ở browser-side.
+- **Frontend (`fe/`)** — Static HTML/CSS/JS, không build, ship thẳng (path tương đối → chạy được cả root lẫn subpath). Deploy **SONG SONG 2 nơi**: Firebase Hosting (site `pickyoursquad-faraday` → pickyoursquad-faraday.web.app, deploy thủ công) **và** GitHub Pages (https://hm-tam-wf.github.io/group-match-event/, tự động qua Actions). Tất cả logic ở browser-side.
 - **Firestore** — Primary database. Realtime push (onSnapshot). Client ghi trực tiếp qua SDK (rules bảo vệ).
 - **Firebase Auth** — Chỉ dùng cho admin panel. Người dùng thường không cần auth.
 - **Google Apps Script** (`legacy/apps-script/`) — Backend cũ, archived. Không còn dùng.

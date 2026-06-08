@@ -3,7 +3,7 @@
     "rules": "backend/firestore.rules"
   },
   "hosting": {
-    "site": "group-match-event",
+    "site": "pickyoursquad-faraday",
     "public": "fe",
     "ignore": [
       "firebase.json",
