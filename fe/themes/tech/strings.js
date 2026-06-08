@@ -18,12 +18,14 @@
   // Theme `tech`: màn "khởi động terminal" của popup nhập thông tin.
   // Chỉ render khi data-theme="tech" và token chưa hợp lệ (xem showProfileModal).
   STRINGS.en.tech = {
+    appTitle: "Pick Your Squad — Faraday",   // brand hiển thị của theme tech (tab title + H1 mặc định); app.js boot áp khi data-theme=tech
     terminalLine1: "Hellow world...",
     terminalLine2: (title) => `Welcome to ${title}`,
     terminalLine3: "Establishing secure protocols...",
     terminalLine4: "STATUS: READY [ACCESS GRANTED]",
   };
   STRINGS.vi.tech = {
+    appTitle: "Pick Your Squad — Faraday",   // brand không dịch — giữ nguyên ở mọi ngôn ngữ
     terminalLine1: "Hellow world...",
     terminalLine2: (title) => `Xin chào bạn đến với ${title}`,
     terminalLine3: "Đang thiết lập giao thức bảo mật...",

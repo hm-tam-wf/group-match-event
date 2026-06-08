@@ -208,6 +208,16 @@ async function init() {
   const loaderTextEl = document.querySelector("#appLoading .loader-text");
   if (loaderTextEl && typeof TEXT !== "undefined") loaderTextEl.textContent = TEXT.boot.loading;
 
+  // Brand theo theme: theme `tech` mang tên "Pick Your Squad" (định nghĩa ở themes/tech/strings.js).
+  // Chạy cho MỌI mode, TRƯỚC nhánh mode. Tab title LUÔN theo brand khi tech; H1 lấy brand làm MẶC ĐỊNH —
+  // ở mode firebase cfg.title (admin đặt) sẽ override H1 phía dưới ⇒ tên sự kiện admin thắng. Tab giữ brand.
+  if (document.documentElement.getAttribute("data-theme") === "tech"
+      && typeof TEXT !== "undefined" && TEXT.tech && TEXT.tech.appTitle) {
+    document.title = TEXT.tech.appTitle;
+    const brandH1 = document.querySelector("#appContent h1");
+    if (brandH1) brandH1.textContent = TEXT.tech.appTitle;
+  }
+
   if (MODE !== MODE_FIREBASE) {
     // Cấu hình CÓ projectId (định chạy firebase) nhưng SDK chưa nạp được (CDN lỗi/offline) → FIREBASE_ON
     // false ⇒ âm thầm rơi về DEMO (đội + dedup chỉ còn cục bộ per-browser ⇒ MẤT chống trùng cross-browser).
