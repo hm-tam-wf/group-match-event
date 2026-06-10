@@ -235,7 +235,7 @@ function showProfileModal() {
       if (modalEl) modalEl.classList.remove("tech-booting");
       const firstInputEl = $("f_" + FIELDS[0].key);
       if (firstInputEl) firstInputEl.focus();
-    }, 1050);
+    }, 4000);
   } else {
     const firstInputEl = $("f_" + FIELDS[0].key);
     if (firstInputEl) setTimeout(() => firstInputEl.focus(), 40);
@@ -448,31 +448,43 @@ function renderState() {
        </div>`
     : "";
 
-  // ── Đội đã đủ (count >= CAPACITY) — liệt kê đủ thành viên ──
+  // ── Đội đã có người (count >= 1) — hiện CẢ đội ĐANG GHÉP lẫn ĐÃ ĐỦ ──
+  // Trước đây chỉ liệt kê đội đủ người; nay có người join là roster hiện ngay ở đây.
+  // Sắp xếp: đủ người (full) lên trước, rồi theo số thành viên giảm dần; hoà điểm thì
+  // giữ thứ tự ICONS gốc (ổn định — không nhảy chỗ mỗi lần render).
   const takenEl = $("taken"); takenEl.innerHTML = "";
-  let done = 0;
-  let doneIndex = 0;
-  ICONS.forEach(iconDef => {
-    const team = teamOf(iconDef.icon);
-    if (team.count < CAPACITY) return;
-    done++;
+  const withMembers = ICONS
+    .map((iconDef, idx) => ({ iconDef, idx, team: teamOf(iconDef.icon) }))
+    .filter(o => o.team.count >= 1)
+    .sort((a, b) => {
+      const af = a.team.count >= CAPACITY, bf = b.team.count >= CAPACITY;
+      if (af !== bf) return af ? -1 : 1;                                    // đủ người lên đầu
+      if (b.team.count !== a.team.count) return b.team.count - a.team.count; // đông hơn lên trước
+      return a.idx - b.idx;                                                 // bằng nhau → giữ thứ tự gốc
+    });
+  withMembers.forEach(({ iconDef, team }, i) => {
     const mine = iconDef.icon === myIcon;
-    const memberItems = team.names.map((n, i) => `<li><span class="no">${i + 1}</span>${esc(n || "—")}</li>`).join("");
+    const full = team.count >= CAPACITY;                 // đủ người = "đã đủ"; còn lại = "đang ghép"
+    let highlightedMe = false;
+    const memberItems = team.names.map((n, j) => {
+      const isMe = mine && me.fields.name && n === me.fields.name && !highlightedMe;
+      if (isMe) highlightedMe = true;
+      return `<li class="${isMe ? 'is-me' : ''}"><span class="no">${j + 1}</span>${esc(n || "—")}</li>`;
+    }).join("");
     const teamEl = document.createElement("div");
-    teamEl.className = "full-team" + (mine ? " mine" : "");
+    teamEl.className = "full-team " + (full ? "is-full" : "is-forming") + (mine ? " mine" : "");
     teamEl.style.setProperty("--c", iconDef.color);
-    teamEl.style.animationDelay = (doneIndex * 0.045) + "s";
-    doneIndex++;
+    teamEl.style.animationDelay = (i * 0.045) + "s";
     teamEl.innerHTML = `
       <div class="ft-head">
         <span class="ti">${iconDef.icon}</span>
-        <div class="ft-meta"><div class="lab">${TEXT.grid.ftLabel}</div><div class="ft-name">${iconDef.name}</div></div>
+        <div class="ft-meta"><div class="lab">${full ? TEXT.grid.ftLabel : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}</div></div>
         <span class="ft-badge">${team.count}/${CAPACITY}${mine ? TEXT.grid.ftYou : ""}</span>
       </div>
       <ol class="ft-list">${memberItems}</ol>`;
     takenEl.appendChild(teamEl);
   });
   $("takenHead").textContent  = TEXT.grid.headFull;
-  $("takenCount").textContent = TEXT.grid.count(done, ICONS.length);
-  $("takenEmpty").innerHTML   = done === 0 ? `<div class="empty-note">${EMPTY_SVG}${TEXT.grid.takenEmpty(CAPACITY)}</div>` : "";
+  $("takenCount").textContent = TEXT.grid.count(withMembers.length, ICONS.length);   // đếm đội CÓ người (gồm đang ghép)
+  $("takenEmpty").innerHTML   = withMembers.length === 0 ? `<div class="empty-note">${EMPTY_SVG}${TEXT.grid.takenEmpty(CAPACITY)}</div>` : "";
 }

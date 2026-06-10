@@ -136,7 +136,8 @@
   [data-theme="tech"] .tech-chip,
   [data-theme="tech"] .tech-chip .radar,
   [data-theme="tech"] .tech-chip .core,
-  [data-theme="tech"] .tile.mine::after { animation: none !important; }
+  [data-theme="tech"] .tile.mine::after,
+  [data-theme="tech"] .full-team.mine::after { animation: none !important; }
 }
 
 /* —— Canvas hiệu ứng mạch điện chạy sáng —— */
@@ -366,21 +367,20 @@
   overflow: hidden;
   border-right: 2px solid transparent;
 }
+/* Phân bổ 4 dòng trải đều ~4s (khớp setTimeout 4000ms ở ui-render.js showProfileModal):
+   mỗi dòng gõ xong rồi CHỜ một nhịp "đang xử lý" trước dòng kế. Dòng 4 xong ~3.6s,
+   để lại ~0.4s ở trạng thái READY trước khi bỏ .tech-booting và mở form. */
 [data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(1) {
-  animation: typeLine 0.15s steps(20) forwards;
-  animation-delay: 0.1s;
+  animation: typeLine 0.5s steps(20) 0.3s forwards;
 }
 [data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(2) {
-  animation: typeLine 0.15s steps(30) forwards;
-  animation-delay: 0.3s;
+  animation: typeLine 0.7s steps(30) 1.2s forwards;
 }
 [data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(3) {
-  animation: typeLine 0.15s steps(25) forwards;
-  animation-delay: 0.5s;
+  animation: typeLine 0.6s steps(25) 2.3s forwards;
 }
 [data-theme="tech"] .profile-modal.tech-booting .term-row:nth-child(4) {
-  animation: typeLine 0.15s steps(15) forwards;
-  animation-delay: 0.75s;
+  animation: typeLine 0.4s steps(15) 3.2s forwards;
   color: #4dd47a; /* Màu xanh lá chỉ thị sẵn sàng */
 }
 
@@ -624,40 +624,180 @@
 [data-theme="tech"] .banner .bt{color:var(--text);font-weight:700}
 [data-theme="tech"] .banner .bs{color:var(--muted)}
 
-/* —— FULL-TEAM (đội đã đủ): thẻ kính navy. GOTCHA: KHÔNG đụng box-shadow (giữ vòng
-   .full-team.mine §108); mép kính đã ở §D.2 .full-team::before. —— */
-[data-theme="tech"] .full-team{
-  border:1px solid var(--line);
-  border-radius:calc(var(--r-lg) - 2px);
-  background:linear-gradient(180deg,color-mix(in srgb,var(--surf-top) 86%,transparent),color-mix(in srgb,var(--surf-bot) 90%,transparent));
+/* —— FULL-TEAM (đội đã đủ/đang ghép): thiết kế Glass Dashboard cao cấp —— */
+[data-theme="tech"] .full-team {
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surf-top) 82%, transparent), color-mix(in srgb, var(--surf-bot) 88%, transparent));
+  box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent),
+              0 0 0 1px color-mix(in srgb, var(--glow-edge) 8%, transparent);
+  backdrop-filter: blur(12px);
   will-change: transform, opacity;
   backface-visibility: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
 }
-[data-theme="tech"] body.initial-load .full-team{
+[data-theme="tech"] body.initial-load .full-team {
   animation: techTileRise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-[data-theme="tech"] .full-team.mine{
-  border-color:color-mix(in srgb,var(--c-electric) 55%,transparent);
+[data-theme="tech"] .full-team.is-forming {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--line) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surf-top) 68%, transparent), color-mix(in srgb, var(--surf-bot) 76%, transparent));
 }
-[data-theme="tech"] .ft-badge{
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hi) 18%,transparent);
+[data-theme="tech"] .full-team.is-full {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--c-accent-cyan) 30%, transparent);
+  box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent),
+              0 0 20px -6px color-mix(in srgb, var(--c-accent-cyan) 15%, transparent);
 }
-[data-theme="tech"] .ft-meta .ft-name{color:var(--text);font-weight:700}
-[data-theme="tech"] .ft-list li{color:var(--text)}
-[data-theme="tech"] .ft-list .no{
-  background:color-mix(in srgb,var(--c-electric) 14%,transparent);color:var(--muted);
+[data-theme="tech"] .full-team.mine {
+  position: relative;
+  border-color: transparent;
+  overflow: visible;
+  box-shadow: 0 0 32px -6px color-mix(in srgb, var(--c-accent-cyan) 45%, transparent),
+              0 18px 40px -22px color-mix(in srgb, var(--shade) 70%, transparent);
+}
+[data-theme="tech"] .full-team.mine::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--r-lg);
+  padding: 1.2px;
+  background: conic-gradient(from var(--angle), var(--c-electric), var(--c-accent-cyan), var(--c-magenta), var(--c-electric));
+  animation: techBorderFlow 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+[data-theme="tech"] .ft-head {
+  gap: 14px;
+  margin-bottom: 16px;
+}
+[data-theme="tech"] .ft-head .ti {
+  font-size: 20px;
+  font-weight: 900;
+  width: 40px;
+  height: 40px;
+  background: color-mix(in srgb, var(--c) 15%, #070b1a);
+  border: 2px solid var(--c);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 25%, transparent),
+              inset 0 0 8px color-mix(in srgb, var(--c) 15%, transparent);
+  flex-shrink: 0;
+}
+[data-theme="tech"] .ft-meta .lab {
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-theme="tech"] .full-team.is-forming .ft-meta .lab {
+  color: var(--c-magenta);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-magenta) 35%, transparent);
+}
+[data-theme="tech"] .full-team.is-full .ft-meta .lab {
+  color: var(--c-accent-cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 35%, transparent);
+}
+[data-theme="tech"] .ft-meta .ft-name {
+  color: var(--text);
+  font-weight: 800;
+  font-size: 17px;
+}
+[data-theme="tech"] .ft-badge {
+  background: color-mix(in srgb, var(--c) 20%, #070b1a);
+  color: #ffffff !important;
+  border: 1.5px solid var(--c);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 35%, transparent),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--pill);
+  font-size: 11px;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+[data-theme="tech"] .full-team.is-full .ft-badge::before {
+  content: "✓";
+  margin-right: 4px;
+  font-weight: 900;
+}
+[data-theme="tech"] .ft-list {
+  gap: 5px;
+}
+[data-theme="tech"] .ft-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--c-electric) 5%, transparent);
+  border-radius: 6px;
+  border-left: 2.5px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+}
+[data-theme="tech"] .ft-list li:hover {
+  background: color-mix(in srgb, var(--c) 10%, rgba(255, 255, 255, 0.04));
+  border-left-color: var(--c);
+  transform: translateX(2px);
+}
+[data-theme="tech"] .ft-list .no {
+  background: transparent;
+  color: color-mix(in srgb, var(--c) 50%, var(--c-light-cyan));
+  font-weight: 700;
+  font-family: ui-monospace, Consolas, Monaco, monospace;
+  font-size: 11px;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  border-right: 1.5px solid color-mix(in srgb, var(--c-electric) 20%, transparent);
+  padding-right: 8px;
+  margin-right: 2px;
+  display: inline-block;
+  text-align: right;
+  min-width: 14px;
+}
+[data-theme="tech"] .ft-list li.is-me {
+  background: color-mix(in srgb, var(--c-accent-cyan) 8%, transparent);
+  border-left-color: var(--c-accent-cyan);
+  color: var(--c-accent-cyan);
+  font-weight: 800;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 45%, transparent);
+}
+[data-theme="tech"] .ft-list li.is-me .no {
+  color: var(--c-accent-cyan);
+  border-right-color: color-mix(in srgb, var(--c-accent-cyan) 30%, transparent);
 }
 
 /* —— SECTION HEADER: nhãn kiểu dashboard (.hr giữ gradient §D.2 — KHÔNG khai lại). —— */
 [data-theme="tech"] .section-h h2{
   color:var(--text);
-  font-weight:700;
-  letter-spacing:-.005em;
+  font-weight:800;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  font-size: 20px;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c-accent-cyan) 30%, transparent);
 }
 [data-theme="tech"] .section-h .count{
-  color:var(--c-light-cyan);
+  color:var(--c-accent-cyan);
   font-weight:800;
   font-variant-numeric:tabular-nums;
+  background: color-mix(in srgb, var(--c-accent-cyan) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-accent-cyan) 30%, transparent);
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 50%, transparent);
+  font-size: 12px;
+  font-family: ui-monospace, Consolas, Monaco, monospace;
 }
 
 /* —— EMPTY / HINT: nền sáng → tấm kính navy mảnh. —— */

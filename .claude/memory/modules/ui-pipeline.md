@@ -3,7 +3,7 @@ title: ui-pipeline
 tags: [module, ui]
 code: [fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
 related: [[index]], [[architecture]], [[design-tokens]]
-updated: 2026-06-03
+updated: 2026-06-10
 ---
 
 # UI Pipeline
@@ -55,6 +55,17 @@ Trang công khai chỉ realtime ở **`teams`** (`apiSubscribe` → `onSnapshot`
 - `renderModal()` — confirm modal trước khi join
 - `renderJoinCelebration()` — confetti + popup chúc mừng sau khi join thành công
 - `renderProfileSummary()` — hiển thị thông tin người đã join (từ localStorage)
+
+### Hai khu lưới trong `renderState()` (ui-render.js)
+1. **`#grid` "còn chỗ"** — đội `count < CAPACITY` (tile để JOIN, có cap-bar + avatar chips).
+2. **`#taken` "completed Successfully"** — TRƯỚC: chỉ đội ĐỦ người. NAY (2026-06): liệt kê MỌI
+   đội `count >= 1` (đang ghép + đã đủ) để roster hiện ngay khi có người join. Một đội đang ghép
+   xuất hiện ở CẢ hai khu (chủ đích: khu 1 để join, khu 2 để xem danh sách). Sắp xếp: đủ-người
+   lên đầu → số thành viên giảm dần → giữ thứ tự ICONS gốc (ổn định). Phân biệt qua class
+   `.is-full` (badge đặc màu đội + `✓` qua CSS `::before`) vs `.is-forming` (viền nét đứt, nền mờ,
+   badge rỗng magenta/`--accent`, nhãn `.lab` = `TEXT.grid.ftForming` "In progress"/"Đang ghép").
+   Badge đếm header `#takenCount` = SỐ ĐỘI CÓ NGƯỜI (gồm đang ghép), KHÔNG chỉ đội đủ.
+   CSS phân biệt nằm ở styles.css (base) + tech.css (`[data-theme="tech"] .full-team.is-*`).
 
 ## Confetti implementation
 Không dùng canvas hay library. Dùng `<i>` elements + CSS keyframes (`cfFall`, `jmPop`). Respects `prefers-reduced-motion`.
