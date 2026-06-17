@@ -712,6 +712,23 @@
 [data-theme="tech"] .full-team.is-full .ft-lock-ic {
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-accent-cyan) 55%, transparent));
 }
+
+/* lịch theo giờ — màn đếm ngược / đã kết thúc (Glass Dashboard, đồng bộ tech) */
+[data-theme="tech"] .schedule-card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surf-top) 82%, transparent), color-mix(in srgb, var(--surf-bot) 88%, transparent));
+  border-color: color-mix(in srgb, var(--c-accent-cyan) 30%, transparent);
+  box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent),
+              0 0 26px -6px color-mix(in srgb, var(--c-accent-cyan) 18%, transparent);
+  backdrop-filter: blur(12px);
+}
+[data-theme="tech"] .schedule-card .sched-ic {
+  color: var(--c-accent-cyan);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c-accent-cyan) 50%, transparent));
+}
+[data-theme="tech"] .sched-count {
+  color: var(--c-accent-cyan);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+}
 [data-theme="tech"] .ft-meta .ft-name {
   color: var(--text);
   font-weight: 800;

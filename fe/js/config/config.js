@@ -57,6 +57,12 @@ let DATA_EPOCH  = 0;   // "thế hệ" dữ liệu sự kiện — admin "Xóa d
 // vì nạp ĐẦU chuỗi → mọi file sau đều gọi được (xem [[ui-pipeline]] thứ tự nạp).
 function capOf(icon) { const c = CAPS && CAPS[icon]; return (typeof c === "number" && c > 0) ? c : CAPACITY; }
 
+// Lịch mở/đóng đăng ký theo giờ (ms epoch). null = không giới hạn phía đó. boot() gán từ
+// meta/config.openAt / .closeAt (Firestore Timestamp → toMillis). Enforce CỨNG ở firestore.rules
+// (inWindow() so request.time). Client tự hiển thị: trước openAt = đếm ngược; sau closeAt = đã kết thúc.
+let OPEN_AT  = null;
+let CLOSE_AT = null;
+
 // ── ➏ Văn bản giao diện (i18n) — registry SONG NGỮ + cờ LANG ──────────────────
 // Gom MỌI chuỗi UI tầng HARDCODE về một nguồn sự thật. Đổi ngôn ngữ = đổi LANG
 // (cùng triết lý ACTIVE_THEME ở theme.js). KHÔNG chứa text tầng config per-event
@@ -80,6 +86,13 @@ const STRINGS = {
       errNoName: 'This event is missing the name field (key "name") in its configuration. Please contact the organizer to update it.',
       errDedupField: "This event has duplicate-blocking turned on, but its duplicate field (dedupField) doesn't match any input field. Please contact the organizer to fix the configuration.",
       errLoad:   "Failed to load event configuration. Please try again.",
+    },
+    schedule: {
+      soonTitle:  "Registration opens soon",
+      opensIn:    "Opens in",
+      opensAt:    (when) => `Opens at ${when}`,
+      endedTitle: "Registration has closed",
+      endedSub:   "Thanks for your interest — see you at the next event!",
     },
     profile: {
       greeting:     `Welcome to Your ${_cap(UE.one)} Selection`,
@@ -162,6 +175,13 @@ const STRINGS = {
       errNoName: 'Sự kiện này thiếu trường tên (key "name") trong cấu hình. Vui lòng liên hệ ban tổ chức để cập nhật.',
       errDedupField: "Sự kiện bật chống trùng nhưng field chống trùng (dedupField) không khớp ô nhập nào. Vui lòng liên hệ ban tổ chức để cập nhật cấu hình.",
       errLoad:   "Lỗi tải cấu hình sự kiện. Vui lòng thử lại.",
+    },
+    schedule: {
+      soonTitle:  "Sự kiện sắp mở",
+      opensIn:    "Mở sau",
+      opensAt:    (when) => `Mở lúc ${when}`,
+      endedTitle: "Sự kiện đã kết thúc",
+      endedSub:   "Cảm ơn bạn đã quan tâm — hẹn gặp lại ở sự kiện sau!",
     },
     profile: {
       greeting:     "Chào bạn!",

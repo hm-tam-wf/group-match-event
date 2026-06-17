@@ -202,6 +202,102 @@ async function init() {
   }
 }
 
+// ── Lịch mở/đóng đăng ký theo giờ (openAt/closeAt) ───────────────────────────
+// KHÔNG có cron: client tự quyết theo Date.now() lúc tải + hẹn giờ tự chuyển trạng thái
+// (đếm ngược → tự vào lưới khi tới giờ mở; tự khoá khi tới giờ đóng). Chốt CỨNG ở rules (request.time).
+let _cdTimer = null, _closeTimer = null;
+
+function _fmtDateTime(ms) {
+  try {
+    return new Date(ms).toLocaleString(LANG === "vi" ? "vi-VN" : "en-GB",
+      { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
+  } catch (e) { return new Date(ms).toString(); }
+}
+function _fmtCountdown(ms) {
+  let s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600);  s -= h * 3600;
+  const m = Math.floor(s / 60);    s -= m * 60;
+  const p = n => String(n).padStart(2, "0");
+  return (d > 0 ? d + "d " : "") + p(h) + ":" + p(m) + ":" + p(s);
+}
+const _clockSvg = `<svg class="sched-ic" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="3"/>
+  <path d="M24 13v11l8 5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+function eventPhase() {
+  const t = Date.now();
+  if (OPEN_AT  && t < OPEN_AT)   return "pre";
+  if (CLOSE_AT && t >= CLOSE_AT) return "closed";
+  return "open";
+}
+
+// Vào lưới (trong khung giờ HOẶC vừa tới giờ mở): hiện appContent + init(); kèm hẹn giờ tự khoá khi tới closeAt.
+async function goLiveNow() {
+  if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
+  const pre = document.getElementById("preOpen");
+  const appContent = document.getElementById("appContent");
+  if (pre) pre.hidden = true;
+  try {
+    if (appContent) appContent.hidden = false;
+    await init();
+  } catch (e) {
+    const appError = document.getElementById("appError");
+    if (appContent) appContent.hidden = true;
+    if (appError) { appError.hidden = false; appError.innerHTML = TEXT.boot.errLoad; }
+    return;
+  }
+  if (CLOSE_AT) {
+    const left = CLOSE_AT - Date.now();
+    if (left <= 0) showClosedScreen();
+    else _closeTimer = setTimeout(showClosedScreen, left + 250);
+  }
+}
+
+function showClosedScreen() {
+  if (_closeTimer) { clearTimeout(_closeTimer); _closeTimer = null; }
+  if (_cdTimer)    { clearInterval(_cdTimer);   _cdTimer = null; }
+  const appLoading = document.getElementById("appLoading");
+  const appContent = document.getElementById("appContent");
+  const pre        = document.getElementById("preOpen");
+  const closed     = document.getElementById("eventClosed");
+  if (appLoading) appLoading.hidden = true;
+  if (appContent) appContent.hidden = true;
+  if (pre)        pre.hidden = true;
+  if (closed) {
+    closed.hidden = false;
+    closed.innerHTML = `<div class="schedule-card">${_clockSvg}` +
+      `<div class="sched-title">${TEXT.schedule.endedTitle}</div>` +
+      `<div class="sched-sub">${TEXT.schedule.endedSub}</div></div>`;
+  }
+}
+
+function showCountdownScreen() {
+  const appLoading = document.getElementById("appLoading");
+  const pre        = document.getElementById("preOpen");
+  if (appLoading) appLoading.hidden = true;
+  if (!pre) return;
+  pre.innerHTML = `<div class="schedule-card">${_clockSvg}` +
+    `<div class="sched-title">${TEXT.schedule.soonTitle}</div>` +
+    `<div class="sched-count" id="cdTimer">${_fmtCountdown(OPEN_AT - Date.now())}</div>` +
+    `<div class="sched-when">${TEXT.schedule.opensAt(_fmtDateTime(OPEN_AT))}</div></div>`;
+  pre.hidden = false;
+  const timerEl = document.getElementById("cdTimer");
+  _cdTimer = setInterval(() => {
+    const left = OPEN_AT - Date.now();
+    if (left <= 0) { goLiveNow(); return; }   // tới giờ mở → tự vào lưới, KHÔNG cần tải lại trang
+    if (timerEl) timerEl.textContent = _fmtCountdown(left);
+  }, 1000);
+}
+
+async function startSchedule() {
+  const phase = eventPhase();
+  if (phase === "pre")    return showCountdownScreen();
+  if (phase === "closed") return showClosedScreen();
+  return goLiveNow();
+}
+
 // ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
 (async function boot() {
   // i18n: chữ "đang tải" trên màn loader theo LANG (HTML tĩnh = fallback pre-JS). Set sớm cho MỌI mode.
@@ -280,6 +376,8 @@ async function init() {
     if (typeof cfg.dedupField === "string")                 DEDUP_FIELD = cfg.dedupField;
     if (typeof cfg.blockDup   === "boolean")                BLOCK_DUP   = cfg.blockDup;
     if (typeof cfg.dataEpoch  === "number")                 DATA_EPOCH  = cfg.dataEpoch;
+    OPEN_AT  = (cfg.openAt  && typeof cfg.openAt.toMillis  === "function") ? cfg.openAt.toMillis()  : null;   // lịch mở/đóng theo giờ
+    CLOSE_AT = (cfg.closeAt && typeof cfg.closeAt.toMillis === "function") ? cfg.closeAt.toMillis() : null;
     if (typeof cfg.allowlistMode === "boolean")             ALLOWLIST_MODE = cfg.allowlistMode;
     if (typeof cfg.allowlistNameCheck === "boolean")        ALLOWLIST_NAMECHECK = cfg.allowlistNameCheck;
 
@@ -311,10 +409,10 @@ async function init() {
 
     rebuildByEmoji();
 
-    // ── Hiện nội dung chính, chạy app ──
-    // Giữ màn appLoading hiển thị để chạy hiệu ứng mờ dần sau khi init() hoàn tất.
-    if (appContent) appContent.hidden = false;
-    await init();
+    // ── Lịch mở/đóng theo giờ ──
+    // Trước openAt → đếm ngược (tự vào lưới khi tới giờ); sau closeAt → màn "đã kết thúc";
+    // trong khung giờ → chạy app như thường (goLiveNow hiện appContent + init, kèm hẹn giờ tự khoá).
+    await startSchedule();
 
   } catch (e) {
     // Lỗi mạng hoặc Firestore không phản hồi

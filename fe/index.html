@@ -53,6 +53,9 @@
   </div>
   <div id="noEvent"    class="boot-msg" hidden><b>No event is open right now.</b><br>Please check back later.</div>
   <div id="appError"   class="boot-msg" hidden></div>
+  <!-- Lịch theo giờ: trước giờ mở = đếm ngược (#preOpen); sau giờ đóng = đã kết thúc (#eventClosed). JS điền nội dung. -->
+  <div id="preOpen"     class="boot-msg" hidden></div>
+  <div id="eventClosed" class="boot-msg" hidden></div>
 
   <!-- Nội dung chính — bị ẩn cho đến khi boot() nạp xong config -->
   <div id="appContent" hidden>

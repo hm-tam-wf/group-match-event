@@ -150,6 +150,14 @@ body.initial-load .full-team{
 .empty-ic{display:block;width:64px;height:46px;margin:0 auto 10px}
 .hint{color:var(--muted);font-weight:700;font-size:13px;background:rgba(221,235,255,.6);border-radius:14px;padding:10px 14px;margin:-4px 0 16px}
 
+/* lịch theo giờ — màn đếm ngược (#preOpen) + đã kết thúc (#eventClosed) */
+.schedule-card{max-width:440px;margin:40px auto;padding:36px 28px;text-align:center;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-soft)}
+.schedule-card .sched-ic{width:56px;height:56px;display:block;margin:0 auto 14px;color:var(--accent)}
+.sched-title{font-family:var(--display);font-weight:700;font-size:22px;color:var(--text);margin-bottom:10px}
+.sched-count{font-family:var(--display);font-weight:800;font-size:44px;line-height:1.1;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin:6px 0}
+.sched-when{font-weight:700;font-size:14px;color:var(--muted)}
+.sched-sub{font-weight:600;font-size:15px;color:var(--muted);line-height:1.55}
+
 /* màn hình "tất cả đội đã đủ" — hoàn thành (Việc 1) */
 .all-full{position:relative;text-align:center;padding:48px 24px 44px;border-radius:var(--r-xl);
   background:linear-gradient(180deg,rgba(231,248,238,.85),rgba(255,255,255,.7));

@@ -42,9 +42,13 @@ signups/{playerId}
   — UPDATE: cho phép nếu GIỮ NGUYÊN playerId (gắn đội / sửa lại hồ sơ của chính mình)
 
 meta/config
-  title, fields, icons, capacity, caps, eventId, dataEpoch
+  title, fields, icons, capacity, caps, openAt, closeAt, eventId, dataEpoch
   — READ: public
   — WRITE: admin only
+  — `openAt`/`closeAt` (Firestore Timestamp | null, 2026-06-17): LỊCH mở/đóng đăng ký theo giờ. null/thiếu
+    = không giới hạn phía đó. Client (`boot`→`OPEN_AT`/`CLOSE_AT` ms): trước openAt = đếm ngược (tự vào lưới
+    khi tới giờ, không reload); sau closeAt = màn "đã kết thúc". Rule `inWindow()` chốt CỨNG theo `request.time`
+    (chặn join ngoài khung; admin bypass để seed chạy ngoài giờ). Admin form: 2 ô datetime-local (giờ địa phương).
   — `caps` (map, 2026-06-17): SĨ SỐ RIÊNG theo đội — `{ "<emoji>": số }`. CHỈ chứa đội đặt riêng; đội
     không có key ⇒ dùng `capacity` chung. Client: `capOf(icon)` (config.js) = `CAPS[icon] || CAPACITY`.
     Rule: `capFor(icon)` (firestore.rules) = `(c.caps != null && icon in c.caps) ? c.caps[icon] : c.capacity`.
@@ -120,6 +124,17 @@ ui-render.js (grid/taken/sort/lock/pct dùng `capOf(iconDef.icon)`), admin.html 
 dashboard `capForIcon`/totalCap), firestore.rules (`capFor(icon)` ở rule `teams` update).
 **⚠ Đổi rule `teams` update (`cap()`→`capFor(icon)`) ⇒ PHẢI deploy lại rules** (`firebase deploy --only firestore:rules`).
 seedTeams (allowlist import) vẫn OK: set `capacity`=maxGroup; `capFor` fallback về capacity nếu đội chưa có cap riêng.
+
+### Lịch mở/đóng theo giờ (openAt/closeAt, 2026-06-17)
+Mở/đóng đăng ký TỰ ĐỘNG theo giờ (admin set 1 lần, không cần cron — client tự xử lý + rules chốt cứng).
+- Schema: `meta/config.openAt`/`.closeAt` (Timestamp|null) — xem block meta/config trên.
+- Client (`app.js`): `OPEN_AT`/`CLOSE_AT` (config.js, ms). `boot()`→`startSchedule()`: `eventPhase()` → "pre"
+  (đếm ngược `#preOpen`, `setInterval` tự gọi `goLiveNow()` khi tới giờ) / "closed" (`#eventClosed`) / "open"
+  (`goLiveNow`= hiện appContent + init + hẹn `setTimeout` tự khoá khi tới closeAt). i18n `TEXT.schedule`.
+- Rule (`firestore.rules`): `inWindow()` so `request.time` với openAt/closeAt; gate `teams` create+update bằng
+  `(inWindow() || isAdmin())` — chặn join ngoài giờ, admin (seed/sửa) bypass. **⚠ Cần deploy lại rules.**
+- Admin (`admin.html`): 2 input datetime-local `fOpenAt`/`fCloseAt` (giờ địa phương → `Timestamp.fromMillis`);
+  validate closeAt>openAt; create set + edit set(merge, ghi null khi trống → rule coi như bỏ giới hạn).
 
 ### Giảm capacity dưới số người đang có — AN TOÀN, không xoá ai
 Sửa capacity (1 số chung mọi đội) xuống thấp hơn đội đông nhất: admin hiện **cảnh báo xác nhận**

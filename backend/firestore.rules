@@ -25,6 +25,13 @@ service cloud.firestore {
         let c = cfg();
         return (c.caps != null && icon in c.caps) ? c.caps[icon] : c.capacity;
       }
+      // Lịch mở/đóng theo giờ: chỉ cho join trong [openAt, closeAt] (so với request.time = giờ máy chủ).
+      // Field thiếu (sự kiện cũ) hoặc null ⇒ KHÔNG giới hạn phía đó. openAt/closeAt là Firestore Timestamp.
+      function inWindow() {
+        let c = cfg();
+        return (!('openAt' in c)  || c.openAt == null  || request.time >= c.openAt)
+            && (!('closeAt' in c) || c.closeAt == null || request.time <= c.closeAt);
+      }
 
       match /meta/{doc} {
         allow read: if true;              // trang công khai cần đọc cấu hình sự kiện đang mở
@@ -35,10 +42,12 @@ service cloud.firestore {
         allow read: if true;
         allow create: if exists(/databases/$(database)/documents/events/$(eventId)/meta/config)
                       && request.resource.data.count == 1
-                      && request.resource.data.names.size() == 1;
+                      && request.resource.data.names.size() == 1
+                      && (inWindow() || isAdmin());                 // ngoài giờ mở/đóng ⇒ chặn join (admin seed bypass)
         allow update: if request.resource.data.icon == resource.data.icon
                       && request.resource.data.count <= capFor(icon)
-                      && request.resource.data.names.size() == request.resource.data.count;
+                      && request.resource.data.names.size() == request.resource.data.count
+                      && (inWindow() || isAdmin());                 // ngoài giờ mở/đóng ⇒ chặn join (admin seed bypass)
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 

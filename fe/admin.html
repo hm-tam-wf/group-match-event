@@ -342,6 +342,17 @@
         </div>
 
         <div class="form-row">
+          <label>Lịch (theo giờ)</label>
+          <div class="form-col" style="max-width:440px;">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Mở lúc<br><input type="datetime-local" id="fOpenAt" style="margin-top:4px;" /></label>
+              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Đóng lúc<br><input type="datetime-local" id="fCloseAt" style="margin-top:4px;" /></label>
+            </div>
+            <span class="hint">Để trống = không giới hạn. Trước giờ mở, trang công khai <b>đếm ngược</b> (tự vào lưới khi tới giờ); sau giờ đóng hiện <b>"đã kết thúc"</b>. Chốt cứng ở rules theo giờ máy chủ.</span>
+          </div>
+        </div>
+
+        <div class="form-row">
           <label>Chống trùng</label>
           <div class="form-col" style="max-width:260px;">
             <select id="fDedupField">
@@ -1094,6 +1105,11 @@
       }
       return { icon, name: texts[1].value.trim(), color: row.querySelector("input[type=color]").value };
     });
+    // Lịch theo giờ: datetime-local (giờ ĐỊA PHƯƠNG của admin) → ms epoch; trống = null (không giới hạn).
+    const openRaw  = $("fOpenAt").value;
+    const closeRaw = $("fCloseAt").value;
+    const openAt   = openRaw  ? new Date(openRaw).getTime()  : null;
+    const closeAt  = closeRaw ? new Date(closeRaw).getTime() : null;
     return {
       eventId:    $("fId").value.trim(),
       title:      $("fTitle").value.trim(),
@@ -1103,7 +1119,7 @@
       blockDup:   $("fBlockDup").checked,
       allowlistMode: $("fAllowlistMode").checked,
       allowlistNameCheck: $("fAllowlistNameCheck").checked,
-      fields, icons, caps, capsInvalid
+      fields, icons, caps, capsInvalid, openAt, closeAt
     };
   }
 
@@ -1116,6 +1132,9 @@
     if (!d.icons.length)                    return "Cần ít nhất 1 đội.";
     if (isNaN(d.capacity) || d.capacity < 1) return "Sĩ số phải là số nguyên ≥ 1.";
     if (d.capsInvalid) return "Sĩ số riêng của đội phải là số nguyên ≥ 1 (để trống nếu dùng sĩ số chung).";
+    if (d.openAt != null && isNaN(d.openAt))   return "Giờ mở không hợp lệ.";
+    if (d.closeAt != null && isNaN(d.closeAt)) return "Giờ đóng không hợp lệ.";
+    if (d.openAt != null && d.closeAt != null && d.closeAt <= d.openAt) return "Giờ đóng phải sau giờ mở.";
     for (const f of d.fields) {
       if (!f.key)   return "Có ô nhập chưa điền key.";
       if (!f.label) return "Có ô nhập chưa điền nhãn.";
@@ -1181,6 +1200,8 @@
         icons:      d.icons,
         capacity:   d.capacity,
         caps:       d.caps,            // sĩ số riêng từng đội (emoji→số); {} nếu mọi đội dùng sĩ số chung
+        openAt:     d.openAt  != null ? firebase.firestore.Timestamp.fromMillis(d.openAt)  : null,   // lịch mở/đóng theo giờ
+        closeAt:    d.closeAt != null ? firebase.firestore.Timestamp.fromMillis(d.closeAt) : null,
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
@@ -1260,6 +1281,8 @@
         fields:     d.fields,
         icons:      d.icons,
         capacity:   d.capacity,
+        openAt:     d.openAt  != null ? firebase.firestore.Timestamp.fromMillis(d.openAt)  : null,   // lịch mở/đóng theo giờ (null = bỏ giới hạn)
+        closeAt:    d.closeAt != null ? firebase.firestore.Timestamp.fromMillis(d.closeAt) : null,
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
@@ -1293,6 +1316,8 @@
     $("fTitle").value      = "";
     $("fSubtitle").value   = "";
     $("fCapacity").value   = "10";
+    $("fOpenAt").value     = "";
+    $("fCloseAt").value    = "";
     $("fBlockDup").checked = true;
     $("fBlockDup").disabled = false;
     $("fBlockDup").dataset.touched = "";
@@ -1325,6 +1350,14 @@
     card.classList.add("flash");
   }
 
+  // Firestore Timestamp → chuỗi cho input datetime-local (giờ ĐỊA PHƯƠNG). "" nếu không có.
+  function tsToLocalInput(ts) {
+    if (!ts || typeof ts.toMillis !== "function") return "";
+    const d = new Date(ts.toMillis());
+    const p = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
   function populateForm(cfg, id) {
     resetForm(false);   // KHÔNG seed mặc định — sẽ tự thêm đúng field của sự kiện bên dưới
     $("fId").value = id || "";
@@ -1332,6 +1365,8 @@
     $("fTitle").value    = cfg.title    || "";
     $("fSubtitle").value = cfg.subtitle || "";
     $("fCapacity").value = cfg.capacity != null ? cfg.capacity : 10;
+    $("fOpenAt").value   = tsToLocalInput(cfg.openAt);
+    $("fCloseAt").value  = tsToLocalInput(cfg.closeAt);
     $("fBlockDup").checked = cfg.blockDup !== false;
     $("fAllowlistMode").checked = !!cfg.allowlistMode;
     // Nhân bản: giữ đúng cấu hình bản gốc (kể cả "" hợp lệ) → tắt autopick, tôn trọng checkbox gốc.

@@ -38,6 +38,11 @@ Mỗi theme gói trong `fe/themes/<tên>/` — xem [[theme-system]].
 4. Attach form submit handler
 5. Poll loop (fallback nếu không có realtime)
 
+**Cổng LỊCH theo giờ (2026-06-17):** sau khi `boot()` nạp config, KHÔNG gọi `init()` thẳng nữa mà qua
+`startSchedule()` (app.js): `eventPhase()` theo `OPEN_AT`/`CLOSE_AT` → trước giờ mở = `#preOpen` đếm ngược
+(tự `goLiveNow()` khi tới giờ, không reload); sau giờ đóng = `#eventClosed`; trong khung = `goLiveNow()`
+(= hiện appContent + `init()` + hẹn giờ tự khoá khi tới closeAt). Chốt cứng ở rules `inWindow()`. Xem [[firestore-schema]].
+
 ## ⚠️ Gotcha: config đọc 1 LẦN lúc boot (reload-only)
 Trang công khai chỉ realtime ở **`teams`** (`apiSubscribe` → `onSnapshot`, api.js). Còn
 `config/active` và `events/{id}/meta/config` (title, capacity, icons, fields, dedup) được
