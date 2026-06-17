@@ -289,6 +289,10 @@ body.initial-load .full-team{
   visibility: hidden;
   pointer-events: none;
 }
+/* `display:flex` ở trên đè UA [hidden]{display:none} (cùng specificity, author thắng) ⇒ appLoading.hidden=true
+   KHÔNG ẩn được loader. Rule này ([hidden] + .boot-loader = 0,2,0) thắng .boot-loader (0,1,0) → JS ẩn loader
+   chuẩn ở showClosedScreen/showCountdownScreen/showMsg/màn lỗi (nếu không, loader phủ kín che mất nội dung). */
+.boot-loader[hidden] { display: none; }
 .loader-spinner {
   display: flex;
   align-items: center;
