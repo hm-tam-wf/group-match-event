@@ -117,13 +117,15 @@ async function init() {
   await loadMe();
   // (Nút đổi theme đã CHUYỂN sang admin.html — trang công khai không cho end-user đổi giao diện.)
   // RESET THEO "THẾ HỆ" DỮ LIỆU: admin "Xóa dữ liệu" sẽ tăng meta/config.dataEpoch. Nếu server MỚI HƠN lần ghé
-  // trước ⇒ localStorage cũ (RESERVED_KEY giữ chỗ + myIcon đã chọn đội) đã LỖI THỜI: khóa chống trùng trên server
-  // đã bị xóa nhưng máy này vẫn tưởng "chỗ của mình". Nhả hết để vào lại như mới (GIỮ me.fields — khỏi gõ lại).
+  // trước ⇒ localStorage cũ (RESERVED_KEY giữ chỗ + myIcon đã chọn đội + hồ sơ MSNV) đã LỖI THỜI: dữ liệu trên
+  // server đã bị xóa nhưng máy này vẫn tưởng "chỗ của mình". Nhả HẾT để vào lại NHƯ MỚI — gồm cả hồ sơ me.fields:
+  // "Xóa dữ liệu" = roster mới ⇒ buộc nhập lại MSNV (không điền sẵn mã cũ của sự kiện trước).
   // Bịt lỗ: sau khi Xóa dữ liệu, máy chủ cũ short-circuit "chỗ mình" cho qua mà MSNV bỏ ngỏ → máy khác đăng ký trùng.
   if (MODE === MODE_FIREBASE) {
     const seenEpoch = Number(await sGet(SK.DATA_EPOCH, false)) || 0;
     if (DATA_EPOCH > seenEpoch) {
       myIcon = null;                          // đội cũ đã bị xóa ⇒ bỏ chọn (người dùng chọn lại)
+      me.fields = {};                         // xóa hồ sơ cũ (MSNV/tên) ⇒ profileComplete()=false ⇒ hiện form nhập lại
       await sDel(SK.RESERVED_KEY, false);     // nhả chỗ giữ cũ ⇒ apiRegReserve sẽ TẠO LẠI khóa thật trên server
       await saveMe();
       await sSet(SK.DATA_EPOCH, String(DATA_EPOCH), false);

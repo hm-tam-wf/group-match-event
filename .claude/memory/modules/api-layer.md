@@ -128,8 +128,9 @@ clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
   khóa-server, nhưng `reservedKey`/`myIcon` localStorage vẫn LỖI THỜI sau khi admin clear (server KHÔNG xóa được
   localStorage của từng máy) → 2 máy có thể cùng tưởng "chỗ của mình" → trùng. Chốt cứng: `clearEvent` (admin)
   tăng `meta/config.dataEpoch` qua `FV.increment(1)`; `boot()` đọc vào global `DATA_EPOCH`; `init()` so với
-  `SK.DATA_EPOCH` localStorage (per-event) — server MỚI HƠN ⇒ nhả `reservedKey` + `myIcon` (GIỮ `me.fields` để
-  khỏi gõ lại), lưu epoch mới. Sau reset: máy re-sync như mới → `apiRegReserve` tạo khóa thật; nếu MSNV đã bị máy
+  `SK.DATA_EPOCH` localStorage (per-event) — server MỚI HƠN ⇒ nhả `reservedKey` + `myIcon` + **XÓA `me.fields`**
+  (2026-06-17: "Xóa dữ liệu" = roster mới ⇒ buộc nhập lại MSNV, KHÔNG điền sẵn mã cũ — đổi từ hành vi "giữ fields
+  khỏi gõ lại" trước đó), lưu epoch mới. Sau reset: máy re-sync như mới → `apiRegReserve` tạo khóa thật; nếu MSNV đã bị máy
   khác chiếm sau clear ⇒ bị chặn trùng đúng. Kết quả: đúng 1 signup/MSNV, hết dòng trùng "ma" sau khi Xóa dữ liệu.
 
 ## apiSubscribe()
