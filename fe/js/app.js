@@ -313,7 +313,8 @@ function showCountdownScreen() {
     `<img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">` +
     `<span class="logo-text">FARADAY</span></div></div>`;
   const titleHtml = _eventTitle ? `<h1 class="sched-event-title">${esc(_eventTitle)}</h1>` : "";
-  const subHtml = _eventSubtitle ? `<p class="sched-event-sub">${esc(_eventSubtitle)}</p>` : "";
+  // subtitle là HTML do admin nhập (cho phép <b>…</b>) — render RAW như #appContent .sub (app.js boot), KHÔNG esc.
+  const subHtml = _eventSubtitle ? `<p class="sched-event-sub">${_eventSubtitle}</p>` : "";
   pre.innerHTML = logoHtml + titleHtml + subHtml + `<div class="schedule-card">${_waitSvg}` +
     `<div class="sched-title">${TEXT.schedule.soonTitle}</div>` +
     `<div class="sched-count" id="cdTimer">${_fmtCountdown(OPEN_AT - Date.now())}</div>` +
