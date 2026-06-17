@@ -734,6 +734,11 @@
   font-size: 14.5px;
   line-height: 1.6;
 }
+/* in đậm: trắng + glow cyan để nổi trên nền tối (mặc định <b> chìm vì kế thừa màu phụ nhạt) */
+[data-theme="tech"] .sched-event-sub b {
+  color: var(--c-white);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+}
 
 /* lịch theo giờ — màn đếm ngược / đã kết thúc (Glass Dashboard, đồng bộ tech) */
 [data-theme="tech"] .schedule-card {
