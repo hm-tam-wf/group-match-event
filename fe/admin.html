@@ -460,6 +460,12 @@
             <input type="file" id="alFile" accept=".xlsx,.xls,.csv" />
             <select id="alCol" class="al-col" hidden></select>
           </div>
+          <!-- Chia đội sẵn: chỉ hiện khi file có cột "team" với người đã được gán đội. Khi BẬT, dùng nút
+               "Làm mới & chia đội": XOÁ dữ liệu tham gia cũ rồi seed người có cột team vào đội (chiếm slot + khoá mã). -->
+          <label class="cb-wrap al-toggle" id="alSeedWrap" hidden>
+            <input type="checkbox" id="alSeedTeams" />
+            Chia đội theo cột “team” (seed người đã có đội · chiếm slot + khoá mã · <b>làm mới dữ liệu cũ</b>)
+          </label>
           <div class="al-import-actions">
             <button id="alAdd" class="btn-pri btn-sm" type="button" disabled>Nhập (thêm vào danh sách)</button>
             <button id="alReplace" class="btn-ghost btn-sm" type="button" disabled>Xoá cũ &amp; nạp mới</button>
@@ -1493,8 +1499,9 @@
       import:$('alImport'), file:$('alFile'), col:$('alCol'), add:$('alAdd'),
       replace:$('alReplace'), result:$('alResult'), search:$('alSearch'),
       download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
+      seedWrap:$('alSeedWrap'), seedTeams:$('alSeedTeams'),
     };
-    let cur = { eid:'', dedupField:'', rows:[], parsed:null };   // parsed = {items:[{key,name}]}
+    let cur = { eid:'', dedupField:'', rows:[], parsed:null };   // parsed = {items:[{key,name,team,raw}]}
 
     // ── tầng dữ liệu (firebase) ──
     const data = {
@@ -1517,6 +1524,64 @@
       },
       async clear(eid){ await deleteAll(`events/${eid}/allowlist`); },   // tái dùng deleteAll của admin
       async delOne(eid, key){ return db.collection('events').doc(eid).collection('allowlist').doc(key).delete(); },
+
+      // Seed người ĐÃ CÓ ĐỘI (cột "team") vào đúng đội — CHIẾM SLOT THẬT + KHOÁ MÃ.
+      // Map team N (số) → icons[N-1] (đội thứ N trong cấu hình). Ghi: teams (count/names), members (1-người-1-đội),
+      // dedup_keys (khoá MSNV), signups (PII cho export). pid="seed_"+key → idempotent doc id.
+      // YÊU CẦU: collection tham gia phải RỖNG trước (doImport gọi clearEventData trước) vì rule members/dedup_keys
+      // có update:if false; và teams create chỉ cho count==1. Capacity tự TĂNG (không giảm) cho vừa đội đông nhất.
+      async seedTeams(eid, items, cfg){
+        const icons = Array.isArray(cfg.icons) ? cfg.icons : [];
+        const dedupField = (cfg.dedupField||'').trim() || 'employeeId';
+        const ts = FV.serverTimestamp();
+        const groups = {};            // iconEmoji -> [{key,raw,name}]
+        const unmapped = new Set();   // giá trị team không map được (vd "5" khi chỉ có 4 icon, hay chữ)
+        for (const it of items){
+          if (!it.team) continue;
+          const n = parseInt(String(it.team).trim(), 10);
+          const def = (!isNaN(n) && n>=1 && n<=icons.length) ? icons[n-1] : null;
+          if (!def || !def.icon){ unmapped.add(it.team); continue; }
+          (groups[def.icon] = groups[def.icon] || []).push({ key:it.key, raw:it.raw, name:it.name });
+        }
+        const iconList = Object.keys(groups);
+        if (!iconList.length) return { seeded:0, perTeam:{}, unmapped:[...unmapped], capacity:Number(cfg.capacity)||0 };
+
+        // 1) Capacity đủ chứa đội đông nhất (CHỈ tăng — an toàn, không đẩy ai ra; xem firestore-schema).
+        const maxGroup = Math.max(...iconList.map(ic=>groups[ic].length));
+        let capacity = Number(cfg.capacity)||0;
+        if (capacity < maxGroup){
+          capacity = maxGroup;
+          await db.collection('events').doc(eid).collection('meta').doc('config').set({ capacity }, { merge:true });
+        }
+
+        // 2) teams/{icon}: tạo count=1 (đúng luật create) → rồi nâng lên đủ (update: count<=cap & names.size==count).
+        const perTeam = {};
+        for (const ic of iconList){
+          const names = groups[ic].map(p=>p.name||'—');
+          perTeam[ic] = names.length;
+          const ref = db.collection('events').doc(eid).collection('teams').doc(ic);
+          await ref.set({ icon:ic, count:1, names:names.slice(0,1) });
+          if (names.length>1) await ref.set({ icon:ic, count:names.length, names });
+        }
+
+        // 3) members + dedup_keys + signups (mỗi người 3 ghi; lô ≤120 người = 360 op ≤ 400/lô).
+        const all = [];
+        for (const ic of iconList) for (const p of groups[ic]) all.push({ ...p, icon:ic });
+        let seeded = 0;
+        for (let i=0;i<all.length;i+=120){
+          const batch = db.batch();
+          all.slice(i,i+120).forEach(p=>{
+            const pid = 'seed_'+p.key;
+            batch.set(db.collection('events').doc(eid).collection('members').doc(pid), { icon:p.icon, at:ts });
+            batch.set(db.collection('events').doc(eid).collection('dedup_keys').doc(p.key), { at:ts });
+            batch.set(db.collection('events').doc(eid).collection('signups').doc(pid),
+              { name:p.name, [dedupField]:p.raw||p.key, playerId:pid, icon:p.icon, at:ts });
+          });
+          await batch.commit();
+          seeded += Math.min(120, all.length-i);
+        }
+        return { seeded, perTeam, unmapped:[...unmapped], capacity };
+      },
     };
 
     function populateEvents(){
@@ -1550,6 +1615,7 @@
     async function loadEvent(eid){
       cur.eid = eid; cur.parsed = null; el.result.hidden = true;
       el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
+      el.seedWrap.hidden = true; el.seedTeams.checked = false; el.replace.textContent = 'Xoá cũ & nạp mới';
       if (!eid){ cur.dedupField=''; el.dedup.textContent='—'; el.mode.checked=false; el.nameCheck.checked=false; cur.rows=[]; renderList(); return; }
       const cfg = await data.config(eid);
       cur.dedupField = (cfg.dedupField||'').trim();
@@ -1579,18 +1645,33 @@
       const want = cur.dedupField.toLowerCase();
       return headers.findIndex(h => String(h).trim().toLowerCase() === want);   // -1 nếu không thấy
     }
-    function buildItems(aoa, colIdx, nameIdx){
+    function buildItems(aoa, colIdx, nameIdx, teamIdx){
       const out = [], seen = new Set();
       for (let r=1;r<aoa.length;r++){
-        const key = _dedupKey(aoa[r][colIdx]);
+        const raw = String(aoa[r][colIdx]==null?'':aoa[r][colIdx]).trim();
+        const key = _dedupKey(raw);
         if (!key || seen.has(key)) continue;
         seen.add(key);
-        out.push({ key, name: nameIdx>=0 ? String(aoa[r][nameIdx]||'').trim() : '' });
+        out.push({
+          key, raw,
+          name: nameIdx>=0 ? String(aoa[r][nameIdx]||'').trim() : '',
+          team: teamIdx>=0 ? String(aoa[r][teamIdx]==null?'':aoa[r][teamIdx]).trim() : '',   // ô trống = chưa chia đội
+        });
       }
       return out;
     }
 
     function showResult(msg, err){ el.result.textContent = msg; el.result.classList.toggle('err', !!err); el.result.hidden = false; }
+
+    // Khi BẬT "Chia đội": seed CHỈ chạy qua nút "Xoá cũ & nạp mới" (làm mới) — nút "Nhập (thêm)" bị khoá vì
+    // rule members/dedup_keys có update:if false (seed đòi collection RỖNG → phải clearEventData trước).
+    function syncSeedButtons(){
+      const seeding = el.seedTeams.checked && !el.seedWrap.hidden;
+      const hasItems = !!(cur.parsed && cur.parsed.items && cur.parsed.items.length);
+      el.add.disabled = !hasItems || seeding;
+      el.replace.disabled = !hasItems;
+      el.replace.textContent = seeding ? 'Xoá cũ & nạp mới + chia đội' : 'Xoá cũ & nạp mới';
+    }
 
     async function onFile(){
       el.result.hidden = true; cur.parsed = null; el.add.disabled = el.replace.disabled = true; el.col.hidden = true;
@@ -1600,6 +1681,7 @@
       if (!aoa.length){ showResult('File rỗng.', true); return; }
       const headers = aoa[0].map(h=>String(h));
       const nameIdx = headers.findIndex(h=>/h[oọ]\s*t[eê]n|^(full\s*)?name$|^t[eê]n$/i.test(String(h).trim()));   // neo ^...$ cho "name" để "username"/"lastname"/"displayName" KHÔNG bị nhận nhầm là cột tên
+      const teamIdx = headers.findIndex(h=>/^(team|đội|đôi|doi|nh[oó]m)$/i.test(String(h).trim()));   // cột chia đội sẵn (tuỳ chọn)
       let colIdx = pickColumn(headers);
       if (colIdx < 0){
         el.col.innerHTML = headers.map((h,i)=>`<option value="${i}">${esc(h||('Cột '+(i+1)))}</option>`).join('');
@@ -1608,15 +1690,75 @@
       }
       const apply = () => {
         const ci = el.col.hidden ? colIdx : parseInt(el.col.value,10);
-        cur.parsed = { items: buildItems(aoa, ci, nameIdx) };
-        el.add.disabled = el.replace.disabled = cur.parsed.items.length === 0;
-        if (cur.parsed.items.length) showResult(`Đọc được ${cur.parsed.items.length} định danh hợp lệ. Bấm "Nhập" hoặc "Xoá cũ & nạp mới".`);
+        const items = buildItems(aoa, ci, nameIdx, teamIdx);
+        cur.parsed = { items, teamIdx };
+        el.add.disabled = el.replace.disabled = items.length === 0;
+        // Tóm tắt cột "team": gom theo giá trị để admin thấy rõ sẽ chia bao nhiêu người vào đội nào.
+        const withTeam = items.filter(it=>it.team);
+        const hasSeed = teamIdx >= 0 && withTeam.length > 0;
+        el.seedWrap.hidden = !hasSeed;
+        if (!hasSeed) el.seedTeams.checked = false;
+        if (items.length){
+          let msg = `Đọc được ${items.length} định danh hợp lệ.`;
+          if (hasSeed){
+            const byTeam = {};
+            withTeam.forEach(it=>{ byTeam[it.team]=(byTeam[it.team]||0)+1; });
+            const brk = Object.keys(byTeam).sort((a,b)=>(parseInt(a,10)||0)-(parseInt(b,10)||0)||a.localeCompare(b))
+              .map(t=>`đội ${t}: ${byTeam[t]}`).join(', ');
+            msg += ` Có cột “team”: ${withTeam.length} người đã chia đội (${brk}).`;
+          }
+          msg += hasSeed
+            ? ' Tích “Chia đội” rồi bấm “Xoá cũ & nạp mới” để làm mới + chia đội; hoặc bỏ tích để chỉ nạp danh sách.'
+            : ' Bấm "Nhập" hoặc "Xoá cũ & nạp mới".';
+          showResult(msg);
+        }
+        syncSeedButtons();
       };
       el.col.onchange = apply; if (colIdx >= 0) apply();   // chỉ auto-dựng khi đã TỰ tìm thấy cột định danh; không thấy ⇒ giữ cảnh báo + chờ admin chọn (tránh im lặng nhập nhầm cột 0)
     }
 
     async function doImport(replace){
       if (!cur.parsed || !cur.parsed.items.length) return;
+      const withTeam = cur.parsed.items.filter(it=>it.team);
+      const seeding = replace && el.seedTeams.checked && !el.seedWrap.hidden && withTeam.length > 0;
+
+      // ── Nhánh CHIA ĐỘI: làm mới dữ liệu tham gia → nạp allowlist → seed người đã có đội (slot thật + khoá mã) ──
+      if (seeding){
+        const cfg = await data.config(cur.eid);
+        if (!Array.isArray(cfg.icons) || !cfg.icons.length){
+          showResult('Sự kiện chưa có cấu hình đội (icons) — không thể chia đội.', true); return;
+        }
+        const ok = await confirmModal({
+          title:'Làm mới dữ liệu, nạp danh sách & chia đội?',
+          message:`Sẽ XOÁ toàn bộ người đăng ký hiện có của "${cur.eid}" (đội/đăng ký/khoá mã), nạp ${cur.parsed.items.length} mục vào danh sách cho phép, `
+            + `rồi chia ${withTeam.length} người (có cột “team”) vào đội — CHIẾM SLOT + KHOÁ MÃ. Capacity sẽ tự tăng cho vừa đội đông nhất. `
+            + `KHÔNG hồi phục được.`,
+          confirmText:'Làm mới & chia đội', danger:true, requireText: cur.eid,
+        });
+        if (!ok) return;
+        el.add.disabled = el.replace.disabled = true;
+        try {
+          await clearEventData(cur.eid);                 // teams/members/dedup_keys/reg_keys/signups (giữ config + allowlist)
+          await data.clear(cur.eid);                     // allowlist
+          await data.addMany(cur.eid, cur.parsed.items); // nạp lại danh sách cho phép (kèm cột name)
+          const res = await data.seedTeams(cur.eid, cur.parsed.items, cfg);
+          // Bump dataEpoch: máy người chơi đang giữ localStorage cũ sẽ tự nhả khi vào lại (giống "Xóa dữ liệu").
+          await db.collection('events').doc(cur.eid).collection('meta').doc('config').set({ dataEpoch: FV.increment(1) }, { merge:true });
+          cur.rows = await data.list(cur.eid); renderList();
+          const brk = Object.entries(res.perTeam).map(([ic,n])=>`${ic} ${n}`).join(' · ') || '—';
+          let msg = `Đã nạp ${cur.parsed.items.length} định danh · chia ${res.seeded} người vào đội (${brk}) · capacity = ${res.capacity}.`;
+          if (res.unmapped.length) msg += ` ⚠ Bỏ qua giá trị team không map được: ${res.unmapped.join(', ')}.`;
+          showResult(msg);
+          el.file.value=''; cur.parsed=null; el.col.hidden = true; el.seedWrap.hidden = true; el.seedTeams.checked = false;
+          syncSeedButtons();
+        } catch (err) {
+          showResult('Lỗi khi nạp & chia đội: ' + (err.message || err), true);
+          syncSeedButtons();
+        }
+        return;
+      }
+
+      // ── Nhánh thường: chỉ nạp danh sách cho phép (không đụng đội) ──
       if (replace){
         const ok = await confirmModal({
           title:'Xoá danh sách cũ rồi nạp mới?',
@@ -1652,6 +1794,7 @@
     el.event.onchange = e => loadEvent(e.target.value);
     el.reload.onclick = () => cur.eid && loadEvent(cur.eid);
     el.file.onchange = onFile;
+    el.seedTeams.onchange = syncSeedButtons;
     el.add.onclick = () => doImport(false);
     el.replace.onclick = () => doImport(true);
     el.search.oninput = renderList;

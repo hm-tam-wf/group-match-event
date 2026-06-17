@@ -3,7 +3,7 @@ title: allowlist
 tags: [module, feature]
 code: [fe/admin.html, fe/js/data/api.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, backend/firestore.rules, sample-allowlist/]
 related: [[index]], [[api-layer]], [[admin-panel]], [[firestore-schema]], [[ui-pipeline]]
-updated: 2026-06-04
+updated: 2026-06-17
 ---
 
 # Allowlist (danh sách MSNV được phép join)
@@ -57,6 +57,32 @@ chọn cột khớp `dedupField` (+ cột tên tuỳ chọn, regex `họ tên|na
 bằng `_dedupKey`, dedup nội bộ, batch ≤400. Thêm/Thay-thế, bảng tìm kiếm, tải CSV, xoá từng dòng.
 Toggle `fAllowlistMode` trong form phụ thuộc `dedupField` (`syncAllowlistToggle`); toggle `fAllowlistNameCheck`
 (con) phụ thuộc `fAllowlistMode` (`syncNameCheckToggle`). Cả hai toggle có bản nút nhanh ở tab (`alMode`/`alNameCheck`).
+
+## Seed đội từ cột "team" khi import (2026-06-17) — "danh sách đã chia đội sẵn"
+Import allowlist nay đọc THÊM cột tuỳ chọn `team` (regex `^(team|đội|đôi|doi|nh[oó]m)$`) → seed người
+ĐÃ CÓ ĐỘI vào đúng đội: **chiếm slot thật + khoá mã** (theo yêu cầu user). Chỉ ở `admin.html` IIFE allowlist.
+- **buildItems** giữ thêm `{team, raw}` (raw = giá trị định danh GỐC, chưa `_dedupKey`, để ghi signups đúng MSNV gốc).
+- **Map đội**: `team` là SỐ N → `icons[N-1]` (đội thứ N trong `meta/config.icons`). File mẫu `data-icon-picker/
+  final_input_data.xlsx`: 4 đội × 25 (team 1→🦊,2→🐉,3→🦅,4→🦁) + 208 người chưa đội. Giá trị không map được
+  (vd "5" khi <5 icon) ⇒ gom vào `unmapped`, BỎ QUA + báo ở kết quả.
+- **UI**: checkbox `#alSeedTeams` (ẩn tới khi file có cột team với ≥1 người chia đội). Khi BẬT: chỉ chạy qua nút
+  "Xoá cũ & nạp mới (+ chia đội)" — nút "Nhập (thêm)" bị khoá (`syncSeedButtons`) vì seed đòi collection RỖNG.
+- **doImport nhánh seed** (replace + seed + có người-team): confirm `requireText:eid` → `clearEventData(eid)`
+  (xoá teams/members/dedup_keys/reg_keys/signups, GIỮ config+allowlist) → `data.clear` (allowlist) → `addMany`
+  (allowlist) → `data.seedTeams` → bump `dataEpoch` (như "Xóa dữ liệu", để máy người chơi nhả localStorage cũ).
+- **data.seedTeams** ghi đúng LUẬT RULES hiện tại (KHÔNG cần đổi rules — xem dưới):
+  - capacity CHỈ tăng cho vừa đội đông nhất (`set {capacity} merge` TRƯỚC khi ghi teams; an toàn, không đẩy ai ra).
+  - `teams/{icon}`: `set count=1,names=[n0]` (đúng rule create count==1) → rồi `set count=N,names=[...]` (update:
+    icon==icon & count<=cap() & names.size==count). Hai set tuần tự (create+update KHÔNG cùng 1 batch được).
+  - mỗi người (lô ≤120 = 360 op): `members/seed_<key>={icon,at}` (create hasOnly[icon,at]), `dedup_keys/<key>={at}`
+    (khoá MSNV), `signups/seed_<key>={name,[dedupField]:raw,playerId,icon,at}`. `pid="seed_"+key` → idempotent doc id.
+- **Vì sao phải clear trước**: rule `members`/`dedup_keys` có `update:if false` → seed lại trên doc CŨ = update = DENIED.
+  clearEventData làm collection rỗng ⇒ mọi ghi là CREATE (hợp lệ). Cũng vì vậy seed = thao tác "làm mới" (fresh).
+- **Hệ quả hiển thị**: đội seed `count>=capacity` ⇒ KHÔNG ở `#grid`, hiện ở `#taken` dạng "Đã chốt" (khoá) — xem
+  trạng thái lock ở [[ui-pipeline]]. Người seed mở app: allowlist cho qua nhưng dedup_keys chặn join lại ("khoá mã").
+- **Lưu ý dung lượng**: capacity là 1 SỐ CHUNG mọi đội. 4 đội đầy + 6 icon còn lại mở (×25=150 chỗ) < 208 người
+  chưa đội ⇒ thiếu chỗ; muốn đủ phải thêm icon / sửa capacity ở form "Sửa sự kiện".
+- KHÔNG test được ghi Firestore từ CLI (admin auth-gated) — đã test parse/group bằng Node trên file thật + node --check cú pháp.
 
 ## Rules ([[firestore-schema]])
 `match /allowlist/{key}` → `get: if true` (client tx đọc theo key đã biết) · `list/write: if isAdmin()`
