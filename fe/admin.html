@@ -1401,7 +1401,7 @@
       icArr.forEach(g => { sigIcons[g.icon] = g; });
 
       const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
-      const teamLabel = ic => (ic ? ic + " " : "") + teamName(ic);
+      const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
 
       sigRows = sigSnap.docs.map(d => d.data());
       sigRows.sort((a, b) => {
@@ -1498,7 +1498,7 @@
   function exportExcel() {
     if (!sigRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }
     const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
-    const teamLabel = ic => (ic ? ic + " " : "") + teamName(ic);
+    const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
     const headers = ["STT", "Đội"].concat(sigFields.map(f => f.label)).concat(["Thời gian"]);
     const data = sigRows.map((r, i) => {
       const o = { "STT": i + 1, "Đội": teamLabel(r.icon) };
