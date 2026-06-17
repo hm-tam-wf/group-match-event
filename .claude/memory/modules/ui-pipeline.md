@@ -3,7 +3,7 @@ title: ui-pipeline
 tags: [module, ui]
 code: [fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
 related: [[index]], [[architecture]], [[design-tokens]]
-updated: 2026-06-10
+updated: 2026-06-17
 ---
 
 # UI Pipeline
@@ -62,10 +62,14 @@ Trang công khai chỉ realtime ở **`teams`** (`apiSubscribe` → `onSnapshot`
    đội `count >= 1` (đang ghép + đã đủ) để roster hiện ngay khi có người join. Một đội đang ghép
    xuất hiện ở CẢ hai khu (chủ đích: khu 1 để join, khu 2 để xem danh sách). Sắp xếp: đủ-người
    lên đầu → số thành viên giảm dần → giữ thứ tự ICONS gốc (ổn định). Phân biệt qua class
-   `.is-full` (badge đặc màu đội + `✓` qua CSS `::before`) vs `.is-forming` (viền nét đứt, nền mờ,
-   badge rỗng magenta/`--accent`, nhãn `.lab` = `TEXT.grid.ftForming` "In progress"/"Đang ghép").
+   `.is-full` (đội ĐÃ KHOÁ/CHỐT: badge đặc màu đội + `✓` qua CSS `::before`; nhãn `.lab` =
+   ổ khoá `LOCK_SVG` inline + `TEXT.grid.ftLocked` "Locked"/"Đã chốt") vs `.is-forming` (viền nét
+   đứt, nền mờ, badge rỗng magenta/`--accent`, nhãn `.lab` = `TEXT.grid.ftForming` "In progress"/"Đang ghép").
    Badge đếm header `#takenCount` = SỐ ĐỘI CÓ NGƯỜI (gồm đang ghép), KHÔNG chỉ đội đủ.
    CSS phân biệt nằm ở styles.css (base) + tech.css (`[data-theme="tech"] .full-team.is-*`).
+   `LOCK_SVG` (ui-render.js, cạnh `EMPTY_SVG`) dùng `fill/stroke=currentColor` → kế thừa màu `.lab`
+   (xám base, cyan-glow tech). Đội đủ KHÔNG có ở `#grid` (biến mất khi `count >= CAPACITY`) ⇒ "khoá
+   nút join" thể hiện ở khu `#taken` qua trạng thái Đã chốt, KHÔNG phải nút bị disable ở lưới join.
 
 ## Confetti implementation
 Không dùng canvas hay library. Dùng `<i>` elements + CSS keyframes (`cfFall`, `jmPop`). Respects `prefers-reduced-motion`.

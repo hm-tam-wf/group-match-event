@@ -118,6 +118,7 @@ const STRINGS = {
       allFullSub:   (total) => `All ${total} ${UE.many} are now full. Thanks everyone for joining — see you at the next event!`,
       ftLabel:      _cap(UE.one),
       ftForming:    "In progress",
+      ftLocked:     "Locked",       // đội đủ người → danh sách đã chốt, không nhận thêm
       ftYou:        " · you",
       takenEmpty:   (capacity) => `No ${UE.one} has reached ${capacity} members yet. Invite more friends to join!`,
       player:       "Player",
@@ -198,6 +199,7 @@ const STRINGS = {
       allFullSub:   (total) => `Cả ${total} ${UV.many} đều đã kín chỗ. Cảm ơn cả nhà đã tham gia — hẹn gặp ở sự kiện sau nhé!`,
       ftLabel:      _cap(UV.one),
       ftForming:    "Đang ghép",
+      ftLocked:     "Đã chốt",      // đội đủ người → danh sách đã chốt, không nhận thêm
       ftYou:        " · bạn",
       takenEmpty:   (capacity) => `Chưa có ${UV.one} nào đủ ${capacity} người. Cùng rủ thêm bạn nào!`,
       player:       "Người chơi",

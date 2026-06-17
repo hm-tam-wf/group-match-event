@@ -10,6 +10,13 @@ const EMPTY_SVG = `<svg class="empty-ic" viewBox="0 0 80 56" fill="none" xmlns="
   <circle cx="55" cy="38" r="2.4" fill="#FFB3D1"/>
 </svg>`;
 
+// Ổ khoá cho đội ĐÃ ĐỦ (danh sách chốt) — SVG để LUÔN hiện (không phụ thuộc font emoji 🔒, hay lỗi ô vuông
+// trên một số máy). currentColor → kế thừa màu nhãn .lab (xám ở base, cyan-glow ở theme tech).
+const LOCK_SVG = `<svg class="ft-lock-ic" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect x="4.5" y="10.5" width="15" height="10.5" rx="2.4" fill="currentColor"/>
+  <path d="M7.75 10.5V7.25a4.25 4.25 0 0 1 8.5 0v3.25" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+</svg>`;
+
 // Hằng số hiển thị (§4 — chống magic number)
 const AVATAR_PREVIEW_MAX = 5;     // số avatar hiện ở mỗi tile trước khi gộp thành "+N"
 const CONFETTI_COUNT     = 28;    // số mảnh confetti trong popup chúc mừng
@@ -478,8 +485,8 @@ function renderState() {
     teamEl.innerHTML = `
       <div class="ft-head">
         <span class="ti">${iconDef.icon}</span>
-        <div class="ft-meta"><div class="lab">${full ? TEXT.grid.ftLabel : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}</div></div>
         <span class="ft-badge">${team.count}/${CAPACITY}${mine ? TEXT.grid.ftYou : ""}</span>
+        <div class="ft-meta"><div class="lab">${full ? `${LOCK_SVG}${TEXT.grid.ftLocked}` : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}</div></div>
       </div>
       <ol class="ft-list">${memberItems}</ol>`;
     takenEl.appendChild(teamEl);

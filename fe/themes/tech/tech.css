@@ -704,6 +704,13 @@
 [data-theme="tech"] .full-team.is-full .ft-meta .lab {
   color: var(--c-accent-cyan);
   text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 35%, transparent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+/* ổ khoá "đã chốt" kế thừa màu cyan của nhãn + glow đồng bộ theme tech */
+[data-theme="tech"] .full-team.is-full .ft-lock-ic {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-accent-cyan) 55%, transparent));
 }
 [data-theme="tech"] .ft-meta .ft-name {
   color: var(--text);
