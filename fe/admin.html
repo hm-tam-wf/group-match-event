@@ -345,8 +345,8 @@
           <label>Lịch (theo giờ)</label>
           <div class="form-col" style="max-width:440px;">
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Mở lúc<br><input type="datetime-local" id="fOpenAt" style="margin-top:4px;" /></label>
-              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Đóng lúc<br><input type="datetime-local" id="fCloseAt" style="margin-top:4px;" /></label>
+              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Mở lúc (giờ VN)<br><input type="datetime-local" id="fOpenAt" style="margin-top:4px;" /></label>
+              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Đóng lúc (giờ VN)<br><input type="datetime-local" id="fCloseAt" style="margin-top:4px;" /></label>
             </div>
             <span class="hint">Để trống = không giới hạn. Trước giờ mở, trang công khai <b>đếm ngược</b> (tự vào lưới khi tới giờ); sau giờ đóng hiện <b>"đã kết thúc"</b>. Chốt cứng ở rules theo giờ máy chủ.</span>
           </div>
@@ -1079,6 +1079,17 @@
     if (match) $("fDedupField").value = match;
   }
 
+  // Lịch theo giờ ghim CỨNG múi giờ Việt Nam (UTC+7, không có DST) — KHÔNG theo timezone máy admin.
+  // Nhờ vậy "09:00" admin nhập = 09:00 giờ VN dù máy đặt múi giờ nào. Dời tay bằng offset cố định.
+  const VN_OFFSET_MS = 7 * 3600 * 1000;
+  // "YYYY-MM-DDTHH:MM" (hiểu là GIỜ VN) -> epoch ms tuyệt đối. Trống = null; sai định dạng = NaN (validate bắt).
+  function vnInputToMs(v) {
+    if (!v) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
+    if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - VN_OFFSET_MS;
+  }
+
   function readForm() {
     const fields = Array.from($("fieldsList").querySelectorAll(".dyn-row")).map(row => {
       const texts = row.querySelectorAll("input[type=text]");
@@ -1105,11 +1116,9 @@
       }
       return { icon, name: texts[1].value.trim(), color: row.querySelector("input[type=color]").value };
     });
-    // Lịch theo giờ: datetime-local (giờ ĐỊA PHƯƠNG của admin) → ms epoch; trống = null (không giới hạn).
-    const openRaw  = $("fOpenAt").value;
-    const closeRaw = $("fCloseAt").value;
-    const openAt   = openRaw  ? new Date(openRaw).getTime()  : null;
-    const closeAt  = closeRaw ? new Date(closeRaw).getTime() : null;
+    // Lịch theo giờ: datetime-local hiểu là GIỜ VN (UTC+7) → ms epoch; trống = null (không giới hạn).
+    const openAt   = vnInputToMs($("fOpenAt").value);
+    const closeAt  = vnInputToMs($("fCloseAt").value);
     return {
       eventId:    $("fId").value.trim(),
       title:      $("fTitle").value.trim(),
@@ -1351,11 +1360,12 @@
   }
 
   // Firestore Timestamp → chuỗi cho input datetime-local (giờ ĐỊA PHƯƠNG). "" nếu không có.
+  // Đổ Timestamp về ô datetime-local theo GIỜ VN (UTC+7): dời instant +7h rồi đọc bằng getUTC* (round-trip với vnInputToMs).
   function tsToLocalInput(ts) {
     if (!ts || typeof ts.toMillis !== "function") return "";
-    const d = new Date(ts.toMillis());
+    const d = new Date(ts.toMillis() + VN_OFFSET_MS);
     const p = n => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
   }
 
   function populateForm(cfg, id) {

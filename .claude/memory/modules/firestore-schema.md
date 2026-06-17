@@ -48,7 +48,7 @@ meta/config
   — `openAt`/`closeAt` (Firestore Timestamp | null, 2026-06-17): LỊCH mở/đóng đăng ký theo giờ. null/thiếu
     = không giới hạn phía đó. Client (`boot`→`OPEN_AT`/`CLOSE_AT` ms): trước openAt = đếm ngược (tự vào lưới
     khi tới giờ, không reload); sau closeAt = màn "đã kết thúc". Rule `inWindow()` chốt CỨNG theo `request.time`
-    (chặn join ngoài khung; admin bypass để seed chạy ngoài giờ). Admin form: 2 ô datetime-local (giờ địa phương).
+    (chặn join ngoài khung; admin bypass để seed chạy ngoài giờ). Admin form: 2 ô datetime-local hiểu là **GIỜ VN (UTC+7)**.
   — `caps` (map, 2026-06-17): SĨ SỐ RIÊNG theo đội — `{ "<emoji>": số }`. CHỈ chứa đội đặt riêng; đội
     không có key ⇒ dùng `capacity` chung. Client: `capOf(icon)` (config.js) = `CAPS[icon] || CAPACITY`.
     Rule: `capFor(icon)` (firestore.rules) = `(c.caps != null && icon in c.caps) ? c.caps[icon] : c.capacity`.
@@ -133,8 +133,13 @@ Mở/đóng đăng ký TỰ ĐỘNG theo giờ (admin set 1 lần, không cần 
   (`goLiveNow`= hiện appContent + init + hẹn `setTimeout` tự khoá khi tới closeAt). i18n `TEXT.schedule`.
 - Rule (`firestore.rules`): `inWindow()` so `request.time` với openAt/closeAt; gate `teams` create+update bằng
   `(inWindow() || isAdmin())` — chặn join ngoài giờ, admin (seed/sửa) bypass. **⚠ Cần deploy lại rules.**
-- Admin (`admin.html`): 2 input datetime-local `fOpenAt`/`fCloseAt` (giờ địa phương → `Timestamp.fromMillis`);
+- Admin (`admin.html`): 2 input datetime-local `fOpenAt`/`fCloseAt` (nhãn "(giờ VN)") → `Timestamp.fromMillis`;
   validate closeAt>openAt; create set + edit set(merge, ghi null khi trống → rule coi như bỏ giới hạn).
+- **Múi giờ ghim CỨNG UTC+7 (2026-06-17)** — KHÔNG theo timezone máy. Việt Nam fixed UTC+7 (không DST) ⇒ offset
+  hằng số chính xác tuyệt đối. `admin.html`: `VN_OFFSET_MS=7h`; `vnInputToMs()` parse chuỗi datetime-local bằng
+  `Date.UTC(...)−7h` (thay `new Date(str)`); `tsToLocalInput()` đổ về form bằng `+7h` rồi đọc `getUTC*`. Hiển thị
+  công khai `app.js _fmtDateTime` dùng `toLocaleString({timeZone:"Asia/Ho_Chi_Minh"})`; i18n `opensAt` thêm
+  "(giờ VN)"/"(GMT+7)". Countdown & rule vẫn so mốc tuyệt đối (`Date.now()`, `request.time`) → không đụng.
 
 ### Giảm capacity dưới số người đang có — AN TOÀN, không xoá ai
 Sửa capacity (1 số chung mọi đội) xuống thấp hơn đội đông nhất: admin hiện **cảnh báo xác nhận**

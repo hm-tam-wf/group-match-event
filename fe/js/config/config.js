@@ -90,7 +90,7 @@ const STRINGS = {
     schedule: {
       soonTitle:  "Registration opens soon",
       opensIn:    "Opens in",
-      opensAt:    (when) => `Opens at ${when}`,
+      opensAt:    (when) => `Opens at ${when} (GMT+7)`,
       endedTitle: "Registration has closed",
       endedSub:   "Thanks for your interest — see you at the next event!",
     },
@@ -179,7 +179,7 @@ const STRINGS = {
     schedule: {
       soonTitle:  "Sự kiện sắp mở",
       opensIn:    "Mở sau",
-      opensAt:    (when) => `Mở lúc ${when}`,
+      opensAt:    (when) => `Mở lúc ${when} (giờ VN)`,
       endedTitle: "Sự kiện đã kết thúc",
       endedSub:   "Cảm ơn bạn đã quan tâm — hẹn gặp lại ở sự kiện sau!",
     },

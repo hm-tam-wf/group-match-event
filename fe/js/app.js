@@ -209,8 +209,9 @@ let _cdTimer = null, _closeTimer = null;
 
 function _fmtDateTime(ms) {
   try {
+    // Ghim hiển thị theo GIỜ VN (Asia/Ho_Chi_Minh) bất kể máy người xem đặt múi giờ nào.
     return new Date(ms).toLocaleString(LANG === "vi" ? "vi-VN" : "en-GB",
-      { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
+      { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" });
   } catch (e) { return new Date(ms).toString(); }
 }
 function _fmtCountdown(ms) {
