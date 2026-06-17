@@ -108,15 +108,13 @@ const STRINGS = {
       nameMismatch: "Your name doesn't match the allowed list — please check again.",
     },
     dup: {
-      title: "This code is already registered",
-      body:  (label) => `The <b>${label}</b> you entered has already been used to join a ${UE.one} (including on other devices).<br>
-         Each code can join <b>only once</b>.`,
+      title: "This code has already joined",
+      body:  (label) => `The <b>${label}</b> you entered has already been used to join a ${UE.one} — possibly on <b>another device or browser</b>. Each code joins <b>only once</b>.<br>If this was you, reopen on the device where you registered.`,
       btn:   "Enter a different code",
     },
     allow: {
-      title: "You're not on the list",
-      body:  (label) => `The <b>${label}</b> you entered is not on the allowed list for this event.<br>
-         Please double-check or contact the organizer.`,
+      title: "Code not on the list",
+      body:  (label) => `The <b>${label}</b> you entered is <b>not on the allowed list</b> for this event. Double-check it, or contact the organizer to be added.`,
       btn:   "Enter a different code",
     },
     celebrate: {
@@ -201,15 +199,13 @@ const STRINGS = {
       nameMismatch: "Họ tên không khớp với danh sách được phép — kiểm tra lại.",
     },
     dup: {
-      title: "Mã này đã đăng ký rồi",
-      body:  (label) => `<b>${label}</b> bạn nhập đã được dùng để tham gia một ${UV.one} (kể cả trên thiết bị khác).<br>
-         Mỗi mã chỉ tham gia <b>một lần</b>.`,
+      title: "Mã này đã tham gia rồi",
+      body:  (label) => `<b>${label}</b> bạn nhập đã được dùng để tham gia một ${UV.one} — <b>có thể ở thiết bị hoặc trình duyệt khác</b>. Mỗi mã chỉ tham gia <b>một lần</b>.<br>Nếu là bạn, hãy mở lại trên thiết bị đã đăng ký.`,
       btn:   "Nhập mã khác",
     },
     allow: {
-      title: "Bạn chưa có trong danh sách",
-      body:  (label) => `<b>${label}</b> bạn nhập không nằm trong danh sách được phép tham gia sự kiện này.<br>
-         Vui lòng kiểm tra lại hoặc liên hệ ban tổ chức.`,
+      title: "Mã không có trong danh sách",
+      body:  (label) => `<b>${label}</b> bạn nhập <b>không nằm trong danh sách được phép</b> của sự kiện. Kiểm tra lại, hoặc liên hệ ban tổ chức để được thêm vào.`,
       btn:   "Nhập mã khác",
     },
     celebrate: {
