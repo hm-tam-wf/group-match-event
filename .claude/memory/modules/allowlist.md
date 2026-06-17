@@ -70,6 +70,9 @@ Import allowlist nay đọc THÊM cột tuỳ chọn `team` (regex `^(team|độ
 - **doImport nhánh seed** (replace + seed + có người-team): confirm `requireText:eid` → `clearEventData(eid)`
   (xoá teams/members/dedup_keys/reg_keys/signups, GIỮ config+allowlist) → `data.clear` (allowlist) → `addMany`
   (allowlist) → `data.seedTeams` → bump `dataEpoch` (như "Xóa dữ liệu", để máy người chơi nhả localStorage cũ).
+- **doImport nhánh thường — "Xoá & nạp mới" (Replace)** cũng bump `dataEpoch` (2026-06-17): thay TOÀN BỘ allowlist =
+  roster mới ⇒ máy đã đăng nhập tự đăng-nhập-lại khi vào lại (boot xóa `me.fields`, cổng allowlist kiểm theo danh
+  sách MỚI). Nhánh **"Nhập (thêm)" (Add) KHÔNG bump** (additive — người cũ vẫn hợp lệ). Xem reset epoch ở [[api-layer]].
 - **data.seedTeams** ghi đúng LUẬT RULES hiện tại (KHÔNG cần đổi rules — xem dưới):
   - capacity CHỈ tăng cho vừa đội đông nhất (`set {capacity} merge` TRƯỚC khi ghi teams; an toàn, không đẩy ai ra).
   - `teams/{icon}`: `set count=1,names=[n0]` (đúng rule create count==1) → rồi `set count=N,names=[...]` (update:

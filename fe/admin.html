@@ -1840,6 +1840,11 @@
       try {
         if (replace) await data.clear(cur.eid);
         await data.addMany(cur.eid, cur.parsed.items);
+        // Replace = thay TOÀN BỘ danh sách (roster mới) ⇒ bump dataEpoch để máy đã đăng nhập tự ĐĂNG NHẬP LẠI
+        // khi vào lại (boot so seenEpoch → xóa me.fields → cổng allowlist kiểm theo danh sách MỚI). KHÔNG bump
+        // khi chỉ "Thêm" (additive: người cũ vẫn hợp lệ, không nên đá ra).
+        if (replace) await db.collection('events').doc(cur.eid).collection('meta').doc('config')
+                             .set({ dataEpoch: FV.increment(1) }, { merge: true });
         cur.rows = await data.list(cur.eid); renderList();
         showResult(`Đã nhập ${cur.parsed.items.length} · tổng hiện có ${cur.rows.length}.`);
         el.file.value=''; cur.parsed=null; el.col.hidden = true;
