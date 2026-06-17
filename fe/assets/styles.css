@@ -150,13 +150,53 @@ body.initial-load .full-team{
 .empty-ic{display:block;width:64px;height:46px;margin:0 auto 10px}
 .hint{color:var(--muted);font-weight:700;font-size:13px;background:rgba(221,235,255,.6);border-radius:14px;padding:10px 14px;margin:-4px 0 16px}
 
+.sched-event-title{font-family:var(--display);font-weight:800;font-size:clamp(24px,5vw,36px);text-align:center;color:var(--text);margin:30px auto 10px;max-width:600px}
+.sched-event-sub{font-weight:600;font-size:15px;color:var(--muted);text-align:center;max-width:500px;margin:0 auto 24px;line-height:1.55}
+
 /* lịch theo giờ — màn đếm ngược (#preOpen) + đã kết thúc (#eventClosed) */
 .schedule-card{max-width:440px;margin:40px auto;padding:36px 28px;text-align:center;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-soft)}
 .schedule-card .sched-ic{width:56px;height:56px;display:block;margin:0 auto 14px;color:var(--accent)}
 .sched-title{font-family:var(--display);font-weight:700;font-size:22px;color:var(--text);margin-bottom:10px}
 .sched-count{font-family:var(--display);font-weight:800;font-size:44px;line-height:1.1;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin:6px 0}
+.sched-count-grid{display:flex;justify-content:center;align-items:center;gap:10px;margin:20px 0}
+.sched-unit{display:flex;flex-direction:column;align-items:center;min-width:64px}
+.sched-unit .val{font-family:var(--display);font-weight:800;font-size:36px;line-height:1;color:var(--accent)}
+.sched-unit .lbl{font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-top:4px;letter-spacing:.05em}
+.sched-sep{font-size:24px;font-weight:700;color:var(--line);padding-bottom:16px}
 .sched-when{font-weight:700;font-size:14px;color:var(--muted)}
 .sched-sub{font-weight:600;font-size:15px;color:var(--muted);line-height:1.55}
+
+/* rotation animation for countdown clock wait-ring */
+@keyframes rotateClock{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.sched-ic.cd-wait .wait-ring{transform-origin:center;transform-box:view-box;animation:rotateClock 20s linear infinite}
+.sched-ic.cd-wait .wait-hands{transform-origin:center;transform-box:view-box;animation:rotateClock 60s linear infinite}
+
+/* ended card entry & lock animations */
+@keyframes techClosedIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.schedule-card {
+  animation: techClosedIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lockSnap {
+  0% { transform: translateY(-7px); opacity: 0; }
+  35% { transform: translateY(-7px); opacity: 1; }
+  75% { transform: translateY(1.5px); }
+  100% { transform: translateY(0); }
+}
+.sched-ic.cd-ended .lock-shackle {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: lockSnap 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation-delay: 0.15s;
+}
+.sched-ic.cd-ended .ended-ring {
+  transform-origin: center;
+  transform-box: view-box;
+  animation: rotateClock 24s linear infinite;
+}
 
 /* màn hình "tất cả đội đã đủ" — hoàn thành (Việc 1) */
 .all-full{position:relative;text-align:center;padding:48px 24px 44px;border-radius:var(--r-xl);
@@ -322,7 +362,8 @@ body.initial-load .full-team{
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }
@@ -342,6 +383,9 @@ body.initial-load .full-team{
    dùng .btn-ghost của admin; xem wiring trong admin inline script.) */
 
 @media(prefers-reduced-motion:reduce){
-  .tile,.tile .ic,.cap-bar span,.full-team,.modal,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark,.boot-loader,.default-spinner,.loader-text,#appContent,.summary{animation:none!important;transition:none!important}
+  .tile,.tile .ic,.cap-bar span,.full-team,.modal-bg,.toast,.toast.show::after,.jm-icon,.confetti i,.all-full,.af-check,.af-spark,.boot-loader,#appContent,.summary{animation:none!important;transition:none!important}
+  .modal{animation:none!important;transition:none!important}
+  .default-spinner{animation:spin 3s linear infinite!important;transition:none!important}
+  .loader-text{animation:pulse 3s ease-in-out infinite!important;transition:none!important}
   .tile.sel:hover{transform:none}
 }

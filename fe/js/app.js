@@ -206,6 +206,7 @@ async function init() {
 // KHÔNG có cron: client tự quyết theo Date.now() lúc tải + hẹn giờ tự chuyển trạng thái
 // (đếm ngược → tự vào lưới khi tới giờ mở; tự khoá khi tới giờ đóng). Chốt CỨNG ở rules (request.time).
 let _cdTimer = null, _closeTimer = null;
+let _eventTitle = "", _eventSubtitle = "";
 
 function _fmtDateTime(ms) {
   try {
@@ -220,11 +221,36 @@ function _fmtCountdown(ms) {
   const h = Math.floor(s / 3600);  s -= h * 3600;
   const m = Math.floor(s / 60);    s -= m * 60;
   const p = n => String(n).padStart(2, "0");
-  return (d > 0 ? d + "d " : "") + p(h) + ":" + p(m) + ":" + p(s);
+
+  const hasText = typeof TEXT !== "undefined" && TEXT.schedule;
+  const daysLbl = hasText ? TEXT.schedule.days : "d";
+  const hoursLbl = hasText ? TEXT.schedule.hours : "h";
+  const minsLbl = hasText ? TEXT.schedule.mins : "m";
+  const secsLbl = hasText ? TEXT.schedule.secs : "s";
+
+  return `<div class="sched-count-grid">
+    <div class="sched-unit"><span class="val">${p(d)}</span><span class="lbl">${daysLbl}</span></div>
+    <div class="sched-sep">:</div>
+    <div class="sched-unit"><span class="val">${p(h)}</span><span class="lbl">${hoursLbl}</span></div>
+    <div class="sched-sep">:</div>
+    <div class="sched-unit"><span class="val">${p(m)}</span><span class="lbl">${minsLbl}</span></div>
+    <div class="sched-sep">:</div>
+    <div class="sched-unit"><span class="val">${p(s)}</span><span class="lbl">${secsLbl}</span></div>
+  </div>`;
 }
-const _clockSvg = `<svg class="sched-ic" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-  <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="3"/>
-  <path d="M24 13v11l8 5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+const _waitSvg = `<svg class="sched-ic cd-wait" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2.5" stroke-dasharray="8 6" class="wait-ring"/>
+  <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.25"/>
+  <path d="M32 18v14l10 6" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="wait-hands"/>
+  <circle cx="32" cy="32" r="3.5" fill="currentColor"/>
+</svg>`;
+
+const _endedSvg = `<svg class="sched-ic cd-ended" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2.5" stroke-opacity="0.2"/>
+  <circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 4" stroke-opacity="0.4" class="ended-ring"/>
+  <rect x="20" y="28" width="24" height="18" rx="3" stroke="currentColor" stroke-width="3.2" fill="none"/>
+  <path d="M26 28v-6a6 6 0 1 1 12 0v6" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" class="lock-shackle"/>
+  <circle cx="32" cy="37" r="2.5" fill="currentColor"/>
 </svg>`;
 
 function eventPhase() {
@@ -268,7 +294,11 @@ function showClosedScreen() {
   if (pre)        pre.hidden = true;
   if (closed) {
     closed.hidden = false;
-    closed.innerHTML = `<div class="schedule-card">${_clockSvg}` +
+    const logoHtml = `<div class="tech-logo-only"><div class="logo-wrap">` +
+      `<img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">` +
+      `<span class="logo-text">FARADAY</span></div></div>`;
+    const titleHtml = _eventTitle ? `<h1 class="sched-event-title">${esc(_eventTitle)}</h1>` : "";
+    closed.innerHTML = logoHtml + titleHtml + `<div class="schedule-card">${_endedSvg}` +
       `<div class="sched-title">${TEXT.schedule.endedTitle}</div>` +
       `<div class="sched-sub">${TEXT.schedule.endedSub}</div></div>`;
   }
@@ -279,7 +309,12 @@ function showCountdownScreen() {
   const pre        = document.getElementById("preOpen");
   if (appLoading) appLoading.hidden = true;
   if (!pre) return;
-  pre.innerHTML = `<div class="schedule-card">${_clockSvg}` +
+  const logoHtml = `<div class="tech-logo-only"><div class="logo-wrap">` +
+    `<img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">` +
+    `<span class="logo-text">FARADAY</span></div></div>`;
+  const titleHtml = _eventTitle ? `<h1 class="sched-event-title">${esc(_eventTitle)}</h1>` : "";
+  const subHtml = _eventSubtitle ? `<p class="sched-event-sub">${esc(_eventSubtitle)}</p>` : "";
+  pre.innerHTML = logoHtml + titleHtml + subHtml + `<div class="schedule-card">${_waitSvg}` +
     `<div class="sched-title">${TEXT.schedule.soonTitle}</div>` +
     `<div class="sched-count" id="cdTimer">${_fmtCountdown(OPEN_AT - Date.now())}</div>` +
     `<div class="sched-when">${TEXT.schedule.opensAt(_fmtDateTime(OPEN_AT))}</div></div>`;
@@ -288,7 +323,7 @@ function showCountdownScreen() {
   _cdTimer = setInterval(() => {
     const left = OPEN_AT - Date.now();
     if (left <= 0) { goLiveNow(); return; }   // tới giờ mở → tự vào lưới, KHÔNG cần tải lại trang
-    if (timerEl) timerEl.textContent = _fmtCountdown(left);
+    if (timerEl) timerEl.innerHTML = _fmtCountdown(left);
   }, 1000);
 }
 
@@ -370,6 +405,8 @@ async function startSchedule() {
     if (!cfgSnap.exists) { showMsg(noEvent); return; }
 
     const cfg = cfgSnap.data();
+    _eventTitle = cfg.title || "";
+    _eventSubtitle = cfg.subtitle || "";
     if (Array.isArray(cfg.fields)   && cfg.fields.length)   FIELDS      = cfg.fields;
     if (Array.isArray(cfg.icons)    && cfg.icons.length)    ICONS       = cfg.icons;
     if (typeof cfg.capacity   === "number")                 CAPACITY    = cfg.capacity;

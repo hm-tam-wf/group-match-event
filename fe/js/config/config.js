@@ -93,6 +93,10 @@ const STRINGS = {
       opensAt:    (when) => `Opens at ${when} (GMT+7)`,
       endedTitle: "Registration has closed",
       endedSub:   "Thanks for your interest — see you at the next event!",
+      days:       "Days",
+      hours:      "Hours",
+      mins:       "Mins",
+      secs:       "Secs",
     },
     profile: {
       greeting:     `Welcome to Your ${_cap(UE.one)} Selection`,
@@ -182,6 +186,10 @@ const STRINGS = {
       opensAt:    (when) => `Mở lúc ${when} (giờ VN)`,
       endedTitle: "Sự kiện đã kết thúc",
       endedSub:   "Cảm ơn bạn đã quan tâm — hẹn gặp lại ở sự kiện sau!",
+      days:       "Ngày",
+      hours:      "Giờ",
+      mins:       "Phút",
+      secs:       "Giây",
     },
     profile: {
       greeting:     "Chào bạn!",

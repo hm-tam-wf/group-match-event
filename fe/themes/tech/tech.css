@@ -102,14 +102,18 @@
   height: 78px;
   color: var(--c-accent-cyan);
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--c-accent-cyan) 45%, transparent));
+  transform-origin: center;
   animation: chipPulse 2s ease-in-out infinite;
 }
 [data-theme="tech"] .tech-chip .radar {
-  transform-origin: 32px 32px;
+  transform-origin: center;
+  transform-box: view-box;
   animation: spin 3s linear infinite;
   color: var(--c-magenta);
 }
 [data-theme="tech"] .tech-chip .core {
+  transform-origin: center;
+  transform-box: view-box;
   animation: corePulse 1.5s ease-in-out infinite;
 }
 
@@ -133,11 +137,13 @@
 /* Tôn trọng prefers-reduced-motion: tắt animation loader chip + viền chạy tile "của mình" (theme tech).
    Block reduced-motion toàn cục trong styles.css là danh sách selector cố định, KHÔNG vươn vào class theme. */
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="tech"] .tech-chip,
-  [data-theme="tech"] .tech-chip .radar,
-  [data-theme="tech"] .tech-chip .core,
+  /* Giữ animation rất chậm cho loader để tránh hiểu lầm app bị treo/đông cứng, chỉ tắt tile/roster */
+  [data-theme="tech"] .tech-chip { animation: chipPulse 4s ease-in-out infinite !important; }
+  [data-theme="tech"] .tech-chip .radar { animation: spin 10s linear infinite !important; }
+  [data-theme="tech"] .tech-chip .core { animation: corePulse 3s ease-in-out infinite !important; }
   [data-theme="tech"] .tile.mine::after,
   [data-theme="tech"] .full-team.mine::after { animation: none !important; }
+  [data-theme="tech"] .modal { animation: electricGlow 6s ease-in-out infinite !important; transform: none !important; }
 }
 
 /* —— Canvas hiệu ứng mạch điện chạy sáng —— */
@@ -252,7 +258,7 @@
   overflow: hidden;
   /* Phóng to MƯỢT lúc bật + mạch điện phát sáng tuần hoàn. (Đã BỎ "nhấp nháy CRT"
      techFlicker: opacity tụt 0.15→0.3 giữa chừng làm popup như giật/nhân đôi khi hiện.) */
-  animation: techScaleIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both, electricGlow 2.5s infinite ease-in-out;
+  animation: techScaleIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both, electricGlow 2.5s ease-in-out 0.32s infinite;
   will-change: transform, opacity;
   backface-visibility: hidden;
   opacity: 1;
@@ -713,6 +719,22 @@
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-accent-cyan) 55%, transparent));
 }
 
+[data-theme="tech"] .sched-event-title {
+  background: linear-gradient(90deg, var(--c-accent-cyan) 0%, var(--c-magenta) 33%, var(--c-electric) 66%, var(--c-accent-cyan) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: techGlowText 6s linear infinite;
+  text-shadow: 0 0 30px color-mix(in srgb, var(--c-accent-cyan) 15%, transparent);
+  margin-top: 40px;
+}
+[data-theme="tech"] .sched-event-sub {
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
 /* lịch theo giờ — màn đếm ngược / đã kết thúc (Glass Dashboard, đồng bộ tech) */
 [data-theme="tech"] .schedule-card {
   background: linear-gradient(180deg, color-mix(in srgb, var(--surf-top) 82%, transparent), color-mix(in srgb, var(--surf-bot) 88%, transparent));
@@ -720,14 +742,103 @@
   box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent),
               0 0 26px -6px color-mix(in srgb, var(--c-accent-cyan) 18%, transparent);
   backdrop-filter: blur(12px);
+  padding: 40px 32px;
+  animation: techClosedIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both, electricGlow 2.5s ease-in-out 0.55s infinite;
 }
 [data-theme="tech"] .schedule-card .sched-ic {
   color: var(--c-accent-cyan);
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c-accent-cyan) 50%, transparent));
+  margin-bottom: 20px;
 }
-[data-theme="tech"] .sched-count {
+[data-theme="tech"] .sched-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c-accent-cyan) 30%, transparent);
+  margin-bottom: 20px;
+}
+[data-theme="tech"] .sched-count-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+}
+[data-theme="tech"] .sched-unit {
+  background: color-mix(in srgb, var(--c-accent-cyan) 5%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--c-accent-cyan) 15%, transparent);
+  border-radius: 8px;
+  padding: 12px 6px 10px;
+  min-width: 72px;
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--c-accent-cyan) 8%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="tech"] .sched-unit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c-accent-cyan), transparent);
+}
+[data-theme="tech"] .sched-unit .val {
   color: var(--c-accent-cyan);
-  text-shadow: 0 0 14px color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c-accent-cyan) 45%, transparent);
+  font-size: 38px;
+  font-weight: 800;
+  font-family: var(--display);
+  line-height: 1;
+}
+[data-theme="tech"] .sched-unit .lbl {
+  color: var(--c-magenta);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--c-magenta) 35%, transparent);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+}
+[data-theme="tech"] .sched-sep {
+  color: color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 35%, transparent);
+  font-size: 26px;
+  padding-bottom: 16px;
+}
+[data-theme="tech"] .sched-when {
+  font-family: ui-monospace, Consolas, Monaco, monospace;
+  font-size: 13px;
+  color: var(--c-accent-cyan);
+  background: color-mix(in srgb, var(--c-accent-cyan) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-accent-cyan) 20%, transparent);
+  padding: 6px 14px;
+  border-radius: var(--pill);
+  display: inline-block;
+  margin-top: 10px;
+}
+[data-theme="tech"] .sched-sub {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Cấu hình đặc thù cho trạng thái ĐÃ KẾT THÚC (Warning/Magenta Glow) */
+@keyframes closedPulse {
+  0%, 100% { box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent), 0 0 24px -6px color-mix(in srgb, var(--c-magenta) 15%, transparent); }
+  50% { box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent), 0 0 32px -4px color-mix(in srgb, var(--c-magenta) 30%, transparent); }
+}
+[data-theme="tech"] #eventClosed .schedule-card {
+  border-color: color-mix(in srgb, var(--c-magenta) 35%, transparent);
+  animation: techClosedIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both, closedPulse 3.5s ease-in-out 0.55s infinite;
+}
+[data-theme="tech"] #eventClosed .schedule-card .sched-ic {
+  color: var(--c-magenta);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c-magenta) 50%, transparent));
+}
+[data-theme="tech"] #eventClosed .sched-title {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c-magenta) 30%, transparent);
 }
 [data-theme="tech"] .ft-meta .ft-name {
   color: var(--text);
