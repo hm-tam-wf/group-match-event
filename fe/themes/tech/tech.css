@@ -829,6 +829,17 @@
   line-height: 1.6;
 }
 
+/* Responsive: trên điện thoại, units co giãn (flex) để 4 ô + dấu ":" KHÔNG tràn card. Đặt SAU các rule
+   .sched-* tech ở trên để thắng cascade (cùng specificity 0,2,x → source order sau thắng trong @media). */
+@media (max-width: 560px) {
+  [data-theme="tech"] .schedule-card { padding: 28px 14px; }
+  [data-theme="tech"] .sched-count-grid { gap: 6px; }
+  [data-theme="tech"] .sched-unit { min-width: 0; flex: 1 1 0; padding: 10px 4px 8px; }
+  [data-theme="tech"] .sched-unit .val { font-size: clamp(22px, 7vw, 32px); }
+  [data-theme="tech"] .sched-sep { font-size: 18px; padding-bottom: 12px; }
+  [data-theme="tech"] .sched-when { font-size: 12px; padding: 6px 10px; }
+}
+
 /* Cấu hình đặc thù cho trạng thái ĐÃ KẾT THÚC (Warning/Magenta Glow) */
 @keyframes closedPulse {
   0%, 100% { box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--shade) 65%, transparent), 0 0 24px -6px color-mix(in srgb, var(--c-magenta) 15%, transparent); }
