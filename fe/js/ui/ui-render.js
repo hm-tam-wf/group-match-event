@@ -405,11 +405,12 @@ function renderState() {
   let tileIndex = 0;
   ICONS.forEach(iconDef => {
     const team = teamOf(iconDef.icon);
-    if (team.count >= CAPACITY) return;        // đủ người → biến mất khỏi lưới này
+    const cap  = capOf(iconDef.icon);          // sĩ số RIÊNG của đội (nếu có) ngược lại CAPACITY chung
+    if (team.count >= cap) return;             // đủ người → biến mất khỏi lưới này
     open++;
     const mine    = iconDef.icon === myIcon;
     const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách) mới được tham gia
-    const pct     = Math.round(team.count / CAPACITY * 100);
+    const pct     = Math.round(team.count / cap * 100);
     const avatarChips = team.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
                   + (team.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${team.count - AVATAR_PREVIEW_MAX}</span>` : "")
                   || `<span class="mini empty">·</span>`;
@@ -423,7 +424,7 @@ function renderState() {
     tileEl.innerHTML = `
       <div class="ic">${iconDef.icon}</div>
       <div class="nm">${iconDef.name}</div>
-      <div class="cap">${team.count}/${CAPACITY}</div>
+      <div class="cap">${team.count}/${cap}</div>
       <div class="cap-bar"><span style="width:${pct}%"></span></div>
       <div class="avas">${avatarChips}</div>
       <button class="pick ${canJoin ? "" : "lock"}">${label}</button>`;
@@ -464,14 +465,15 @@ function renderState() {
     .map((iconDef, idx) => ({ iconDef, idx, team: teamOf(iconDef.icon) }))
     .filter(o => o.team.count >= 1)
     .sort((a, b) => {
-      const af = a.team.count >= CAPACITY, bf = b.team.count >= CAPACITY;
+      const af = a.team.count >= capOf(a.iconDef.icon), bf = b.team.count >= capOf(b.iconDef.icon);
       if (af !== bf) return af ? -1 : 1;                                    // đủ người lên đầu
       if (b.team.count !== a.team.count) return b.team.count - a.team.count; // đông hơn lên trước
       return a.idx - b.idx;                                                 // bằng nhau → giữ thứ tự gốc
     });
   withMembers.forEach(({ iconDef, team }, i) => {
     const mine = iconDef.icon === myIcon;
-    const full = team.count >= CAPACITY;                 // đủ người = "đã đủ"; còn lại = "đang ghép"
+    const cap  = capOf(iconDef.icon);                    // sĩ số riêng đội (nếu có) ngược lại CAPACITY chung
+    const full = team.count >= cap;                      // đủ người = "đã đủ"; còn lại = "đang ghép"
     let highlightedMe = false;
     const memberItems = team.names.map((n, j) => {
       const isMe = mine && me.fields.name && n === me.fields.name && !highlightedMe;
@@ -485,8 +487,8 @@ function renderState() {
     teamEl.innerHTML = `
       <div class="ft-head">
         <span class="ti">${iconDef.icon}</span>
-        <span class="ft-badge">${team.count}/${CAPACITY}${mine ? TEXT.grid.ftYou : ""}</span>
         <div class="ft-meta"><div class="lab">${full ? `${LOCK_SVG}${TEXT.grid.ftLocked}` : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}</div></div>
+        <span class="ft-badge">${team.count}/${cap}${mine ? TEXT.grid.ftYou : ""}</span>
       </div>
       <ol class="ft-list">${memberItems}</ol>`;
     takenEl.appendChild(teamEl);

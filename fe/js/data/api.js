@@ -256,7 +256,7 @@ async function apiClaim(payload) {
 
       const count = teamSnap.exists ? (teamSnap.data().count || 0) : 0;
       const names = teamSnap.exists ? (teamSnap.data().names || []) : [];
-      if (count >= CAPACITY) return { ok: false, reason: REASON.FULL };              // đội đã đủ người
+      if (count >= capOf(icon)) return { ok: false, reason: REASON.FULL };           // đội đã đủ người (sĩ số riêng đội nếu có, ngược lại CAPACITY chung)
 
       const at = firebase.firestore.FieldValue.serverTimestamp();
       tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
@@ -315,7 +315,7 @@ async function apiClaim(payload) {
     if (!allowKey || !allowList[allowKey]) return { ok: false, reason: REASON.NOT_ALLOWED };
   }
   const arr = obj[payload.icon] || (obj[payload.icon] = []);
-  if (arr.length >= CAPACITY) return { ok: false, reason: REASON.FULL };
+  if (arr.length >= capOf(payload.icon)) return { ok: false, reason: REASON.FULL };
   arr.push({ ...fields, pid: payload.playerId });
   await sSet(SK.CLAIMS, JSON.stringify(obj), true);
   return { ok: true };

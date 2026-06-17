@@ -3,7 +3,7 @@ title: firestore-schema
 tags: [module, backend, data]
 code: [backend/firestore.rules, fe/js/data/api.js, fe/js/config/config.js]
 related: [[index]], [[architecture]], [[api-layer]]
-updated: 2026-06-04
+updated: 2026-06-17
 ---
 
 # Firestore Schema
@@ -42,9 +42,14 @@ signups/{playerId}
   — UPDATE: cho phép nếu GIỮ NGUYÊN playerId (gắn đội / sửa lại hồ sơ của chính mình)
 
 meta/config
-  title, fields, icons, capacity, eventId, dataEpoch
+  title, fields, icons, capacity, caps, eventId, dataEpoch
   — READ: public
   — WRITE: admin only
+  — `caps` (map, 2026-06-17): SĨ SỐ RIÊNG theo đội — `{ "<emoji>": số }`. CHỈ chứa đội đặt riêng; đội
+    không có key ⇒ dùng `capacity` chung. Client: `capOf(icon)` (config.js) = `CAPS[icon] || CAPACITY`.
+    Rule: `capFor(icon)` (firestore.rules) = `(c.caps != null && icon in c.caps) ? c.caps[icon] : c.capacity`.
+    Admin lưu: TẠO = field trong set; SỬA = `update({caps})` RIÊNG (set merge deep-merge map → KHÔNG xoá key
+    đã bỏ; phải update để thay trọn vẹn). UI: ô số "sĩ số riêng" mỗi dòng đội (để trống = chung).
   — `dataEpoch` (number, 2026-06-06): "thế hệ" dữ liệu. `clearEvent` ("Xóa dữ liệu") tăng `FV.increment(1)` SAU
     khi clearEventData. Client `boot()`→`DATA_EPOCH`, `init()` so với localStorage `SK.DATA_EPOCH`: server mới hơn
     ⇒ nhả `reservedKey`+`myIcon` cũ (server đã xóa khóa chống trùng nhưng KHÔNG xóa được localStorage máy người
@@ -102,10 +107,19 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 `CAPACITY` xuất hiện ở 2 nơi:
 | File | Role |
 |------|------|
-| `fe/js/config/config.js` | Frontend default hiển thị |
-| `firestore.rules` `cap()` | Server-side enforcement |
+| `fe/js/config/config.js` | Frontend default hiển thị (fallback demo) |
+| `firestore.rules` `cap()` | Server-side enforcement (đọc động `meta/config.capacity`) |
 
 **Luôn cập nhật cả 2 cùng lúc.** Nếu rules có capacity 10 nhưng config.js hiển thị 15 → UI cho join nhưng rules reject → confusing error.
+
+### Sĩ số RIÊNG theo đội (per-team cap, 2026-06-17)
+Ngoài `capacity` chung, mỗi đội có thể đặt cap riêng qua map `meta/config.caps` (xem block meta/config trên).
+Enforce CỨNG ở **cả client (`capOf`) lẫn rules (`capFor`)** — chọn "chặn chắc ở rules". Đụng tới: config.js
+(`CAPS`+`capOf`), app.js boot()+confirm/toast, api.js apiClaim (firebase+demo: `count>=capOf(icon)`),
+ui-render.js (grid/taken/sort/lock/pct dùng `capOf(iconDef.icon)`), admin.html (ô cap mỗi đội + lưu caps +
+dashboard `capForIcon`/totalCap), firestore.rules (`capFor(icon)` ở rule `teams` update).
+**⚠ Đổi rule `teams` update (`cap()`→`capFor(icon)`) ⇒ PHẢI deploy lại rules** (`firebase deploy --only firestore:rules`).
+seedTeams (allowlist import) vẫn OK: set `capacity`=maxGroup; `capFor` fallback về capacity nếu đội chưa có cap riêng.
 
 ### Giảm capacity dưới số người đang có — AN TOÀN, không xoá ai
 Sửa capacity (1 số chung mọi đội) xuống thấp hơn đội đông nhất: admin hiện **cảnh báo xác nhận**

@@ -47,8 +47,15 @@ let DEDUP_FIELD = DEFAULT_DEDUP_FIELD;
 let EVENT_ID    = DEFAULT_EVENT_ID;
 let CAPACITY    = DEFAULT_CAPACITY;
 let ICONS       = DEFAULT_ICONS;
+let CAPS        = {};  // sĩ số RIÊNG theo từng đội (emoji → số). Trống/không có ⇒ đội đó dùng CAPACITY chung.
+                       // boot() gán từ events/{id}/meta/config.caps. Enforce CỨNG ở firestore.rules (capFor(icon)).
 let DATA_EPOCH  = 0;   // "thế hệ" dữ liệu sự kiện — admin "Xóa dữ liệu" tăng số này (events/{id}/meta/config.dataEpoch)
                        // để máy người chơi biết khóa chống trùng trên server đã bị xóa → tự nhả localStorage cũ.
+
+// Sĩ số của MỘT đội: ưu tiên cap riêng (CAPS[icon]) nếu hợp lệ, nếu không thì dùng CAPACITY chung.
+// Dùng ở api.js (chốt full), ui-render.js (hiển thị/khoá), app.js (confirm/toast). Định nghĩa ở config.js
+// vì nạp ĐẦU chuỗi → mọi file sau đều gọi được (xem [[ui-pipeline]] thứ tự nạp).
+function capOf(icon) { const c = CAPS && CAPS[icon]; return (typeof c === "number" && c > 0) ? c : CAPACITY; }
 
 // ── ➏ Văn bản giao diện (i18n) — registry SONG NGỮ + cờ LANG ──────────────────
 // Gom MỌI chuỗi UI tầng HARDCODE về một nguồn sự thật. Đổi ngôn ngữ = đổi LANG

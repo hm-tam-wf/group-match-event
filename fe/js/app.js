@@ -4,7 +4,7 @@ function askConfirm(iconDef) {
   modalBgEl.innerHTML = `<div class="modal" style="--c:${iconDef.color}">
       <div class="mic">${iconDef.icon}</div>
       <h3>${TEXT.confirm.title(esc(iconDef.name))}</h3>
-      <p>${TEXT.confirm.body(CAPACITY)}</p>
+      <p>${TEXT.confirm.body(capOf(iconDef.icon))}</p>
       <div class="row">
         <button class="cancel"  id="c0">${TEXT.confirm.back}</button>
         <button class="confirm" id="c1">${TEXT.confirm.ok}</button>
@@ -57,7 +57,7 @@ async function doClaim(iconDef) {
       }, JOIN_POPUP_SETTLE_MS);
     } else {
       const reason = res && res.reason;
-      if      (reason === REASON.FULL)      toast(TEXT.toast.full(iconDef.name, CAPACITY));
+      if      (reason === REASON.FULL)      toast(TEXT.toast.full(iconDef.name, capOf(iconDef.icon)));
       else if (reason === REASON.ALREADY)   toast(TEXT.toast.already);
       else if (reason === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.dup(labelOf(DEDUP_FIELD))); }   // thua đua join → dọn signup trùng của mình
       else if (reason === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.notAllowed); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
@@ -276,6 +276,7 @@ async function init() {
     if (Array.isArray(cfg.fields)   && cfg.fields.length)   FIELDS      = cfg.fields;
     if (Array.isArray(cfg.icons)    && cfg.icons.length)    ICONS       = cfg.icons;
     if (typeof cfg.capacity   === "number")                 CAPACITY    = cfg.capacity;
+    if (cfg.caps && typeof cfg.caps === "object" && !Array.isArray(cfg.caps)) CAPS = cfg.caps;   // sĩ số riêng từng đội (emoji→số)
     if (typeof cfg.dedupField === "string")                 DEDUP_FIELD = cfg.dedupField;
     if (typeof cfg.blockDup   === "boolean")                BLOCK_DUP   = cfg.blockDup;
     if (typeof cfg.dataEpoch  === "number")                 DATA_EPOCH  = cfg.dataEpoch;

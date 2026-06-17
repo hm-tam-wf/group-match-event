@@ -19,6 +19,12 @@ service cloud.firestore {
     match /events/{eventId} {
       function cfg() { return get(/databases/$(database)/documents/events/$(eventId)/meta/config).data; }
       function cap() { return cfg().capacity; }
+      // Sĩ số RIÊNG theo đội: meta/config.caps là map { "<emoji>": số }. Có cap riêng cho đội này ⇒ dùng nó,
+      // không thì dùng sĩ số CHUNG capacity. (1 lần get qua `let` để không vượt giới hạn document-access của rules.)
+      function capFor(icon) {
+        let c = cfg();
+        return (c.caps != null && icon in c.caps) ? c.caps[icon] : c.capacity;
+      }
 
       match /meta/{doc} {
         allow read: if true;              // trang công khai cần đọc cấu hình sự kiện đang mở
@@ -31,7 +37,7 @@ service cloud.firestore {
                       && request.resource.data.count == 1
                       && request.resource.data.names.size() == 1;
         allow update: if request.resource.data.icon == resource.data.icon
-                      && request.resource.data.count <= cap()
+                      && request.resource.data.count <= capFor(icon)
                       && request.resource.data.names.size() == request.resource.data.count;
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }

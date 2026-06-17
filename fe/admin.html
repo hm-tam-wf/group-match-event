@@ -335,8 +335,9 @@
 
         <div class="form-row">
           <label>Sĩ số / đội</label>
-          <div class="form-col" style="max-width:120px;">
-            <input type="number" id="fCapacity" min="1" max="9999" value="10" />
+          <div class="form-col" style="max-width:300px;">
+            <input type="number" id="fCapacity" min="1" max="9999" value="10" style="max-width:120px;" />
+            <span class="hint">Sĩ số CHUNG, áp cho mọi đội. Muốn 1 vài đội khác đi (vd đội 9–12 = 26), điền ô <b>sĩ số riêng</b> ở từng dòng đội bên dưới.</span>
           </div>
         </div>
 
@@ -378,7 +379,7 @@
         <div class="form-row" style="align-items:flex-start;">
           <label style="padding-top:6px;">Danh sách đội</label>
           <div class="form-col">
-            <div class="hint" style="margin-bottom:6px;">Mỗi đội cần emoji duy nhất + tên + màu.</div>
+            <div class="hint" style="margin-bottom:6px;">Mỗi đội cần emoji duy nhất + tên + màu. Ô số cuối = <b>sĩ số riêng</b> đội đó (để trống = dùng sĩ số chung).</div>
             <div id="iconsList" class="dyn-list"></div>
             <button type="button" id="btnAddIcon" class="btn-ghost btn-sm" style="margin-top:8px;align-self:flex-start;">+ Thêm đội</button>
           </div>
@@ -696,15 +697,18 @@
         ev.exists ? db.collection("events").doc(ev.id).collection("teams").get() : Promise.resolve(null)
       ));
       cachedEvents.forEach((ev, i) => {
-        const cap    = ev.cfg && ev.cfg.capacity ? ev.cfg.capacity : 0;
-        const nTeams = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : 0;
+        const gcap   = ev.cfg && ev.cfg.capacity ? ev.cfg.capacity : 0;
+        const caps   = (ev.cfg && ev.cfg.caps && typeof ev.cfg.caps === "object") ? ev.cfg.caps : {};
+        const icons  = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons : [];
+        const capForIcon = em => { const c = caps[em]; return (typeof c === "number" && c > 0) ? c : gcap; };
         let registrations = 0, teamsFull = 0;
         if (teamSnaps[i]) teamSnaps[i].docs.forEach(t => {
           const c = (t.data().count) || 0;
           registrations += c;
-          if (cap && c >= cap) teamsFull++;
+          const tc = capForIcon(t.id);                 // sĩ số riêng đội (doc id = emoji) nếu có, ngược lại chung
+          if (tc && c >= tc) teamsFull++;
         });
-        const totalCap = nTeams * cap;
+        const totalCap = icons.reduce((s, ic) => s + capForIcon(ic.icon), 0);   // tổng chỗ = Σ cap từng đội
         ev.metrics = { registrations, teamsFull, totalCap, fillRate: totalCap ? Math.round(registrations / totalCap * 100) : 0 };
       });
 
@@ -732,6 +736,7 @@
           const title    = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
           const cap      = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
           const nTeam    = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
+          const hasCaps  = ev.cfg && ev.cfg.caps && Object.keys(ev.cfg.caps).length > 0;   // có đội đặt sĩ số riêng
           const m        = ev.metrics || { registrations: 0, teamsFull: 0, totalCap: 0, fillRate: 0 };
           const created  = ev.cfg && ev.cfg.createdAt ? fmtTime(ev.cfg.createdAt) : "—";
           const badge    = isActive
@@ -752,7 +757,7 @@
                <button class="btn-del   btn-sm" data-action="delete" data-id="${esc(ev.id)}" data-name="${esc(title)}"${canDelete ? "" : " disabled"} title="${esc(delTitle)}">Xóa sự kiện</button>`
             : `<button class="btn-del btn-sm" data-action="delete" data-id="${esc(ev.id)}" data-name="${esc(title)}" title="Gỡ mục hỏng khỏi danh sách">Gỡ khỏi danh sách</button>`;
           const stats = ev.exists
-            ? `<b>${m.registrations}</b> người &nbsp;·&nbsp; ${nTeam} đội × ${cap} &nbsp;·&nbsp; `
+            ? `<b>${m.registrations}</b> người &nbsp;·&nbsp; ${hasCaps ? `${nTeam} đội · ${m.totalCap} chỗ` : `${nTeam} đội × ${cap}`} &nbsp;·&nbsp; `
               + `${m.teamsFull} đội đầy &nbsp;·&nbsp; lấp đầy ${m.fillRate}% &nbsp;·&nbsp; tạo ${esc(created)}`
             : `<span style="color:var(--danger)">Thiếu cấu hình (mục hỏng)</span>`;
           return `<div class="ev-row${isActive ? " is-active" : ""}">
@@ -979,7 +984,8 @@
     syncDedupSelect();
   }
 
-  function addIconRow(ic) {
+  // cap (tuỳ chọn) = sĩ số RIÊNG cho đội này; để trống ⇒ dùng sĩ số chung (fCapacity). Lưu vào meta/config.caps[emoji].
+  function addIconRow(ic, cap) {
     ic = Object.assign({ icon:"", name:"", color:"#4f8cff" }, ic || {});
     const row = document.createElement("div");
     row.className = "dyn-row";
@@ -987,6 +993,7 @@
       `<input class="inp-emoji" type="text" placeholder="🦊" value="${esc(ic.icon)}" maxlength="4" title="Emoji đội (phải duy nhất)" />` +
       `<input type="text" placeholder="Tên đội" value="${esc(ic.name)}" style="flex:2;" />` +
       `<input class="inp-color" type="color" value="${esc(ic.color||"#4f8cff")}" title="Màu thẻ đội" />` +
+      `<input class="inp-cap" type="number" min="1" max="9999" placeholder="chung" value="${(cap != null && cap !== "") ? esc(String(cap)) : ""}" title="Sĩ số RIÊNG đội này (để trống = dùng sĩ số chung)" style="width:78px;" />` +
       `<button type="button" class="btn-del" title="Xoá đội này">✕</button>`;
     row.querySelector(".btn-del").addEventListener("click", () => row.remove());
     $("iconsList").appendChild(row);
@@ -1072,13 +1079,20 @@
         placeholder: texts[2].value.trim()
       };
     });
+    // Mỗi dòng đội: emoji/name (input[type=text]) + color + cap riêng (input.inp-cap, type=number).
+    const caps = {};                 // emoji → sĩ số riêng (CHỈ đội có nhập cap hợp lệ); lưu vào meta/config.caps
+    let capsInvalid = false;         // có ô cap nhập NHƯNG không phải số nguyên ≥ 1
     const icons = Array.from($("iconsList").querySelectorAll(".dyn-row")).map(row => {
-      const texts = row.querySelectorAll("input[type=text]");
-      return {
-        icon:  texts[0].value.trim(),
-        name:  texts[1].value.trim(),
-        color: row.querySelector("input[type=color]").value
-      };
+      const texts  = row.querySelectorAll("input[type=text]");
+      const icon   = texts[0].value.trim();
+      const capEl  = row.querySelector(".inp-cap");
+      const capRaw = capEl ? capEl.value.trim() : "";
+      if (capRaw !== "") {
+        const capNum = parseInt(capRaw, 10);
+        if (isNaN(capNum) || capNum < 1) capsInvalid = true;
+        else if (icon) caps[icon] = capNum;
+      }
+      return { icon, name: texts[1].value.trim(), color: row.querySelector("input[type=color]").value };
     });
     return {
       eventId:    $("fId").value.trim(),
@@ -1089,7 +1103,7 @@
       blockDup:   $("fBlockDup").checked,
       allowlistMode: $("fAllowlistMode").checked,
       allowlistNameCheck: $("fAllowlistNameCheck").checked,
-      fields, icons
+      fields, icons, caps, capsInvalid
     };
   }
 
@@ -1101,6 +1115,7 @@
     if (!d.fields.length)                   return "Cần ít nhất 1 ô nhập.";
     if (!d.icons.length)                    return "Cần ít nhất 1 đội.";
     if (isNaN(d.capacity) || d.capacity < 1) return "Sĩ số phải là số nguyên ≥ 1.";
+    if (d.capsInvalid) return "Sĩ số riêng của đội phải là số nguyên ≥ 1 (để trống nếu dùng sĩ số chung).";
     for (const f of d.fields) {
       if (!f.key)   return "Có ô nhập chưa điền key.";
       if (!f.label) return "Có ô nhập chưa điền nhãn.";
@@ -1165,6 +1180,7 @@
         fields:     d.fields,
         icons:      d.icons,
         capacity:   d.capacity,
+        caps:       d.caps,            // sĩ số riêng từng đội (emoji→số); {} nếu mọi đội dùng sĩ số chung
         dedupField: d.dedupField,
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
@@ -1206,12 +1222,16 @@
       return;
     }
 
-    // ② Giảm sĩ số xuống dưới đội đông nhất → CẢNH BÁO (không chặn; không ai bị đẩy ra).
-    const maxCount = tSnap.docs.reduce((m, x) => Math.max(m, (x.data().count) || 0), 0);
-    if (d.capacity < maxCount) {
+    // ② Giảm sĩ số (CHUNG hoặc RIÊNG) xuống dưới số người đang có ở đội nào đó → CẢNH BÁO (không chặn; không ai bị đẩy ra).
+    // So count từng đội với sĩ số mới của ĐÚNG đội đó: caps[emoji] nếu có, ngược lại sĩ số chung d.capacity.
+    const overTeams = tSnap.docs
+      .map(x => ({ icon: x.id, count: (x.data().count) || 0 }))
+      .filter(t => t.count > (d.caps[t.icon] != null ? d.caps[t.icon] : d.capacity));
+    if (overTeams.length) {
+      const detail = overTeams.map(t => `${t.icon} ${t.count}`).join("  ");
       const ok = await confirmModal({
-        title: "Giảm sĩ số mỗi đội?",
-        message: `Đội đông nhất đang có ${maxCount} người, vượt sĩ số mới (${d.capacity}). Các đội vượt mức sẽ hiển thị "đầy" và không nhận thêm — không ai bị đẩy ra. Vẫn lưu?`,
+        title: "Giảm sĩ số?",
+        message: `Có đội đang đông hơn sĩ số mới (${detail}). Các đội này sẽ hiển thị "đầy" và không nhận thêm — không ai bị đẩy ra. Vẫn lưu?`,
         confirmText: "Vẫn lưu", danger: true,
       });
       if (!ok) return;
@@ -1246,6 +1266,9 @@
         allowlistNameCheck: d.allowlistNameCheck,
         updatedAt:  FV.serverTimestamp()
       }, { merge: true });
+      // caps là MAP → set(merge:true) chỉ deep-merge (không xoá key đã bỏ). Dùng update() để THAY caps trọn vẹn
+      // (đội bỏ cap riêng sẽ về dùng sĩ số chung). d.caps = {} nếu không còn đội nào đặt riêng.
+      await db.collection("events").doc(editingId).collection("meta").doc("config").update({ caps: d.caps });
       const wasActive = editingId === activeEventId;
       const savedId   = editingId;
       resetForm();                 // xóa editingId, mở khóa fId, đổi nhãn nút về "Tạo sự kiện" (cũng xóa formOk)
@@ -1316,7 +1339,8 @@
     $("fDedupField").dataset.manual = "1";
     $("fBlockDup").dataset.touched  = "1";
     if (Array.isArray(cfg.fields)) cfg.fields.forEach(f  => addFieldRow(f));
-    if (Array.isArray(cfg.icons))  cfg.icons.forEach(ic => addIconRow(ic));
+    const cfgCaps = (cfg.caps && typeof cfg.caps === "object") ? cfg.caps : {};
+    if (Array.isArray(cfg.icons))  cfg.icons.forEach(ic => addIconRow(ic, cfgCaps[ic.icon]));
     // syncDedupSelect đã gọi trong addFieldRow; gán value sau 1 tick rồi đồng bộ lại control.
     setTimeout(() => {
       $("fDedupField").value = cfg.dedupField || "";
