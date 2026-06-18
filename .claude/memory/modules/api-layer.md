@@ -3,7 +3,7 @@ title: api-layer
 tags: [module]
 code: [fe/js/data/api.js, fe/js/config/config.js, fe/js/config/firebase-config.js]
 related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]]
-updated: 2026-06-04
+updated: 2026-06-18
 ---
 
 # API Layer
@@ -95,12 +95,27 @@ KHÔNG chứa pid → không lộ token).
   được ghi lại không có reg_keys → người trùng MSNV sau đó KHÔNG bị chặn (2 dòng signup, chỉ 1 reg_key,
   reg_key sinh ở thời điểm người THỨ HAI). Fix: `init()` cũng `apiRegReserve` trước `apiSaveProfile` (chỉ
   khi `!myIcon`); trùng ⇒ dupBlocked + apiRemoveProfile (tự dọn bản thua khi reload).
-- **`apiRegTaken(value)`** — cổng VÀO TRANG (`init()` app.js, sau `apiDedupTaken`): reg_keys/{key} tồn tại
-  & KHÔNG phải chỗ mình ⇒ chặn. Bịt lỗ "bị chặn ở save() rồi reload để vào lưới" (người bị chặn không có
-  `reservedKey` → vẫn chặn). Chủ sở hữu (`reservedKey===key`) KHÔNG bị chặn.
+- **`apiRegTaken(value)`** — cổng VÀO TRANG (`init()` app.js, sau `apiDedupTaken`): chặn KHI reg_keys/{key}
+  tồn tại **& `profiled===true`** & KHÔNG phải chỗ mình (xem cờ profiled dưới). Bịt lỗ "bị chặn ở save() rồi
+  reload để vào lưới" (người bị chặn không có `reservedKey` → vẫn chặn). Chủ sở hữu (`reservedKey===key`) KHÔNG bị chặn.
 - **"Chỗ của mình"** = localStorage `reservedKey` (per-event, `shared:false`), KHÔNG phải pid-trong-doc →
-  doc reg_keys không lộ gì. Hệ quả CHỦ ĐÍCH: cùng người đổi THIẾT BỊ (pid mới, reservedKey trống) trước khi
-  join ⇒ bị chặn ở thiết bị thứ 2 ("1 MSNV = 1 đăng ký"). Chốt CỨNG vẫn là dedup_keys lúc JOIN (apiClaim).
+  doc reg_keys không lộ gì. Hệ quả: cùng người đổi THIẾT BỊ (pid mới, reservedKey trống) sau khi đã LƯU HỒ SƠ
+  (profiled=true) ⇒ bị chặn ở thiết bị 2 (= "1 thiết bị/MSNV" họ muốn) — gỡ bằng admin "Bỏ chặn" nếu cần. Chốt
+  CỨNG vẫn là dedup_keys lúc JOIN (apiClaim).
+- **CỜ `profiled` — fix TẬN GỐC "kẹt reg_keys" (2026-06-18; chọn hướng A thay vì TTL):** Vấn đề tái diễn: người
+  đặt-chỗ rồi BỎ DỞ (đóng tab / mất mạng / đổi máy TRƯỚC khi lưu hồ sơ) để lại reg_keys "trần" `{at}` MÃI;
+  vào lại từ phiên khác (reservedKey không theo sang) bị `apiRegTaken`/`apiRegReserve` chặn ⇒ phải nhờ admin
+  "Bỏ chặn" (đúng ca **3477**: có reg_key, **0 signup**). Fix: **chỉ chặn khi `reg_keys/{key}.profiled===true`**
+  (= đã có signup THẬT). `apiSaveProfile` gắn `profiled:true` lên reg_keys NGAY khi ghi signup (merge). Vì
+  `signups` KHOÁ ĐỌC (chỉ admin) → client không kiểm trực tiếp được "đã có signup chưa"; `profiled` (get công
+  khai) là **tấm biển thay cho signups**. `apiRegReserve`: exists & profiled & !mine ⇒ `dup`; exists & chưa
+  profiled (hold bỏ dở) hoặc mine ⇒ ok, KHÔNG ghi đè `at`; chưa có ⇒ tạo `{at}`. An toàn: dedup_keys lúc JOIN
+  vẫn chặn double-join — đây chỉ chốt MỀM.
+- **Rules `reg_keys` (đổi 2026-06-18):** `update: if affectedKeys().hasOnly(['profiled']) && profiled==true`
+  (chỉ cho gắn cờ, KHÔNG đụng `at`/field khác); `create` cho `{at}` HOẶC `{profiled:true}`. **Migration tự lành,
+  KHÔNG backfill:** reg_keys CŨ chỉ có `{at}` (chưa profiled) ⇒ sau deploy KHÔNG còn chặn ở cổng (đúng ý: hold
+  cũ/bỏ dở thôi chặn). Người lưu hồ sơ lại ⇒ flag tự bật. KHÔNG backfill profiled (sẽ khoá nhầm chủ đổi máy —
+  cùng lý do đã loại backfill reg_keys, xem mục dưới). Cần `firebase deploy --only firestore:rules` + hosting.
 - **Fix H2 (2026-06-04, app.js:91):** khi `init()` mint danh tính MỚI (`!me.id` → mất/xoá `me`) thì
   `await sDel("reservedKey")` → nhả reservedKey cũ. Bịt lỗ: trước đây `me` bị xoá nhưng reservedKey còn sót
   → `apiRegReserve`/`apiRegTaken` short-circuit "chỗ của mình" cho qua nhầm. Returning user còn `me.id` ⇒
@@ -135,6 +150,16 @@ clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
 
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).
+
+## apiMyMembership() — self-heal khi admin GỠ khỏi đội (un-join, 2026-06-18)
+Đọc `members/{pid}` (get:true). Trả `{icon}` nếu CÒN trong đội; **`null`** nếu KHÔNG còn (admin un-join);
+**`undefined`** nếu không xác định (mạng lỗi / demo / sheet). `init()` (app.js, SAU mint `me.id`, TRƯỚC các cổng):
+nếu `MODE_FIREBASE && myIcon && mem===null` ⇒ `myIcon=null` + `saveMe()` → người bị gỡ chỉ cần **RELOAD** là vào
+lại như chưa join & chọn đội khác (KHỎI xóa dữ liệu trình duyệt). Chỉ self-heal khi `null` (chắc chắn bị gỡ) —
+`undefined` ⇒ KHÔNG đụng (tránh xóa nhầm myIcon khi lỗi mạng). **Bổ sung** cho self-heal cũ ở
+[ui-render.js renderState] (`teamOf(myIcon).count===0` — chỉ bắt khi CẢ đội rỗng; gác `!_skipSelfHeal` trong
+cửa sổ vừa join). **Un-join thủ công** (script): gỡ `teams`(count-1+bỏ tên, transaction)+`members/{pid}`+
+`dedup_keys`+`reg_keys`+`signups/{pid}` — CHỈ gỡ dòng đã-join, KHÔNG đụng thành viên khác cùng đội.
 
 ## Allowlist (đã có — xem [[allowlist]])
 - Cổng "chỉ MSNV trong danh sách mới được join": `apiAllowlistAllowed`/`apiAllowlistInfo` (cổng vào)

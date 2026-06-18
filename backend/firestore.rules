@@ -73,8 +73,13 @@ service cloud.firestore {
       match /reg_keys/{key} {
         allow get:    if true;            // client transaction + cổng vào đọc theo key đã biết
         allow list:   if isAdmin();       // chỉ admin liệt kê khi clear; KHÔNG mở cho client (chống enumerate)
-        allow create: if request.resource.data.keys().hasOnly(['at']);
-        allow update: if false;
+        // create: hold "trần" {at} (apiRegReserve), HOẶC trực tiếp {profiled} khi lưu hồ sơ mà chưa có hold.
+        allow create: if request.resource.data.keys().hasOnly(['at'])
+                      || (request.resource.data.keys().hasOnly(['profiled']) && request.resource.data.profiled == true);
+        // update CHỈ để gắn cờ `profiled=true` (đã có signup THẬT cho MSNV) — KHÔNG cho đụng 'at' hay thêm field
+        // khác. Cổng/đặt-chỗ chỉ chặn khi profiled=true ⇒ hold bỏ dở không khoá nhầm. (xem apiSaveProfile)
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['profiled'])
+                      && request.resource.data.profiled == true;
         // delete tự do: chủ đặt-chỗ TỰ NHẢ khi đổi/sửa MSNV (typo) để không khoá nhầm mã người khác. Stakes
         // thấp: chỉ chốt tiền-join; xoá chỗ chỉ "mở lại" mã (= như chưa giữ), không đụng dedup_keys/signups.
         allow delete: if true;

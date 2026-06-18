@@ -80,8 +80,15 @@ async function apiDedupTaken(value) {
 // công khai (reg_keys, get:true) keyed theo MSNV NGAY lúc điền form. Doc chỉ { at } — KHÔNG chứa pid (tránh
 // lộ token vì key = MSNV dễ đoán). "Chỗ của mình" theo dõi bằng localStorage reservedKey (per-event).
 //
-// apiRegReserve: transaction — nếu reg_keys/{key} đã có & KHÔNG phải chỗ mình ⇒ {ok:false,reason:"dup"};
+// apiRegReserve: transaction — đặt chỗ {at} cho MSNV lúc điền form; chỉ chặn khi MSNV đã có HỒ SƠ THẬT.
 // chưa có ⇒ set {at} + nhớ reservedKey. Lỗi mạng/không bật ⇒ {ok:true} (fail-open; JOIN vẫn là chốt cuối).
+//
+// CỜ `profiled` — sửa TẬN GỐC "kẹt reg_keys" (2026-06-18): CHỈ chặn khi `reg_keys/{key}.profiled===true`, tức
+// ĐÃ có signup THẬT cho MSNV. apiSaveProfile gắn profiled=true NGAY khi ghi signup. Hold "trần" {at} (đặt-chỗ
+// rồi BỎ DỞ: đóng tab / mất mạng / đổi máy TRƯỚC khi lưu hồ sơ) KHÔNG có profiled ⇒ KHÔNG chặn người vào lại
+// → hết cảnh phải nhờ admin "Bỏ chặn" (đúng ca 3477: có reg_key nhưng 0 signup). signups KHOÁ ĐỌC nên client
+// không kiểm trực tiếp được → profiled trên reg_keys (get công khai) là "tấm biển" thay cho signups. An toàn:
+// dedup_keys (ghi lúc JOIN) vẫn là chốt CỨNG chặn double-join; đây chỉ là chốt MỀM tiền-join.
 async function apiRegReserve(value) {
   if (MODE !== MODE_FIREBASE || !BLOCK_DUP || !DEDUP_FIELD) return { ok: true };
   const key = _dedupKey(value);
@@ -91,11 +98,15 @@ async function apiRegReserve(value) {
     const ref = col(COL.REG_KEYS).doc(key);
     const res = await db.runTransaction(async tx => {
       const snap = await tx.get(ref);
-      // ĐÃ có khóa trên server: là chỗ MÌNH (mineKey===key) ⇒ cho qua (sửa lại hồ sơ); của NGƯỜI KHÁC ⇒ trùng.
-      if (snap.exists) return (mineKey === key) ? { ok: true } : { ok: false, reason: REASON.DUP };
-      // CHƯA có khóa — sự kiện mới HOẶC admin vừa "Xóa dữ liệu" xóa mất khóa cũ. TẠO LẠI kể cả khi đây là "chỗ
-      // của mình": KHÔNG tin localStorage suông, LUÔN bảo đảm server có khóa thật. Bịt lỗ: sau khi Xóa dữ liệu,
-      // máy chủ cũ từng short-circuit "chỗ mình" và bỏ qua nên MSNV bỏ ngỏ trên server → máy khác đăng ký trùng.
+      // ĐÃ có HỒ SƠ THẬT (profiled=true) & của NGƯỜI KHÁC ⇒ trùng. Chỗ MÌNH, hoặc hold "trần" {at} chưa có
+      // hồ sơ (ai đó đặt-chỗ rồi bỏ dở) ⇒ CHO QUA, KHÔNG ghi đè at (rule update chỉ cho phép field profiled).
+      if (snap.exists) {
+        if ((snap.data() || {}).profiled === true && mineKey !== key) return { ok: false, reason: REASON.DUP };
+        return { ok: true };
+      }
+      // CHƯA có khóa — sự kiện mới HOẶC admin vừa "Xóa dữ liệu" xóa mất khóa cũ. TẠO khóa {at} (chưa profiled).
+      // KHÔNG tin localStorage suông, LUÔN bảo đảm server có khóa thật: sau "Xóa dữ liệu", máy chủ cũ từng
+      // short-circuit "chỗ mình" rồi bỏ qua nên MSNV bỏ ngỏ trên server → máy khác đăng ký trùng.
       tx.set(ref, { at: firebase.firestore.FieldValue.serverTimestamp() });
       return { ok: true };
     });
@@ -110,7 +121,8 @@ async function apiRegReserve(value) {
   }
 }
 
-// Cổng VÀO TRANG: MSNV đã được người KHÁC giữ chỗ chưa? (chỗ của mình ⇒ không chặn). Chỉ đọc 1 doc reg_keys.
+// Cổng VÀO TRANG: MSNV đã có HỒ SƠ THẬT (profiled) của người KHÁC chưa? (chỗ của mình ⇒ không chặn; hold
+// "trần" {at} chưa profiled = đặt-chỗ bỏ dở ⇒ KHÔNG chặn — bịt "kẹt reg_keys"). Chỉ đọc 1 doc reg_keys.
 // Bịt lỗ "bị chặn ở save() rồi reload để vào lưới": người bị chặn không có reservedKey ⇒ vẫn bị chặn ở cổng.
 async function apiRegTaken(value) {
   if (MODE !== MODE_FIREBASE || !BLOCK_DUP || !DEDUP_FIELD) return false;
@@ -120,7 +132,7 @@ async function apiRegTaken(value) {
   if (mineKey === key) return false;                      // chỗ của mình ⇒ KHÔNG chặn
   try {
     const snap = await col(COL.REG_KEYS).doc(key).get();
-    return snap.exists;
+    return snap.exists && (snap.data() || {}).profiled === true;   // chỉ chặn khi ĐÃ có hồ sơ thật (profiled)
   } catch (e) {
     return false;
   }
@@ -168,6 +180,21 @@ async function apiState() {
   return teams;
 }
 
+// Đọc tư cách THÀNH VIÊN thật trên server cho pid (self-heal). Trả {icon} nếu CÒN trong đội; null nếu KHÔNG
+// còn (admin đã gỡ / un-join); undefined nếu KHÔNG xác định được (mạng lỗi / demo / sheet). Caller chỉ
+// self-heal khi nhận `null` (chắc chắn đã bị gỡ) ⇒ KHÔNG xóa nhầm myIcon khi lỗi mạng. members/{pid}: get:true.
+async function apiMyMembership(playerId) {
+  if (MODE !== MODE_FIREBASE) return undefined;          // demo/sheet: không có nguồn chuẩn → bỏ qua
+  const pid = String(playerId || "").trim();
+  if (!pid) return undefined;
+  try {
+    const snap = await col(COL.MEMBERS).doc(pid).get();
+    return snap.exists ? { icon: (snap.data() || {}).icon || null } : null;
+  } catch (e) {
+    return undefined;                                     // lỗi mạng ⇒ KHÔNG self-heal (giữ nguyên myIcon)
+  }
+}
+
 // Ghi/đồng bộ HỒ SƠ lên server NGAY khi người dùng điền xong thông tin (CHƯA cần chọn đội)
 // → admin thấy MỌI người đã nhập thông tin, không chỉ người đã join. Idempotent theo pid:
 // gọi lại khi sửa thông tin chỉ cập nhật field, KHÔNG xoá icon/at đã có từ lúc join (nhờ merge).
@@ -183,6 +210,13 @@ async function apiSaveProfile(payload) {
       { ...fields, playerId: pid, at: firebase.firestore.FieldValue.serverTimestamp() },
       { merge: true }                              // merge: KHÔNG đè icon nếu đã join trước đó
     );
+    // Đã có HỒ SƠ THẬT cho MSNV này → gắn cờ `profiled` lên reg_keys (tấm biển công khai thay cho signups
+    // khoá-đọc). Cổng/đặt-chỗ CHỈ chặn khi profiled=true → hold "trần" {at} (bỏ dở) không khoá nhầm người vào
+    // lại. Best-effort: thường reg_keys/{key} đã có {at} từ apiRegReserve ⇒ merge = update field profiled.
+    if (BLOCK_DUP && DEDUP_FIELD) {
+      const dk = _dedupKey(fields[DEDUP_FIELD]);
+      if (dk) { try { await col(COL.REG_KEYS).doc(dk).set({ profiled: true }, { merge: true }); } catch (e) {} }
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, reason: REASON.ERROR, detail: String(e) };

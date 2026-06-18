@@ -135,6 +135,16 @@ async function init() {
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); await sDel(SK.RESERVED_KEY, false); }   // danh tính MỚI ⇒ NHẢ reservedKey cũ (bịt lỗ H2: nếu "me" bị xoá nhưng reservedKey còn sót → cổng trùng short-circuit "chỗ của mình" cho qua nhầm)
 
+  // SELF-HEAL TƯ CÁCH THÀNH VIÊN (2026-06-18): admin có thể đã GỠ mình khỏi đội (un-join) trong khi localStorage
+  // vẫn nhớ myIcon. Đọc members/{pid} (nguồn chuẩn server): KHÔNG còn (null) ⇒ bỏ myIcon → vào lại NHƯ chưa join,
+  // tự chọn đội khác CHỈ CẦN RELOAD (khỏi xóa dữ liệu trình duyệt). undefined (mạng lỗi/demo) ⇒ KHÔNG đụng (tránh
+  // xóa nhầm). Bổ sung cho self-heal "đội về count 0" ở renderState (chỉ bắt khi cả đội rỗng). Đặt TRƯỚC các cổng
+  // để sau khi bỏ myIcon thì nhánh !myIcon (dedup/allowlist/reserve) chạy đúng như người chưa chọn đội.
+  if (MODE === MODE_FIREBASE && myIcon && me.id && typeof apiMyMembership === "function") {
+    const mem = await apiMyMembership(me.id);
+    if (mem === null) { myIcon = null; await saveMe(); }   // chắc chắn đã bị gỡ ⇒ bỏ chọn (cho chọn lại)
+  }
+
   // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
   // → chặn vào lưới chọn linh thú (kể cả khi đăng ký ở thiết bị khác). apiClaim vẫn là chốt cuối.
   // Hai lớp: dedup_keys (đã JOIN) HOẶC reg_keys (đã GIỮ CHỖ lúc điền form, không phải chỗ của mình).
