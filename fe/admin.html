@@ -492,6 +492,15 @@
           <div class="al-result" id="alResult" hidden></div>
         </div>
 
+        <!-- Thêm / sửa nhanh 1 mã (không cần file) -->
+        <div class="al-list-head" id="alAddOneRow">
+          <input type="text" id="alOneKey"  class="al-search" placeholder="Định danh (vd NV001234)" autocomplete="off" style="flex:0 1 200px" />
+          <input type="text" id="alOneName" class="al-search" placeholder="Tên (tùy chọn)"          autocomplete="off" style="flex:0 1 180px" />
+          <button id="alAddOne"    class="btn-pri btn-sm"   type="button">+ Thêm 1 mã</button>
+          <button id="alOneCancel" class="btn-ghost btn-sm" type="button" hidden>Hủy sửa</button>
+          <span id="alOneMsg" style="font-size:13px;color:var(--muted)"></span>
+        </div>
+
         <!-- Danh sách hiện có -->
         <div class="al-list-head">
           <input type="text" id="alSearch" class="al-search" placeholder="Tìm theo định danh hoặc tên…" />
@@ -1607,8 +1616,10 @@
       replace:$('alReplace'), result:$('alResult'), search:$('alSearch'),
       download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
       seedWrap:$('alSeedWrap'), seedTeams:$('alSeedTeams'),
+      oneKey:$('alOneKey'), oneName:$('alOneName'), addOne:$('alAddOne'), oneCancel:$('alOneCancel'), oneMsg:$('alOneMsg'),
     };
     let cur = { eid:'', dedupField:'', rows:[], parsed:null };   // parsed = {items:[{key,name,team,raw}]}
+    let alEditKey = null;   // null = chế độ THÊM 1 mã; có giá trị = đang SỬA (lưu key GỐC để xoá khi đổi định danh)
 
     // ── tầng dữ liệu (firebase) ──
     const data = {
@@ -1714,13 +1725,15 @@
       el.empty.hidden = cur.rows.length !== 0;
       el.body.innerHTML = rows.map((r,i)=>
         `<tr><td class="num">${i+1}</td><td>${esc(r.key)}</td><td>${esc(r.name||'')}</td>`+
-        `<td><button class="btn-del" data-key="${esc(r.key)}" title="Xoá">✕</button></td></tr>`).join('');
+        `<td><button class="al-edit btn-ghost btn-sm" data-key="${esc(r.key)}" data-name="${esc(r.name||'')}" title="Sửa">✎</button> `+
+        `<button class="btn-del" data-key="${esc(r.key)}" title="Xoá">✕</button></td></tr>`).join('');
       el.count.textContent = cur.rows.length;
       setWarnings();
     }
 
     async function loadEvent(eid){
       cur.eid = eid; cur.parsed = null; el.result.hidden = true;
+      cancelEditOne();   // đổi sự kiện → thoát chế độ sửa (tránh lưu nhầm mã sang event khác)
       el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
       el.seedWrap.hidden = true; el.seedTeams.checked = false; el.replace.textContent = 'Xoá cũ & nạp mới';
       if (!eid){ cur.dedupField=''; el.dedup.textContent='—'; el.mode.checked=false; el.nameCheck.checked=false; cur.rows=[]; renderList(); return; }
@@ -1912,11 +1925,54 @@
     el.search.oninput = renderList;
     el.download.onclick = downloadCsv;
     el.body.onclick = async e => {
+      const ed = e.target.closest('.al-edit');
+      if (ed) { startEditOne(ed.dataset.key, ed.dataset.name || ''); return; }
       const b = e.target.closest('.btn-del'); if (!b) return;
       const ok = await confirmModal({ title:'Xoá khỏi danh sách?', message:`Xoá "${b.dataset.key}" khỏi danh sách cho phép?`, confirmText:'Xoá', danger:true });
       if (!ok) return;
       await data.delOne(cur.eid, b.dataset.key);
       cur.rows = await data.list(cur.eid); renderList();
+    };
+
+    // ── Thêm / sửa nhanh 1 mã (không cần file). Tái dùng addMany (merge) + delOne; key = _dedupKey (giống app). ──
+    function startEditOne(key, name){
+      alEditKey = key;
+      el.oneKey.value = key; el.oneName.value = name;
+      el.addOne.textContent = 'Lưu sửa'; el.oneCancel.hidden = false;
+      el.oneMsg.style.color = 'var(--muted)';
+      el.oneMsg.textContent = `Đang sửa "${key}" — đổi định danh = chuyển sang mã mới.`;
+      el.oneKey.focus();
+    }
+    function cancelEditOne(){
+      alEditKey = null;
+      el.oneKey.value = ''; el.oneName.value = '';
+      el.addOne.textContent = '+ Thêm 1 mã'; el.oneCancel.hidden = true; el.oneMsg.textContent = '';
+    }
+    el.oneCancel.onclick = cancelEditOne;
+    el.addOne.onclick = async () => {
+      const raw = el.oneKey.value.trim(), name = el.oneName.value.trim();
+      el.oneMsg.style.color = 'var(--err)';
+      if (!cur.eid){ el.oneMsg.textContent = 'Hãy chọn sự kiện ở trên.'; return; }
+      if (!raw){ el.oneMsg.textContent = 'Nhập định danh.'; return; }
+      const newKey = _dedupKey(raw);
+      el.addOne.disabled = true;
+      try {
+        let note;
+        if (alEditKey){
+          if (newKey !== alEditKey) await data.delOne(cur.eid, alEditKey);   // đổi định danh = xoá key cũ + tạo key mới (chuyển mã)
+          await data.addMany(cur.eid, [{ key:newKey, name }]);
+          note = (newKey !== alEditKey) ? `Đã đổi "${alEditKey}" → "${newKey}".` : `Đã cập nhật "${newKey}".`;
+        } else {
+          const existed = cur.rows.some(r => r.key === newKey);
+          await data.addMany(cur.eid, [{ key:newKey, name }]);
+          note = existed ? `Mã "${newKey}" đã có — đã cập nhật tên.` : `Đã thêm "${newKey}".`;
+        }
+        cancelEditOne();
+        cur.rows = await data.list(cur.eid); renderList();
+        el.oneMsg.style.color = '#16A34A'; el.oneMsg.textContent = note;
+      } catch (err){
+        el.oneMsg.style.color = 'var(--err)'; el.oneMsg.textContent = 'Lỗi: ' + (err.message || err);
+      } finally { el.addOne.disabled = false; }
     };
     el.mode.onchange = async () => {
       if (!cur.dedupField){ el.mode.checked = false; setWarnings(); return; }   // không có field đối chiếu thì không bật được

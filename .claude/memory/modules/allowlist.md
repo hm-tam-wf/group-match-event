@@ -55,6 +55,9 @@ mới được vào lưới + join đội. Enforce **phía client**, mô phỏng
 Dropdown sự kiện → trạng thái (dedupField/đếm/toggle `allowlistMode`) → import **SheetJS (CSV/XLSX)**:
 chọn cột khớp `dedupField` (+ cột tên tuỳ chọn, regex `họ tên|name|tên`), `buildItems` chuẩn hoá key
 bằng `_dedupKey`, dedup nội bộ, batch ≤400. Thêm/Thay-thế, bảng tìm kiếm, tải CSV, xoá từng dòng.
+**Thêm/sửa tay 1 mã (2026-06-18, không cần file):** ô `#alOneKey`+`#alOneName`+`#alAddOne` → `addMany([{key:_dedupKey(raw),name}])`
+(merge). Nút `✎` mỗi dòng → `startEditOne` đổ vào ô + `#alAddOne`→"Lưu sửa" (state `alEditKey`); lưu: đổi định danh
+⇒ `delOne(keyCũ)`+`addMany(keyMới)` (chuyển mã), giữ định danh ⇒ chỉ cập nhật tên. `loadEvent` gọi `cancelEditOne` (tránh sửa nhầm event).
 Toggle `fAllowlistMode` trong form phụ thuộc `dedupField` (`syncAllowlistToggle`); toggle `fAllowlistNameCheck`
 (con) phụ thuộc `fAllowlistMode` (`syncNameCheckToggle`). Cả hai toggle có bản nút nhanh ở tab (`alMode`/`alNameCheck`).
 
