@@ -37,6 +37,11 @@ Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm t
 - **Xóa dữ liệu** (`clearEvent`→`clearEventData`): xóa hết `signups/members/dedup_keys/teams`
   (PHẢI có teams để count về 0), GIỮ `meta/config`. `deleteAll` lặp batch ≤400, có chặn vô hạn
   (200 vòng) phòng sự kiện đang chạy nhận đăng ký liên tục.
+- **Bỏ chặn 1 MSNV = mở khóa cổng** (2026-06-18, tab "Xem đăng ký", `#btnUnblock`): ô nhập MSNV → xóa CHỈ
+  `reg_keys/<key>` (hold giữ chỗ lúc điền form), **GIỮ `dedup_keys/<key>`** (khóa khi đã JOIN). key =
+  `_dedupKey(raw)` (chuẩn hoá GIỐNG app). Hệ quả: mã CHƯA chọn đội → qua cổng, vào chọn đội được; mã ĐÃ ở 1 đội →
+  dedup_keys vẫn chặn → KHÔNG cho chọn lại (chống join 2 đội). Phân biệt chặn allowlist (bỏ chặn loại đó = thêm mã
+  vào allowlist [[allowlist]]).
 - **Xóa sự kiện** (`deleteEvent`): chỉ khi KHÔNG đang chạy & `signups` rỗng (limit(1).empty).
   Batch: `arrayRemove` id khỏi `config/eventList` **+** delete `meta/config` (quên arrayRemove
   ⇒ ghost row). Có nhánh "gỡ mục hỏng" cho id thiếu meta/config.

@@ -417,6 +417,13 @@
         <p id="summary" class="summary"></p>
         <div id="chips" class="chips"></div>
         <div id="dupWarn"></div>
+        <div class="row-sig" id="unblockRow" style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
+          <label for="unblockCode">Bỏ chặn mã:</label>
+          <input id="unblockCode" type="text" placeholder="Nhập MSNV cần bỏ chặn" autocomplete="off"
+                 style="min-width:200px;padding:8px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit" />
+          <button id="btnUnblock" class="btn-ghost" type="button">Bỏ chặn</button>
+          <span id="unblockMsg" style="font-size:13px;color:var(--muted)"></span>
+        </div>
         <div class="table-wrap">
           <table id="tbl" class="reg-table">
             <thead id="thead"></thead>
@@ -1427,6 +1434,37 @@
     loadSignups(eid);
   });
   $("btnExcel").addEventListener("click", exportExcel);
+
+  // Bỏ chặn 1 MSNV = MỞ KHÓA CỔNG: chỉ xóa khóa giữ chỗ reg_keys (hold lúc điền form), GIỮ dedup_keys (khóa
+  // khi đã JOIN đội). Hệ quả: mã CHƯA chọn đội → qua cổng, vào chọn được; mã ĐÃ ở 1 đội → dedup_keys vẫn chặn,
+  // KHÔNG cho chọn lại (chống join 2 đội). key chuẩn hoá GIỐNG app (_dedupKey).
+  $("btnUnblock").addEventListener("click", async () => {
+    const eid = $("sigSelect").value;
+    const raw = $("unblockCode").value.trim();
+    const msg = $("unblockMsg");
+    msg.textContent = "";
+    if (!eid) { msg.style.color = "var(--err)"; msg.textContent = "Hãy chọn sự kiện ở trên."; return; }
+    if (!raw) { msg.style.color = "var(--err)"; msg.textContent = "Nhập MSNV cần bỏ chặn."; return; }
+    const key = _dedupKey(raw);
+    const ok = await confirmModal({
+      title: "Bỏ chặn mã này?",
+      message: `Sẽ mở khóa cổng cho "${raw}" trong sự kiện "${eid}" (xóa khóa giữ chỗ). Nếu mã CHƯA chọn đội → tải lại là vào được & chọn đội. Nếu ĐÃ ở 1 đội rồi → vẫn bị chặn, KHÔNG cho chọn lại.`,
+      confirmText: "Bỏ chặn", danger: true,
+    });
+    if (!ok) return;
+    $("btnUnblock").disabled = true;
+    try {
+      await db.collection("events").doc(eid).collection("reg_keys").doc(key).delete();   // chỉ xóa hold giữ chỗ; GIỮ dedup_keys (đã join thì vẫn chặn chọn lại)
+      msg.style.color = "#16A34A";
+      msg.textContent = `Đã mở khóa cổng cho "${raw}" (key: ${key}). Chưa chọn đội → tải lại vào được; đã ở đội → vẫn chặn chọn lại.`;
+      $("unblockCode").value = "";
+    } catch (err) {
+      msg.style.color = "var(--err)";
+      msg.textContent = "Lỗi: " + (err.message || err);
+    } finally {
+      $("btnUnblock").disabled = false;
+    }
+  });
 
   async function loadSignups(eid) {
     $("loadErr").textContent = "";
