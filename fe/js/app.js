@@ -135,14 +135,19 @@ async function init() {
   // token định danh: tạo 1 lần, lưu localStorage → nhớ qua các lần tải lại trang
   if (!me.id) { me.id = "u" + Math.random().toString(36).slice(2, 10); me.fields = me.fields || {}; await saveMe(); await sDel(SK.RESERVED_KEY, false); }   // danh tính MỚI ⇒ NHẢ reservedKey cũ (bịt lỗ H2: nếu "me" bị xoá nhưng reservedKey còn sót → cổng trùng short-circuit "chỗ của mình" cho qua nhầm)
 
-  // SELF-HEAL TƯ CÁCH THÀNH VIÊN (2026-06-18): admin có thể đã GỠ mình khỏi đội (un-join) trong khi localStorage
-  // vẫn nhớ myIcon. Đọc members/{pid} (nguồn chuẩn server): KHÔNG còn (null) ⇒ bỏ myIcon → vào lại NHƯ chưa join,
-  // tự chọn đội khác CHỈ CẦN RELOAD (khỏi xóa dữ liệu trình duyệt). undefined (mạng lỗi/demo) ⇒ KHÔNG đụng (tránh
-  // xóa nhầm). Bổ sung cho self-heal "đội về count 0" ở renderState (chỉ bắt khi cả đội rỗng). Đặt TRƯỚC các cổng
-  // để sau khi bỏ myIcon thì nhánh !myIcon (dedup/allowlist/reserve) chạy đúng như người chưa chọn đội.
-  if (MODE === MODE_FIREBASE && myIcon && me.id && typeof apiMyMembership === "function") {
-    const mem = await apiMyMembership(me.id);
-    if (mem === null) { myIcon = null; await saveMe(); }   // chắc chắn đã bị gỡ ⇒ bỏ chọn (cho chọn lại)
+  // SELF-HEAL TƯ CÁCH THÀNH VIÊN (2026-06-18, nâng 2 CHIỀU 2026-06-19): đồng bộ myIcon với members/{pid}
+  // (nguồn chuẩn server). (a) server KHÔNG còn (null) mà localStorage còn myIcon ⇒ bỏ myIcon → reload là chọn
+  // đội khác được (khỏi xóa dữ liệu). (b) server CÒN member mà browser QUÊN (myIcon trống/lệch) ⇒ KHÔI PHỤC
+  // myIcon → tránh lọt xuống cổng dedup, bị coi là "trùng" rồi apiRemoveProfile XÓA NHẦM signup của thành viên
+  // thật (ca 3549). undefined (mạng lỗi/demo) ⇒ KHÔNG đụng. Lưu _serverMember để cổng dưới không xóa PII member.
+  let _serverMember;   // undefined=chưa rõ/lỗi mạng ; null=KHÔNG ở đội ; {icon}=đang ở đội
+  if (MODE === MODE_FIREBASE && me.id && (myIcon || profileComplete()) && typeof apiMyMembership === "function") {
+    _serverMember = await apiMyMembership(me.id);
+    if (_serverMember === null) {
+      if (myIcon) { myIcon = null; await saveMe(); }                                       // bị gỡ ⇒ bỏ chọn
+    } else if (_serverMember && _serverMember.icon && _serverMember.icon !== myIcon) {
+      myIcon = _serverMember.icon; await saveMe();                                         // server còn ⇒ khôi phục
+    }
   }
 
   // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
@@ -167,7 +172,10 @@ async function init() {
   // trước. Khớp với cổng chặn ở save()/doClaim.
   if (MODE === MODE_FIREBASE && profileComplete()) {
     if (dupBlocked || allowBlocked) {
-      if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+      // CHỐNG XÓA NHẦM PII (2026-06-19): chỉ dọn signup khi CHẮC CHẮN không phải member thật (server trả null).
+      // Đang là member (_serverMember.icon) hoặc CHƯA RÕ (undefined/lỗi mạng) ⇒ GIỮ signup. Ca 3549: dedup của
+      // chính mình làm dupBlocked=true → trước đây xóa nhầm signup của thành viên đang ở đội (vòng lặp mất PII).
+      if (_serverMember === null && typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
     } else {
       // ĐẶT-CHỖ TRƯỚC KHI GHI (giống save()) — đóng lỗ: trước đây init() ghi signup qua apiSaveProfile
       // mà KHÔNG đặt-chỗ → hồ sơ điền ở phiên trước (vd trước khi deploy) được ghi lại không có reg_keys
@@ -178,7 +186,7 @@ async function init() {
       }
       if (reserved && reserved.ok === false) {
         dupBlocked = true;                                                  // người khác đã giữ MSNV này
-        if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+        if (_serverMember === null && typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // chỉ dọn khi KHÔNG phải member thật
       } else if (typeof apiSaveProfile === "function") {
         apiSaveProfile({ playerId: me.id, fields: me.fields });
       }

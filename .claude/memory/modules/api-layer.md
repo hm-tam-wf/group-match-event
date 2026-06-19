@@ -151,15 +151,24 @@ clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).
 
-## apiMyMembership() — self-heal khi admin GỠ khỏi đội (un-join, 2026-06-18)
-Đọc `members/{pid}` (get:true). Trả `{icon}` nếu CÒN trong đội; **`null`** nếu KHÔNG còn (admin un-join);
-**`undefined`** nếu không xác định (mạng lỗi / demo / sheet). `init()` (app.js, SAU mint `me.id`, TRƯỚC các cổng):
-nếu `MODE_FIREBASE && myIcon && mem===null` ⇒ `myIcon=null` + `saveMe()` → người bị gỡ chỉ cần **RELOAD** là vào
-lại như chưa join & chọn đội khác (KHỎI xóa dữ liệu trình duyệt). Chỉ self-heal khi `null` (chắc chắn bị gỡ) —
-`undefined` ⇒ KHÔNG đụng (tránh xóa nhầm myIcon khi lỗi mạng). **Bổ sung** cho self-heal cũ ở
-[ui-render.js renderState] (`teamOf(myIcon).count===0` — chỉ bắt khi CẢ đội rỗng; gác `!_skipSelfHeal` trong
-cửa sổ vừa join). **Un-join thủ công** (script): gỡ `teams`(count-1+bỏ tên, transaction)+`members/{pid}`+
-`dedup_keys`+`reg_keys`+`signups/{pid}` — CHỈ gỡ dòng đã-join, KHÔNG đụng thành viên khác cùng đội.
+## apiMyMembership() — self-heal đồng bộ myIcon ↔ members/{pid} (2026-06-18, nâng 2 CHIỀU 2026-06-19)
+Đọc `members/{pid}` (get:true). Trả `{icon}` nếu CÒN trong đội; **`null`** nếu KHÔNG còn; **`undefined`** nếu
+không xác định (mạng lỗi / demo / sheet). `init()` (app.js, SAU mint `me.id`, TRƯỚC các cổng) lưu vào
+`_serverMember` rồi đồng bộ **2 chiều**:
+- (a) `null` & còn `myIcon` ⇒ `myIcon=null` → người bị admin gỡ chỉ cần **RELOAD** là vào lại chọn đội khác.
+- (b) `{icon}` & `myIcon` trống/lệch ⇒ **KHÔI PHỤC** `myIcon=mem.icon` → browser quên đội (vd mất myIcon) được
+  trả về đúng đội ⇒ KHÔNG lọt xuống cổng dedup → KHÔNG bị `dupBlocked` giả → KHÔNG `apiRemoveProfile` xóa nhầm.
+- `undefined` (lỗi mạng) ⇒ KHÔNG đụng.
+**Chốt chống xóa nhầm PII (fix C, 2026-06-19):** ở nhánh `dupBlocked||allowBlocked` và nhánh reserve-fail trong
+`init()`, `apiRemoveProfile` **chỉ chạy khi `_serverMember === null`** (chắc chắn KHÔNG phải member thật). Đang là
+member (`{icon}`) hoặc chưa rõ (`undefined`) ⇒ GIỮ signup. Sửa **gốc** vòng lặp ca **3549**: member đội 8 mà
+browser mất `myIcon` → dedup của chính mình làm `dupBlocked=true` → trước đây xóa signup mỗi lần reload (mất PII,
+admin lệch 18/17). Nay (b) khôi phục myIcon + chốt giữ signup → tự lành. **Bổ sung** cho self-heal cũ ở
+[ui-render.js renderState] (`teamOf(myIcon).count===0`; gác `!_skipSelfHeal`).
+**Un-join thủ công** (script): gỡ `teams`(count-1+bỏ tên, transaction)+`members/{pid}`+`dedup_keys`+`reg_keys`+
+`signups/{pid}` — CHỈ gỡ dòng đã-join, KHÔNG đụng thành viên khác. (Khi signup đã mất ⇒ gỡ theo tên trong
+`names[]`, khớp đúng 1 lần mới gỡ.) ⚠️ Thao tác xóa member/un-join trên prod bị **auto-mode classifier** chặn nếu
+MSNV chỉ do agent suy ra / chưa được user nêu rõ trong tin nhắn — cần user xác nhận MSNV cụ thể.
 
 ## Allowlist (đã có — xem [[allowlist]])
 - Cổng "chỉ MSNV trong danh sách mới được join": `apiAllowlistAllowed`/`apiAllowlistInfo` (cổng vào)
