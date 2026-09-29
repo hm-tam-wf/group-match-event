@@ -99,6 +99,12 @@ body.initial-load .tile{
 .g-tag.g-f{--g-c:#e0479e}
 .tile .g-tag{margin:-8px 0 10px}
 .ft-name .g-tag{margin-left:6px;padding:2px 8px;font-size:9.5px}
+/* Nhãn Team (tách từ tên "Phòng 1 · Team 1") — dòng riêng, màu theo team để thấy ngay các phòng cùng team. */
+.nm-team{display:inline-block;margin:6px 0 2px;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:900;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--t-c);
+  background:color-mix(in srgb,var(--t-c) 16%,transparent);border:1px solid color-mix(in srgb,var(--t-c) 60%,transparent);
+  box-shadow:0 0 14px -4px var(--t-c)}
+.nm-team.ft-team{margin:4px 0 0;padding:2px 9px;font-size:10px}
 .tile::before{content:"";position:absolute;inset:0;border-radius:var(--r-lg);background:radial-gradient(130px 100px at 50% -8%, var(--c), transparent 70%);opacity:.22;pointer-events:none;transition:opacity .25s}
 .tile .ic{font-size:clamp(42px,8vw,52px);line-height:1;filter:drop-shadow(0 6px 10px color-mix(in srgb,var(--c) 40%,transparent))}
 .tile .nm{font-family:var(--display);font-weight:600;font-size:16px;margin-top:8px;color:var(--text)}

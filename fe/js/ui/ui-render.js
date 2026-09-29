@@ -17,6 +17,21 @@ const LOCK_SVG = `<svg class="ft-lock-ic" viewBox="0 0 24 24" fill="none" xmlns=
   <path d="M7.75 10.5V7.25a4.25 4.25 0 0 1 8.5 0v3.25" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
 </svg>`;
 
+// Tên phòng dạng "Phòng 1 · Team 1" ⇒ tách phần Team thành nhãn riêng (xuống dòng, tô màu theo team để nhận ra
+// các phòng cùng team). Chỉ tách khi hậu tố bắt đầu bằng Team/Nhóm — tên khác giữ nguyên.
+const TEAM_COLORS = ["#22d3ee", "#fbbf24", "#a78bfa", "#34d399", "#fb7185", "#60a5fa"];
+function splitTeam(name) {
+  const m = /^(.*?)\s*·\s*((?:team|nhóm)\b.*)$/i.exec(String(name || ""));
+  return m ? { base: m[1], team: m[2] } : { base: String(name || ""), team: "" };
+}
+function teamTag(name, cls) {
+  const { team } = splitTeam(name);
+  if (!team) return "";
+  const teams = [...new Set(ICONS.map(ic => splitTeam(ic.name).team).filter(Boolean))];
+  const color = TEAM_COLORS[teams.indexOf(team) % TEAM_COLORS.length];
+  return `<div class="${cls}" style="--t-c:${color}">${esc(team)}</div>`;
+}
+
 // Hằng số hiển thị (§4 — chống magic number)
 const AVATAR_PREVIEW_MAX = 5;     // số avatar hiện ở mỗi tile trước khi gộp thành "+N"
 const CONFETTI_COUNT     = 28;    // số mảnh confetti trong popup chúc mừng
@@ -440,7 +455,7 @@ function renderState() {
       ? `<div class="g-tag ${roomG === GENDER_OPTIONS[0] ? "g-m" : "g-f"}">${esc(TEXT.grid.roomTag(roomG))}</div>` : "";
     tileEl.innerHTML = `${genderTag}
       <div class="ic">${iconDef.icon}</div>
-      <div class="nm">${iconDef.name}</div>
+      <div class="nm">${splitTeam(iconDef.name).base}</div>${teamTag(iconDef.name, "nm-team")}
       <div class="cap">${team.count}/${cap}</div>
       <div class="cap-bar"><span style="width:${pct}%"></span></div>
       <div class="avas">${avatarChips}</div>
@@ -509,7 +524,7 @@ function renderState() {
     teamEl.innerHTML = `
       <div class="ft-head">
         <span class="ti">${iconDef.icon}</span>
-        <div class="ft-meta"><div class="lab">${full ? `${LOCK_SVG}${TEXT.grid.ftLocked}` : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}${ftGenderTag}</div></div>
+        <div class="ft-meta"><div class="lab">${full ? `${LOCK_SVG}${TEXT.grid.ftLocked}` : TEXT.grid.ftForming}</div><div class="ft-name">${splitTeam(iconDef.name).base}${ftGenderTag}</div>${teamTag(iconDef.name, "nm-team ft-team")}</div>
         <span class="ft-badge">${team.count}/${cap}${mine ? TEXT.grid.ftYou : ""}</span>
       </div>
       <ol class="ft-list">${memberItems}</ol>`;
