@@ -1464,6 +1464,7 @@
   let sigRows       = [];
   let sigFields     = [];
   let sigIcons      = {};
+  let sigIconOrder  = [];   // thứ tự phòng/đội theo cấu hình — để file xuất sắp đúng thứ tự
   let sigDedupField = "";   // field dùng để phát hiện trùng (đọc từ meta/config của sự kiện đang xem)
 
   $("btnLoad").addEventListener("click", () => {
@@ -1520,6 +1521,7 @@
         : (typeof ICONS !== "undefined" ? ICONS : []);
       sigIcons = {};
       icArr.forEach(g => { sigIcons[g.icon] = g; });
+      sigIconOrder = icArr.map(g => g.icon);
 
       const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
       const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
@@ -1620,14 +1622,28 @@
     if (!sigRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }
     const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
     const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
-    const headers = ["STT", "Đội"].concat(sigFields.map(f => f.label)).concat(["Thời gian"]);
-    const data = sigRows.map((r, i) => {
-      const o = { "STT": i + 1, "Đội": teamLabel(r.icon) };
+    // Tên dạng "Phòng 1 · Team 1" ⇒ tách 2 cột Phòng | Team (dễ lọc theo team). Sự kiện không có Team giữ cột "Đội" như cũ.
+    const splitTeam = nm => { const m = /^(.*?)\s*·\s*((?:team|nhóm)\b.*)$/i.exec(String(nm || "")); return m ? [m[1], m[2]] : [String(nm || ""), ""]; };
+    const hasTeam = sigIconOrder.some(ic => splitTeam((sigIcons[ic] || {}).name)[1]);
+    // Sắp theo THỨ TỰ PHÒNG trong cấu hình (chưa chọn phòng xuống cuối), cùng phòng thì theo giờ đăng ký.
+    const rank = ic => { const i = sigIconOrder.indexOf(ic); return i < 0 ? Infinity : i; };
+    const rows = sigRows.slice().sort((a, b) =>
+      (rank(a.icon) - rank(b.icon)) || ((a.at && a.at.seconds || 0) - (b.at && b.at.seconds || 0)));
+    const headers = ["STT"].concat(hasTeam ? ["Phòng", "Team"] : ["Đội"])
+                           .concat(sigFields.map(f => f.label)).concat(["Thời gian"]);
+    const data = rows.map((r, i) => {
+      const o = { "STT": i + 1 };
+      if (hasTeam) {
+        const [room, team] = sigIcons[r.icon] ? splitTeam(sigIcons[r.icon].name) : ["—", ""];
+        o["Phòng"] = room; o["Team"] = team;
+      } else o["Đội"] = teamLabel(r.icon);
       sigFields.forEach(f => { o[f.label] = r[f.key] == null ? "" : String(r[f.key]); });
       o["Thời gian"] = fmtTime(r.at);
       return o;
     });
     const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+    ws["!autofilter"] = { ref: ws["!ref"] };   // bật sẵn nút lọc ở hàng tiêu đề
+    ws["!cols"] = headers.map(h => ({ wch: h === "STT" ? 5 : (h === "Phòng" || h === "Team" ? 12 : 26) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "signups");
     const eid = $("sigSelect").value || "signups";
