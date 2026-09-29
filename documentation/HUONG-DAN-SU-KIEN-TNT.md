@@ -58,7 +58,7 @@ Vào admin → đăng nhập → trong **Danh sách sự kiện**, bấm **Sửa
 2. **Mô tả**: dán nguyên đoạn sau
 
    ```html
-   "Chọn phòng đừng để phòng dư, chọn bạn đừng để phòng bạn to hơn phòng mình"<ul><li><b>Săn roommate phiên bản giới hạn:</b> Mỗi phòng sẽ chỉ bán ra vài chiếc giường giới hạn — gom đủ người, hệ thống tự động "khóa cửa" tiễn khách.</li><li>Mỗi công nhân sự kiện chỉ được <b>chốt cạ cứng 1 lần duy nhất</b>, đã chọn là không thể quay đầu.</li><li><b>Lưu ý:</b> Nam riêng, nữ riêng — hệ thống tự xếp theo giới tính trong danh sách của BTC.</li></ul>
+   "Chọn phòng đừng để phòng dư, chọn bạn đừng để phòng bạn to hơn phòng mình"<ul><li><b>Săn roommate phiên bản giới hạn:</b> Mỗi phòng sẽ chỉ bán ra vài chiếc giường giới hạn — gom đủ người, hệ thống tự động "khóa cửa" tiễn khách.</li><li>Mỗi công nhân sự kiện chỉ được <b>chốt cạ cứng 1 lần duy nhất</b>, đã chọn là không thể quay đầu.</li></ul>
    ```
 3. **Ô nhập (fields)** — chỉ giữ **1 ô**, xoá hết ô khác (nút ✕):
    - key: `name` · Nhãn: `Tên công nhân sự kiện` · tích **Bắt buộc** · Placeholder: `Nguyễn Văn A`
