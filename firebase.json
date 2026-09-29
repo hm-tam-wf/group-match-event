@@ -2,13 +2,23 @@
   "firestore": {
     "rules": "backend/firestore.rules"
   },
-  "hosting": {
-    "site": "pickyoursquad-faraday",
-    "public": "fe",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
-  }
+  "hosting": [
+    {
+      "site": "pickyourgroup",
+      "public": "fe",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "site": "pickyoursquad-faraday",
+      "public": "hosting-redirect",
+      "redirects": [
+        { "source": "/", "destination": "https://pickyourgroup.web.app/", "type": 301 },
+        { "source": "/:path*", "destination": "https://pickyourgroup.web.app/:path*", "type": 301 }
+      ]
+    }
+  ]
 }

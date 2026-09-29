@@ -64,15 +64,20 @@ root (Firebase) lẫn subpath (Pages). Cả hai cùng nói chuyện với **1 Fi
 
 ### Firebase Hosting (thủ công)
 
-Cấu hình ở [firebase.json](firebase.json) (`hosting.public = "fe"`, site `pickyoursquad-faraday`). Lần đầu cần tạo site:
+Cấu hình ở [firebase.json](firebase.json) (`hosting.public = "fe"`, site `pickyourgroup`). Lần đầu cần tạo site:
 
 ```powershell
 firebase login
-firebase hosting:sites:create pickyoursquad-faraday   # 1 lần (đã tạo), tạo pickyoursquad-faraday.web.app
+firebase hosting:sites:create pickyourgroup   # 1 lần (đã tạo), tạo pickyourgroup.web.app
 firebase deploy --only hosting
 ```
 
-URL: **https://pickyoursquad-faraday.web.app**
+URL: **https://pickyourgroup.web.app**
+
+> Từ 2026-09-30 site chính là `pickyourgroup`. Site cũ `pickyoursquad-faraday` chỉ còn **chuyển hướng 301** sang
+> `pickyourgroup.web.app` (giữ nguyên đường dẫn + tham số) — cấu hình ở mục thứ 2 của `hosting` trong
+> [firebase.json](firebase.json), thư mục `hosting-redirect/`. `firebase deploy --only hosting` deploy cả 2.
+
 
 ### GitHub Pages (tự động)
 
@@ -83,7 +88,7 @@ URL: **https://hm-tam-wf.github.io/group-match-event/**
 
 > Bật **1 lần**: repo **Settings → Pages → Source = GitHub Actions**.
 > Trang **admin** trên domain Pages cần thêm `hm-tam-wf.github.io` vào **Firebase Auth → Authorized domains**
-> (app công khai thì không cần). Firebase project ID vẫn là `icon-picker` — khác với hosting *site* `pickyoursquad-faraday`.
+> (app công khai thì không cần). Firebase project ID vẫn là `icon-picker` — khác với hosting *site* `pickyourgroup`.
 
 ## Xuất danh sách đăng ký
 

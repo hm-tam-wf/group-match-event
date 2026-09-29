@@ -8,7 +8,7 @@ App này có 3 chế độ chạy, tự nhận diện trong [fe/js/ui/ui-utils.j
 | `sheet` | Có `SCRIPT_URL` (Apps Script) | Google Sheet | ⚠️ chỉ vài chục người |
 | `demo` | Không cấu hình gì | localStorage / RAM | Chạy thử 1 máy |
 
-Hướng dẫn này bật chế độ **`firebase`** — frontend deploy **song song** trên **Firebase Hosting** (`pickyoursquad-faraday.web.app`) và **GitHub Pages** (`hm-tam-wf.github.io/group-match-event/`, tự động qua Actions), dữ liệu nằm trên **Firestore**. **Không cần Apps Script nữa.**
+Hướng dẫn này bật chế độ **`firebase`** — frontend deploy **song song** trên **Firebase Hosting** (`pickyourgroup.web.app`) và **GitHub Pages** (`hm-tam-wf.github.io/group-match-event/`, tự động qua Actions), dữ liệu nằm trên **Firestore**. **Không cần Apps Script nữa.**
 
 ---
 
@@ -36,15 +36,20 @@ Firebase Console → **Firestore Database → Rules** → xoá hết, dán toàn
 ## 4. Đẩy lên Firebase Hosting
 
 Thư mục `fe/` đã là sản phẩm cuối (HTML/CSS/JS thật) — **không còn bước build**. Cấu hình ở
-[firebase.json](../firebase.json) (`hosting.public = "fe"`, site `pickyoursquad-faraday`). Lần đầu cần tạo site:
+[firebase.json](../firebase.json) (`hosting.public = "fe"`, site `pickyourgroup`). Lần đầu cần tạo site:
 
 ```powershell
 firebase login
-firebase hosting:sites:create pickyoursquad-faraday   # 1 lần (đã tạo) — tạo pickyoursquad-faraday.web.app
+firebase hosting:sites:create pickyourgroup   # 1 lần (đã tạo) — tạo pickyourgroup.web.app
 firebase deploy --only hosting
 ```
 
-Sau khi deploy có URL `https://pickyoursquad-faraday.web.app`.
+Sau khi deploy có URL `https://pickyourgroup.web.app`.
+
+> Từ 2026-09-30 site chính là `pickyourgroup`. Site cũ `pickyoursquad-faraday` chỉ còn **chuyển hướng 301** sang
+> `pickyourgroup.web.app` (giữ nguyên đường dẫn + tham số) — cấu hình ở mục thứ 2 của `hosting` trong
+> [firebase.json](../firebase.json), thư mục `hosting-redirect/`. `firebase deploy --only hosting` deploy cả 2.
+
 > 💡 App còn deploy **song song** trên **GitHub Pages** qua [.github/workflows/pages.yml](../.github/workflows/pages.yml)
 > (tự động khi push `master` đụng `fe/`) → `https://hm-tam-wf.github.io/group-match-event/`. Bật 1 lần ở repo
 > **Settings → Pages → Source = GitHub Actions**; trang admin trên domain Pages cần thêm `hm-tam-wf.github.io`
@@ -83,7 +88,7 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 **6.3. Truy cập & tải Excel**
 
-- Mở `admin.html` cùng gốc với app: `https://pickyoursquad-faraday.web.app/admin.html` (hoặc `npx serve fe` rồi vào `/admin.html` khi chạy thử).
+- Mở `admin.html` cùng gốc với app: `https://pickyourgroup.web.app/admin.html` (hoặc `npx serve fe` rồi vào `/admin.html` khi chạy thử).
 - Đăng nhập bằng email/mật khẩu ở bước 6.1.
 - Ô **Sự kiện (EVENT_ID)** mặc định là sự kiện hiện tại; sửa để xem sự kiện cũ rồi bấm **Tải dữ liệu**.
 - Bảng hiện đủ Họ tên, MSNV, Đội, Thời gian + tổng số người và số người mỗi đội.

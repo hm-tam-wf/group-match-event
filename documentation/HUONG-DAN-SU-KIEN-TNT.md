@@ -5,8 +5,8 @@ Người chơi chỉ cần **nhập họ tên**. Hệ thống tự tra giới t�
 
 | Trang | Link |
 |---|---|
-| Trang người chơi | https://hm-tam-wf.github.io/group-match-event/ |
-| Trang quản trị (admin) | https://hm-tam-wf.github.io/group-match-event/admin.html |
+| Trang người chơi | https://pickyourgroup.web.app/ (dự phòng: https://hm-tam-wf.github.io/group-match-event/) |
+| Trang quản trị (admin) | https://pickyourgroup.web.app/admin.html |
 
 > Trang admin **không** hiện giao diện TNT — đó là bình thường, chỉ trang người chơi mới có.
 
@@ -105,7 +105,7 @@ Trong **Danh sách sự kiện**, bấm **Mở** ở sự kiện TNT. Chỉ 1 s�
 
 ## Việc kỹ thuật còn lại (cho người phụ trách code)
 
-- **Firebase Hosting** (link `…web.app`) chưa cập nhật — khi cần, chạy ở thư mục dự án:
-  `firebase deploy --only hosting`
+- **Firebase Hosting**: link chính **https://pickyourgroup.web.app** (link cũ `pickyoursquad-faraday.web.app` tự chuyển sang).
+  Cập nhật sau khi push code: chạy ở thư mục dự án `firebase deploy --only hosting`.
 - **Tắt giao diện TNT** sau sự kiện: trong `fe/js/config/theme.js` đổi `DEFAULT_VARIANT = 'tnt'` thành
   `DEFAULT_VARIANT = ''`, commit + push (và deploy Firebase nếu dùng).
