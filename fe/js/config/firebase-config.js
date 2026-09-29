@@ -27,6 +27,12 @@ let ALLOWLIST_MODE = false;
 // có-trong-danh-sách. Ở chế độ firebase: được gán lại bởi boot() từ config.allowlistNameCheck.
 let ALLOWLIST_NAMECHECK = false;
 
+// Tính năng CON của allowlist: PHÂN PHÒNG THEO GIỚI TÍNH ("Check giới tính" ở admin). Giới tính lấy từ cột
+// "gender" của dòng allowlist (admin import xlsx) — người chơi KHÔNG tự chọn. Bật ⇒ phòng gắn giới
+// (ICONS[].gender) chỉ nhận đúng giới đó; dòng thiếu giới tính ⇒ không khoá phòng nào (fail-open).
+// Chỉ có tác dụng khi ALLOWLIST_MODE bật. Mặc định TẮT. firebase: boot() gán từ config.allowlistGenderCheck.
+let ALLOWLIST_GENDERCHECK = false;
+
 const FIREBASE_ON = !!(FIREBASE_CONFIG.projectId && window.firebase);
 let db = null;
 if (FIREBASE_ON) {

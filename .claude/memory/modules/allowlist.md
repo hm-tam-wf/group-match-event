@@ -1,9 +1,9 @@
 ---
 title: allowlist
 tags: [module, feature]
-code: [fe/admin.html, fe/js/data/api.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, backend/firestore.rules, sample-allowlist/]
-related: [[index]], [[api-layer]], [[admin-panel]], [[firestore-schema]], [[ui-pipeline]]
-updated: 2026-06-17
+code: [fe/admin.html, fe/js/data/api.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/js/config/config.js, backend/firestore.rules, sample-allowlist/]
+related: [[index]], [[api-layer]], [[admin-panel]], [[firestore-schema]], [[ui-pipeline]], [[0001-gender-rooms-from-allowlist]]
+updated: 2026-09-29
 ---
 
 # Allowlist (danh sách MSNV được phép join)
@@ -89,6 +89,33 @@ Import allowlist nay đọc THÊM cột tuỳ chọn `team` (regex `^(team|độ
 - **Lưu ý dung lượng**: capacity là 1 SỐ CHUNG mọi đội. 4 đội đầy + 6 icon còn lại mở (×25=150 chỗ) < 208 người
   chưa đội ⇒ thiếu chỗ; muốn đủ phải thêm icon / sửa capacity ở form "Sửa sự kiện".
 - KHÔNG test được ghi Firestore từ CLI (admin auth-gated) — đã test parse/group bằng Node trên file thật + node --check cú pháp.
+
+## Phân phòng theo GIỚI TÍNH — cột "Giới tính" (2026-09-29, [[0001-gender-rooms-from-allowlist]])
+Tính năng CON của allowlist: giới tính lấy từ FILE (người chơi không tự chọn); phòng gắn giới khác ⇒ khoá.
+- **Chuẩn hoá** (config.js, nạp ở cả index lẫn admin): `GENDER_OPTIONS=["Nam","Nữ"]`, `_foldVN` (bỏ dấu, đ→d,
+  thường), `normGender(v)` → "Nam"|"Nữ"|"" (nhận nam/male/m, nữ/nu/female/f; hoa/thường/NFD đều ok),
+  `roomGender(icon)`. Mọi phía quy về CÙNG 2 hằng ⇒ so "===" an toàn.
+- **Cờ**: `meta/config.allowlistGenderCheck` ↔ `ALLOWLIST_GENDERCHECK` (firebase-config.js, boot gán). Chỉ có tác
+  dụng khi `ALLOWLIST_MODE` (apiAllowlistInfo trả gender "" khi allowlist tắt; apiClaim chỉ xét khi có allowSnap).
+- **Doc allowlist** `{ name?, gender?, at }`. **Phòng** `icons[].gender` (admin select "Chung/Nam/Nữ"; Chung = không key).
+- **Client**: `apiAllowlistInfo` trả thêm `gender`; `init()` (cùng 1 lần đọc với cổng allowlist — đọc cả khi đã
+  vào phòng) + `save()` gán state RAM `myGender` (ui-utils) ⇒ admin sửa file là reload có hiệu lực.
+  `renderState`: `gLocked = !myIcon && myGender && roomG && roomG !== myGender` ⇒ tile disabled + nhãn
+  `grid.tileGender`, class `gender-lock`; hết phòng hợp giới ⇒ `#freeHint` = `grid.genderFull`. Thanh tóm tắt
+  hiện "MSNV · Nam". `apiClaim` (firebase: dùng `allowSnap` ĐÃ đọc; demo: entry object `{gender}`) ⇒
+  `REASON.GENDER_MISMATCH` → toast. Dòng thiếu giới / phòng chung ⇒ không khoá (fail-open).
+- **Admin form sự kiện**: checkbox `fAllowlistGenderCheck` (con của allowlist — `syncNameCheckToggle` khoá cả 2
+  checkbox con); validateForm: bật check mà không phòng nào gắn giới ⇒ chặn lưu. Quick toggle `alMode` tắt
+  allowlist ⇒ hạ luôn `allowlistGenderCheck` (như nameCheck).
+- **Admin tab danh sách**: import dò cột giới theo `_foldVN(header)` khớp `^(gioi tinh|gioi|ma gioi|ma gioi tinh|
+  gender|sex)$` (không nhận "Giới tính nhân viên"); tóm tắt "N Nam · M Nữ · K trống · ⚠ X ô không hiểu"; bảng + CSV
+  có cột Giới tính; "Thêm/sửa 1 mã" có select giới — SỬA mà chọn "—" ⇒ `gender: FV.delete()` (merge sẽ giữ giá
+  trị cũ nếu chỉ bỏ key); cảnh báo `alWarnNoGender` khi bật check mà danh sách chưa ai có giới.
+- `seedTeams` KHÔNG kiểm giới (admin tự chia). Fixture: `sample-allowlist/allowlist-mau-gioitinh.csv`
+  (8 Nam · 9 Nữ · 2 trống · 1 "Khác").
+- **GOTCHA CSV không BOM**: SheetJS (`XLSX.read` type array) đọc CSV UTF-8 KHÔNG có BOM theo cp1252 ⇒ header
+  "Giới tính" thành "Giá»i tÃ­nh" (không dò được) + tên có dấu vỡ. File .xlsx không bị. CSV mẫu phải có BOM
+  (`EF BB BF`, như allowlist-mau.csv); dặn BTC dùng .xlsx hoặc "CSV UTF-8" của Excel.
 
 ## Rules ([[firestore-schema]])
 `match /allowlist/{key}` → `get: if true` (client tx đọc theo key đã biết) · `list/write: if isAdmin()`

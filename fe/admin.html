@@ -375,6 +375,8 @@
             <span class="hint" id="fAllowlistHint">Cần chọn <b>field chống trùng</b> ở trên. Sau khi tạo, vào tab <b>Danh sách cho phép</b> để nạp file Excel.</span>
             <label class="cb-wrap" style="margin-top:8px;"><input type="checkbox" id="fAllowlistNameCheck" /> Đối chiếu <b>họ tên</b> với danh sách (chặn nếu tên không khớp)</label>
             <span class="hint" id="fNameCheckHint">Chỉ áp dụng khi <b>Danh sách cho phép</b> bật và dòng có cột tên. Khớp khoan dung (bỏ dấu, không phân biệt hoa/thường). Bỏ tích = chỉ kiểm có trong danh sách, không xét tên.</span>
+            <label class="cb-wrap" style="margin-top:8px;"><input type="checkbox" id="fAllowlistGenderCheck" /> Check <b>giới tính</b> — phân phòng Nam/Nữ theo danh sách</label>
+            <span class="hint" id="fGenderCheckHint">Giới tính lấy từ cột <b>Giới tính</b> trong file Excel của Danh sách cho phép (người chơi không tự chọn). Gắn Nam/Nữ cho từng đội/phòng ở mục <b>Đội</b> bên dưới — phòng để "Chung" nhận mọi người; người thiếu giới tính trong file không bị khoá phòng nào.</span>
           </div>
         </div>
 
@@ -471,6 +473,10 @@
         <div class="al-warn" id="alWarnEmpty" hidden>
           Đang <b>bật giới hạn</b> nhưng danh sách <b>trống</b> ⇒ sẽ chặn TẤT CẢ mọi người.
         </div>
+        <div class="al-warn" id="alWarnNoGender" hidden>
+          Sự kiện đang bật <b>Check giới tính</b> nhưng danh sách <b>chưa có giới tính</b> nào ⇒ không phòng nào bị khoá theo giới.
+          Nạp lại file có cột <b>Giới tính</b> (Nam/Nữ).
+        </div>
 
         <!-- Khối nhập từ Excel -->
         <div class="al-import" id="alImport">
@@ -496,6 +502,7 @@
         <div class="al-list-head" id="alAddOneRow">
           <input type="text" id="alOneKey"  class="al-search" placeholder="Định danh (vd NV001234)" autocomplete="off" style="flex:0 1 200px" />
           <input type="text" id="alOneName" class="al-search" placeholder="Tên (tùy chọn)"          autocomplete="off" style="flex:0 1 180px" />
+          <select id="alOneGender" class="al-search" title="Giới tính (tùy chọn) — dùng khi sự kiện bật Check giới tính" style="flex:0 1 120px"></select>
           <button id="alAddOne"    class="btn-pri btn-sm"   type="button">+ Thêm 1 mã</button>
           <button id="alOneCancel" class="btn-ghost btn-sm" type="button" hidden>Hủy sửa</button>
           <span id="alOneMsg" style="font-size:13px;color:var(--muted)"></span>
@@ -508,7 +515,7 @@
         </div>
         <div class="table-wrap">
           <table class="reg-table al-table">
-            <thead><tr><th class="num">#</th><th>Định danh</th><th>Tên</th><th></th></tr></thead>
+            <thead><tr><th class="num">#</th><th>Định danh</th><th>Tên</th><th>Giới tính</th><th></th></tr></thead>
             <tbody id="alBody"></tbody>
           </table>
         </div>
@@ -1012,8 +1019,10 @@
   }
 
   // cap (tuỳ chọn) = sĩ số RIÊNG cho đội này; để trống ⇒ dùng sĩ số chung (fCapacity). Lưu vào meta/config.caps[emoji].
+  // gender (tuỳ chọn) = đội/phòng CHỈ nhận giới này khi bật "Check giới tính"; "" = phòng chung. Lưu ở icons[].gender.
   function addIconRow(ic, cap) {
     ic = Object.assign({ icon:"", name:"", color:"#4f8cff" }, ic || {});
+    const gender = normGender(ic.gender);   // GENDER_OPTIONS/normGender: config.js (nạp trước script này)
     const row = document.createElement("div");
     row.className = "dyn-row";
     row.innerHTML =
@@ -1021,6 +1030,10 @@
       `<input type="text" placeholder="Tên đội" value="${esc(ic.name)}" style="flex:2;" />` +
       `<input class="inp-color" type="color" value="${esc(ic.color||"#4f8cff")}" title="Màu thẻ đội" />` +
       `<input class="inp-cap" type="number" min="1" max="9999" placeholder="chung" value="${(cap != null && cap !== "") ? esc(String(cap)) : ""}" title="Sĩ số RIÊNG đội này (để trống = dùng sĩ số chung)" style="width:78px;" />` +
+      `<select class="inp-gender" title="Giới tính của phòng — chỉ có tác dụng khi bật 'Check giới tính'" style="width:96px;">` +
+        `<option value="">Chung</option>` +
+        GENDER_OPTIONS.map(g => `<option value="${esc(g)}"${gender === g ? " selected" : ""}>${esc(g)}</option>`).join("") +
+      `</select>` +
       `<button type="button" class="btn-del" title="Xoá đội này">✕</button>`;
     row.querySelector(".btn-del").addEventListener("click", () => row.remove());
     $("iconsList").appendChild(row);
@@ -1074,15 +1087,17 @@
     syncNameCheckToggle();   // "Đối chiếu họ tên" là tính năng con của allowlist → đồng bộ theo
   }
 
-  // Toggle "Đối chiếu họ tên" là tính năng CON của allowlist: chỉ bật được khi allowlist đang bật.
-  // allowlist tắt/khoá ⇒ khoá + bỏ tích (cờ allowlistNameCheck dù lưu true cũng vô tác dụng lúc claim).
+  // Toggle "Đối chiếu họ tên" + "Check giới tính" là tính năng CON của allowlist: chỉ bật được khi allowlist
+  // đang bật. allowlist tắt/khoá ⇒ khoá + bỏ tích (cờ dù lưu true cũng vô tác dụng lúc claim).
   function syncNameCheckToggle() {
     const am = $("fAllowlistMode");
-    const nc = $("fAllowlistNameCheck");
-    if (!nc) return;
     const off = am.disabled || !am.checked;
-    nc.disabled = off;
-    if (off) nc.checked = false;
+    ["fAllowlistNameCheck", "fAllowlistGenderCheck"].forEach(id => {
+      const cb = $(id);
+      if (!cb) return;
+      cb.disabled = off;
+      if (off) cb.checked = false;
+    });
   }
 
   // Khi TẠO MỚI (admin chưa tự chọn dropdown) và đang để "Không chống trùng":
@@ -1130,7 +1145,11 @@
         if (isNaN(capNum) || capNum < 1) capsInvalid = true;
         else if (icon) caps[icon] = capNum;
       }
-      return { icon, name: texts[1].value.trim(), color: row.querySelector("input[type=color]").value };
+      const genderEl = row.querySelector(".inp-gender");
+      const gender   = normGender(genderEl ? genderEl.value : "");
+      const ic = { icon, name: texts[1].value.trim(), color: row.querySelector("input[type=color]").value };
+      if (gender) ic.gender = gender;   // chỉ ghi khi có (Firestore từ chối undefined; phòng chung = không có key)
+      return ic;
     });
     // Lịch theo giờ: datetime-local hiểu là GIỜ VN (UTC+7) → ms epoch; trống = null (không giới hạn).
     const openAt   = vnInputToMs($("fOpenAt").value);
@@ -1144,6 +1163,7 @@
       blockDup:   $("fBlockDup").checked,
       allowlistMode: $("fAllowlistMode").checked,
       allowlistNameCheck: $("fAllowlistNameCheck").checked,
+      allowlistGenderCheck: $("fAllowlistGenderCheck").checked,
       fields, icons, caps, capsInvalid, openAt, closeAt
     };
   }
@@ -1194,6 +1214,11 @@
     // "Đối chiếu họ tên" là tính năng con của allowlist → bật namecheck mà tắt allowlist là vô nghĩa.
     if (d.allowlistNameCheck && !d.allowlistMode)
       return "Bật 'Đối chiếu họ tên' thì phải bật 'Danh sách cho phép' — khớp tên dựa trên danh sách.";
+    // "Check giới tính" cũng là tính năng con của allowlist (giới tính lấy từ cột Giới tính của danh sách).
+    if (d.allowlistGenderCheck && !d.allowlistMode)
+      return "Bật 'Check giới tính' thì phải bật 'Danh sách cho phép' — giới tính lấy từ danh sách.";
+    if (d.allowlistGenderCheck && !d.icons.some(ic => ic.gender))
+      return "Bật 'Check giới tính' nhưng chưa gắn Nam/Nữ cho đội/phòng nào — chọn giới tính ở cột cuối mỗi dòng đội.";
     return null;
   }
 
@@ -1231,6 +1256,7 @@
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
         allowlistNameCheck: d.allowlistNameCheck,
+        allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
         createdAt:  FV.serverTimestamp()
       });
       await db.collection("config").doc("eventList")
@@ -1312,6 +1338,7 @@
         blockDup:   d.blockDup,
         allowlistMode: d.allowlistMode,
         allowlistNameCheck: d.allowlistNameCheck,
+        allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
         updatedAt:  FV.serverTimestamp()
       }, { merge: true });
       // caps là MAP → set(merge:true) chỉ deep-merge (không xoá key đã bỏ). Dùng update() để THAY caps trọn vẹn
@@ -1348,6 +1375,7 @@
     $("fBlockDup").dataset.touched = "";
     $("fAllowlistMode").checked = false;
     $("fAllowlistNameCheck").checked = false;
+    $("fAllowlistGenderCheck").checked = false;
     $("fieldsList").innerHTML = "";
     $("iconsList").innerHTML  = "";
     $("fDedupField").innerHTML = '<option value="">Không chống trùng</option>';
@@ -1414,6 +1442,7 @@
       if ($("fDedupField").value !== "") $("fAllowlistMode").checked = !!cfg.allowlistMode;
       // Khôi phục "Đối chiếu họ tên" (chỉ ý nghĩa khi allowlist bật) rồi đồng bộ trạng thái xám/khoá.
       $("fAllowlistNameCheck").checked = !!cfg.allowlistMode && !!cfg.allowlistNameCheck;
+      $("fAllowlistGenderCheck").checked = !!cfg.allowlistMode && !!cfg.allowlistGenderCheck;   // tương tự: con của allowlist
       syncNameCheckToggle();
     }, 0);
   }
@@ -1612,13 +1641,17 @@
     const el = {
       event:$('alEvent'), reload:$('alReload'), dedup:$('alDedupField'), count:$('alCount'),
       mode:$('alMode'), nameCheck:$('alNameCheck'), warnNoField:$('alWarnNoField'), warnEmpty:$('alWarnEmpty'),
+      warnNoGender:$('alWarnNoGender'), oneGender:$('alOneGender'),
       import:$('alImport'), file:$('alFile'), col:$('alCol'), add:$('alAdd'),
       replace:$('alReplace'), result:$('alResult'), search:$('alSearch'),
       download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
       seedWrap:$('alSeedWrap'), seedTeams:$('alSeedTeams'),
       oneKey:$('alOneKey'), oneName:$('alOneName'), addOne:$('alAddOne'), oneCancel:$('alOneCancel'), oneMsg:$('alOneMsg'),
     };
-    let cur = { eid:'', dedupField:'', rows:[], parsed:null };   // parsed = {items:[{key,name,team,raw}]}
+    let cur = { eid:'', dedupField:'', genderCheck:false, rows:[], parsed:null };   // parsed = {items:[{key,name,team,raw,gender,genderRaw}]}
+    // Ô chọn giới tính cho "Thêm/sửa 1 mã": "" = không có giới (người này không bị khoá phòng nào).
+    el.oneGender.innerHTML = `<option value="">Giới tính: —</option>` +
+      GENDER_OPTIONS.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
     let alEditKey = null;   // null = chế độ THÊM 1 mã; có giá trị = đang SỬA (lưu key GỐC để xoá khi đổi định danh)
 
     // ── tầng dữ liệu (firebase) ──
@@ -1626,17 +1659,24 @@
       async config(eid){ return (await db.collection('events').doc(eid).collection('meta').doc('config').get()).data() || {}; },
       async setMode(eid, on){ return db.collection('events').doc(eid).collection('meta').doc('config').set({ allowlistMode:on }, { merge:true }); },
       async setNameCheck(eid, on){ return db.collection('events').doc(eid).collection('meta').doc('config').set({ allowlistNameCheck:on }, { merge:true }); },
+      async setGenderCheck(eid, on){ return db.collection('events').doc(eid).collection('meta').doc('config').set({ allowlistGenderCheck:on }, { merge:true }); },
       async list(eid){
         const s = await db.collection('events').doc(eid).collection('allowlist').get();
-        return s.docs.map(d => ({ key:d.id, name:(d.data()||{}).name||'' }));
+        return s.docs.map(d => { const v = d.data()||{}; return { key:d.id, name:v.name||'', gender:normGender(v.gender) }; });
       },
-      async addMany(eid, items){   // items: [{key,name}] — merge, batch ≤400
+      // items: [{key,name,gender?,clearGender?}] — merge, batch ≤400. gender đã chuẩn hoá ("Nam"/"Nữ"); ô trống ⇒
+      // KHÔNG ghi (merge giữ giá trị cũ). clearGender=true (sửa tay chọn "—") ⇒ XOÁ hẳn field gender.
+      async addMany(eid, items){
         const ts = FV.serverTimestamp();
         for (let i=0;i<items.length;i+=400){
           const batch = db.batch();
-          items.slice(i,i+400).forEach(it =>
-            batch.set(db.collection('events').doc(eid).collection('allowlist').doc(it.key),
-              it.name ? { name:it.name, at:ts } : { at:ts }, { merge:true }));
+          items.slice(i,i+400).forEach(it => {
+            const doc = { at:ts };
+            if (it.name) doc.name = it.name;
+            if (it.gender) doc.gender = it.gender;
+            else if (it.clearGender) doc.gender = FV.delete();
+            batch.set(db.collection('events').doc(eid).collection('allowlist').doc(it.key), doc, { merge:true });
+          });
           await batch.commit();
         }
       },
@@ -1716,6 +1756,8 @@
       el.warnNoField.hidden = !noField;
       el.import.classList.toggle('is-disabled', noField);
       el.warnEmpty.hidden = !(el.mode.checked && cur.rows.length === 0);
+      // Bật "Check giới tính" mà danh sách (không rỗng) chưa có ai mang giới tính ⇒ tính năng vô tác dụng → nhắc.
+      el.warnNoGender.hidden = !(el.mode.checked && cur.genderCheck && cur.rows.length > 0 && !cur.rows.some(r => r.gender));
       el.nameCheck.disabled = !el.mode.checked;   // "Đối chiếu họ tên" chỉ dùng được khi allowlist bật
     }
 
@@ -1724,8 +1766,8 @@
       const rows = q ? cur.rows.filter(r => r.key.includes(q) || (r.name||'').toUpperCase().includes(q)) : cur.rows;
       el.empty.hidden = cur.rows.length !== 0;
       el.body.innerHTML = rows.map((r,i)=>
-        `<tr><td class="num">${i+1}</td><td>${esc(r.key)}</td><td>${esc(r.name||'')}</td>`+
-        `<td><button class="al-edit btn-ghost btn-sm" data-key="${esc(r.key)}" data-name="${esc(r.name||'')}" title="Sửa">✎</button> `+
+        `<tr><td class="num">${i+1}</td><td>${esc(r.key)}</td><td>${esc(r.name||'')}</td><td>${esc(r.gender||'')}</td>`+
+        `<td><button class="al-edit btn-ghost btn-sm" data-key="${esc(r.key)}" data-name="${esc(r.name||'')}" data-gender="${esc(r.gender||'')}" title="Sửa">✎</button> `+
         `<button class="btn-del" data-key="${esc(r.key)}" title="Xoá">✕</button></td></tr>`).join('');
       el.count.textContent = cur.rows.length;
       setWarnings();
@@ -1736,9 +1778,10 @@
       cancelEditOne();   // đổi sự kiện → thoát chế độ sửa (tránh lưu nhầm mã sang event khác)
       el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
       el.seedWrap.hidden = true; el.seedTeams.checked = false; el.replace.textContent = 'Xoá cũ & nạp mới';
-      if (!eid){ cur.dedupField=''; el.dedup.textContent='—'; el.mode.checked=false; el.nameCheck.checked=false; cur.rows=[]; renderList(); return; }
+      if (!eid){ cur.dedupField=''; cur.genderCheck=false; el.dedup.textContent='—'; el.mode.checked=false; el.nameCheck.checked=false; cur.rows=[]; renderList(); return; }
       const cfg = await data.config(eid);
       cur.dedupField = (cfg.dedupField||'').trim();
+      cur.genderCheck = !!cfg.allowlistGenderCheck;   // chỉ để cảnh báo "bật check giới tính mà file chưa có giới tính"
       el.dedup.textContent = cur.dedupField || '(chưa đặt)';
       el.mode.checked = !!cfg.allowlistMode;
       el.nameCheck.checked = !!cfg.allowlistNameCheck;
@@ -1765,17 +1808,20 @@
       const want = cur.dedupField.toLowerCase();
       return headers.findIndex(h => String(h).trim().toLowerCase() === want);   // -1 nếu không thấy
     }
-    function buildItems(aoa, colIdx, nameIdx, teamIdx){
+    function buildItems(aoa, colIdx, nameIdx, teamIdx, genderIdx){
       const out = [], seen = new Set();
       for (let r=1;r<aoa.length;r++){
         const raw = String(aoa[r][colIdx]==null?'':aoa[r][colIdx]).trim();
         const key = _dedupKey(raw);
         if (!key || seen.has(key)) continue;
         seen.add(key);
+        const genderRaw = genderIdx>=0 ? String(aoa[r][genderIdx]==null?'':aoa[r][genderIdx]).trim() : '';
         out.push({
           key, raw,
           name: nameIdx>=0 ? String(aoa[r][nameIdx]||'').trim() : '',
           team: teamIdx>=0 ? String(aoa[r][teamIdx]==null?'':aoa[r][teamIdx]).trim() : '',   // ô trống = chưa chia đội
+          genderRaw,                        // giá trị gốc (chỉ để báo ô không hiểu) — KHÔNG ghi lên Firestore
+          gender: normGender(genderRaw),    // "Nam"/"Nữ"/"" (config.js) — ô trống/không hiểu ⇒ không ghi giới
         });
       }
       return out;
@@ -1802,6 +1848,8 @@
       const headers = aoa[0].map(h=>String(h));
       const nameIdx = headers.findIndex(h=>/h[oọ]\s*t[eê]n|^(full\s*)?name$|^t[eê]n$/i.test(String(h).trim()));   // neo ^...$ cho "name" để "username"/"lastname"/"displayName" KHÔNG bị nhận nhầm là cột tên
       const teamIdx = headers.findIndex(h=>/^(team|đội|đôi|doi|nh[oó]m)$/i.test(String(h).trim()));   // cột chia đội sẵn (tuỳ chọn)
+      // Cột giới tính (tuỳ chọn — cho "Check giới tính"): so sau khi gập dấu ⇒ "Giới tính"/"GIOI TINH"/"Mã giới"/"Gender" đều khớp.
+      const genderIdx = headers.findIndex(h=>/^(gioi tinh|gioi|ma gioi|ma gioi tinh|gender|sex)$/.test(_foldVN(h).replace(/\s+/g,' ')));
       let colIdx = pickColumn(headers);
       if (colIdx < 0){
         el.col.innerHTML = headers.map((h,i)=>`<option value="${i}">${esc(h||('Cột '+(i+1)))}</option>`).join('');
@@ -1810,7 +1858,7 @@
       }
       const apply = () => {
         const ci = el.col.hidden ? colIdx : parseInt(el.col.value,10);
-        const items = buildItems(aoa, ci, nameIdx, teamIdx);
+        const items = buildItems(aoa, ci, nameIdx, teamIdx, genderIdx);
         cur.parsed = { items, teamIdx };
         el.add.disabled = el.replace.disabled = items.length === 0;
         // Tóm tắt cột "team": gom theo giá trị để admin thấy rõ sẽ chia bao nhiêu người vào đội nào.
@@ -1826,6 +1874,18 @@
             const brk = Object.keys(byTeam).sort((a,b)=>(parseInt(a,10)||0)-(parseInt(b,10)||0)||a.localeCompare(b))
               .map(t=>`đội ${t}: ${byTeam[t]}`).join(', ');
             msg += ` Có cột “team”: ${withTeam.length} người đã chia đội (${brk}).`;
+          }
+          // Tóm tắt cột giới tính để admin thấy ngay ô trống/sai TRƯỚC khi nạp (dòng thiếu giới ⇒ không bị khoá phòng nào).
+          if (genderIdx >= 0){
+            const nMale   = items.filter(it=>it.gender===GENDER_OPTIONS[0]).length;
+            const nFemale = items.filter(it=>it.gender===GENDER_OPTIONS[1]).length;
+            const nBad    = items.filter(it=>it.genderRaw && !it.gender).length;
+            const nEmpty  = items.length - nMale - nFemale - nBad;
+            msg += ` Cột giới tính: ${nMale} ${GENDER_OPTIONS[0]} · ${nFemale} ${GENDER_OPTIONS[1]}` +
+              (nEmpty ? ` · ${nEmpty} trống` : '') +
+              (nBad ? ` · ⚠ ${nBad} ô không hiểu (chỉ nhận Nam/Nữ/Male/Female/M/F)` : '') + '.';
+          } else if (cur.genderCheck){
+            msg += ' ⚠ Sự kiện đang bật Check giới tính nhưng file KHÔNG có cột “Giới tính”.';
           }
           msg += hasSeed
             ? ' Tích “Chia đội” rồi bấm “Xoá cũ & nạp mới” để làm mới + chia đội; hoặc bỏ tích để chỉ nạp danh sách.'
@@ -1907,8 +1967,8 @@
 
     function downloadCsv(){
       const enc = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-      let csv = '﻿' + ['STT','Định danh','Tên'].map(enc).join(',') + '\r\n';
-      cur.rows.forEach((r,i)=>{ csv += [i+1, r.key, r.name||''].map(enc).join(',') + '\r\n'; });
+      let csv = '﻿' + ['STT','Định danh','Tên','Giới tính'].map(enc).join(',') + '\r\n';
+      cur.rows.forEach((r,i)=>{ csv += [i+1, r.key, r.name||'', r.gender||''].map(enc).join(',') + '\r\n'; });
       const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = `allowlist-${cur.eid}.csv`; a.click();
@@ -1926,7 +1986,7 @@
     el.download.onclick = downloadCsv;
     el.body.onclick = async e => {
       const ed = e.target.closest('.al-edit');
-      if (ed) { startEditOne(ed.dataset.key, ed.dataset.name || ''); return; }
+      if (ed) { startEditOne(ed.dataset.key, ed.dataset.name || '', ed.dataset.gender || ''); return; }
       const b = e.target.closest('.btn-del'); if (!b) return;
       const ok = await confirmModal({ title:'Xoá khỏi danh sách?', message:`Xoá "${b.dataset.key}" khỏi danh sách cho phép?`, confirmText:'Xoá', danger:true });
       if (!ok) return;
@@ -1935,9 +1995,9 @@
     };
 
     // ── Thêm / sửa nhanh 1 mã (không cần file). Tái dùng addMany (merge) + delOne; key = _dedupKey (giống app). ──
-    function startEditOne(key, name){
+    function startEditOne(key, name, gender){
       alEditKey = key;
-      el.oneKey.value = key; el.oneName.value = name;
+      el.oneKey.value = key; el.oneName.value = name; el.oneGender.value = normGender(gender);
       el.addOne.textContent = 'Lưu sửa'; el.oneCancel.hidden = false;
       el.oneMsg.style.color = 'var(--muted)';
       el.oneMsg.textContent = `Đang sửa "${key}" — đổi định danh = chuyển sang mã mới.`;
@@ -1945,12 +2005,12 @@
     }
     function cancelEditOne(){
       alEditKey = null;
-      el.oneKey.value = ''; el.oneName.value = '';
+      el.oneKey.value = ''; el.oneName.value = ''; el.oneGender.value = '';
       el.addOne.textContent = '+ Thêm 1 mã'; el.oneCancel.hidden = true; el.oneMsg.textContent = '';
     }
     el.oneCancel.onclick = cancelEditOne;
     el.addOne.onclick = async () => {
-      const raw = el.oneKey.value.trim(), name = el.oneName.value.trim();
+      const raw = el.oneKey.value.trim(), name = el.oneName.value.trim(), gender = normGender(el.oneGender.value);
       el.oneMsg.style.color = 'var(--err)';
       if (!cur.eid){ el.oneMsg.textContent = 'Hãy chọn sự kiện ở trên.'; return; }
       if (!raw){ el.oneMsg.textContent = 'Nhập định danh.'; return; }
@@ -1960,12 +2020,12 @@
         let note;
         if (alEditKey){
           if (newKey !== alEditKey) await data.delOne(cur.eid, alEditKey);   // đổi định danh = xoá key cũ + tạo key mới (chuyển mã)
-          await data.addMany(cur.eid, [{ key:newKey, name }]);
+          await data.addMany(cur.eid, [{ key:newKey, name, gender, clearGender:!gender }]);   // sửa: chọn "—" ⇒ XOÁ giới tính cũ
           note = (newKey !== alEditKey) ? `Đã đổi "${alEditKey}" → "${newKey}".` : `Đã cập nhật "${newKey}".`;
         } else {
           const existed = cur.rows.some(r => r.key === newKey);
-          await data.addMany(cur.eid, [{ key:newKey, name }]);
-          note = existed ? `Mã "${newKey}" đã có — đã cập nhật tên.` : `Đã thêm "${newKey}".`;
+          await data.addMany(cur.eid, [{ key:newKey, name, gender }]);   // thêm: "—" ⇒ giữ giới tính cũ nếu mã đã có (merge)
+          note = existed ? `Mã "${newKey}" đã có — đã cập nhật.` : `Đã thêm "${newKey}".`;
         }
         cancelEditOne();
         cur.rows = await data.list(cur.eid); renderList();
@@ -1980,6 +2040,8 @@
       // Allowlist TẮT → "Đối chiếu họ tên" (tính năng con) cũng phải bỏ tích + lưu false, cho khớp với form
       // (tránh để lại allowlistNameCheck:true kẹt trong config rồi sống lại âm thầm khi bật allowlist lần sau).
       if (!el.mode.checked && el.nameCheck.checked) { el.nameCheck.checked = false; await data.setNameCheck(cur.eid, false); }
+      // "Check giới tính" cũng là tính năng con → cùng lý do, tắt allowlist thì hạ luôn cờ này.
+      if (!el.mode.checked && cur.genderCheck) { cur.genderCheck = false; await data.setGenderCheck(cur.eid, false); }
       setWarnings();
     };
     el.nameCheck.onchange = async () => {

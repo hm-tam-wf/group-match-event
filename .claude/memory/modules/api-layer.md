@@ -2,8 +2,8 @@
 title: api-layer
 tags: [module]
 code: [fe/js/data/api.js, fe/js/config/config.js, fe/js/config/firebase-config.js]
-related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]]
-updated: 2026-06-18
+related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]], [[0001-gender-rooms-from-allowlist]]
+updated: 2026-09-29
 ---
 
 # API Layer
@@ -169,6 +169,15 @@ admin lệch 18/17). Nay (b) khôi phục myIcon + chốt giữ signup → tự 
 `signups/{pid}` — CHỈ gỡ dòng đã-join, KHÔNG đụng thành viên khác. (Khi signup đã mất ⇒ gỡ theo tên trong
 `names[]`, khớp đúng 1 lần mới gỡ.) ⚠️ Thao tác xóa member/un-join trên prod bị **auto-mode classifier** chặn nếu
 MSNV chỉ do agent suy ra / chưa được user nêu rõ trong tin nhắn — cần user xác nhận MSNV cụ thể.
+
+## Phân phòng theo giới (2026-09-29 — [[0001-gender-rooms-from-allowlist]])
+- `REASON.GENDER_MISMATCH = "genderMismatch"`. `apiAllowlistInfo` trả `{allowed, name, gender}` (gender đã
+  `normGender`; mọi nhánh fail-open trả "").
+- `apiClaim` firebase: sau khối NAME_MISMATCH, `if (allowRef && allowSnap.exists && ALLOWLIST_GENDERCHECK)` so
+  `normGender(allowSnap.data().gender)` với `roomGender(icon)` — dùng lại doc ĐÃ đọc (không thêm read, không đổi
+  thứ tự đọc-ghi, trả về ⇒ thoát vòng retry). Demo mirror (entry allowlist dạng object `{gender}`).
+- Test Node (vm, mock Firestore có runTransaction buffer) 32/32: chặn đúng, bị chặn thì KHÔNG ghi, thiếu giới
+  fail-open, tắt cờ/allowlist ⇒ trơ.
 
 ## Allowlist (đã có — xem [[allowlist]])
 - Cổng "chỉ MSNV trong danh sách mới được join": `apiAllowlistAllowed`/`apiAllowlistInfo` (cổng vào)

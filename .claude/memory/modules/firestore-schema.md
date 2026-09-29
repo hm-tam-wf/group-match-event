@@ -2,8 +2,8 @@
 title: firestore-schema
 tags: [module, backend, data]
 code: [backend/firestore.rules, fe/js/data/api.js, fe/js/config/config.js]
-related: [[index]], [[architecture]], [[api-layer]]
-updated: 2026-06-17
+related: [[index]], [[architecture]], [[api-layer]], [[allowlist]]
+updated: 2026-09-29
 ---
 
 # Firestore Schema
@@ -41,8 +41,14 @@ signups/{playerId}
   — READ: admin UID only (Firestore rules)
   — UPDATE: cho phép nếu GIỮ NGUYÊN playerId (gắn đội / sửa lại hồ sơ của chính mình)
 
+allowlist/{key}   — xem [[allowlist]]
+  name?, gender? ("Nam"|"Nữ" — phân phòng theo giới, 2026-09-29), at
+  — GET: public · LIST/WRITE: admin (không ràng buộc key ⇒ thêm gender KHÔNG cần đổi rules)
+
 meta/config
   title, fields, icons, capacity, caps, openAt, closeAt, eventId, dataEpoch
+  — icons[].gender? ("Nam"|"Nữ"; thiếu = phòng chung) + allowlistGenderCheck (bool) — 2026-09-29, CLIENT-ONLY:
+    rules KHÔNG đọc icons/fields ⇒ không cần deploy rules. Xem [[0001-gender-rooms-from-allowlist]].
   — READ: public
   — WRITE: admin only
   — `openAt`/`closeAt` (Firestore Timestamp | null, 2026-06-17): LỊCH mở/đóng đăng ký theo giờ. null/thiếu

@@ -2,19 +2,25 @@
 title: ui-pipeline
 tags: [module, ui]
 code: [fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
-related: [[index]], [[architecture]], [[design-tokens]]
-updated: 2026-06-17
+related: [[index]], [[architecture]], [[design-tokens]], [[theme-system]], [[allowlist]]
+updated: 2026-09-29
 ---
 
 # UI Pipeline
 
 ## Script loading order (SACRED — đừng thay đổi)
 ```
-config.js → themes/tech/strings.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
+config.js → themes/tech/strings.js → themes/tech/variants/tnt/strings.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
 ```
 Mỗi file phụ thuộc vào globals của file trước. Sai thứ tự = `ReferenceError` ngay lập tức.
 `themes/tech/strings.js` (text riêng-theo-theme, merge vào `STRINGS` — xem [[i18n-system]]) chỉ phụ
 thuộc config.js; CHỈ index.html nạp (admin.html không có). Nếu thiếu/sai chỗ ⇒ `TEXT.tech` undefined.
+`variants/tnt/strings.js` (2026-09-29) phải SAU tech/strings.js (ghi đè `STRINGS.vi.tech`) và TRƯỚC mọi
+file UI (có thể gán lại `TEXT`/`LANG`); tự return khi `ACTIVE_VARIANT` khác. CSS: `tnt.css` link SAU chip.css.
+
+**Lưới + giới tính (2026-09-29):** `renderState` tính `gLocked` (phòng gắn giới ≠ `myGender`) ⇒ tile `disabled`
++ `gender-lock` + nhãn `grid.tileGender`; `openForMe` = 0 mà còn phòng ⇒ `#freeHint` = `grid.genderFull`.
+Xem [[allowlist]] §giới tính.
 
 **Ngoài chuỗi (2 file):**
 1. `js/config/theme.js` nạp ở `<head>` (TRƯỚC chuỗi trên, trên cả 2 trang) để áp

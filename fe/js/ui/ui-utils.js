@@ -20,6 +20,8 @@ let lastSig = null;   // chữ ký dữ liệu — chỉ render lại khi đổi
 let _skipSelfHeal = false; // true trong window vừa tham gia → chặn self-heal stale-state
 let dupBlocked = false; // true khi MSNV đã đăng ký rồi → chặn vào lưới chọn đội (cổng chống trùng)
 let allowBlocked = false; // true khi bật allowlist & MSNV KHÔNG trong danh sách → chặn vào lưới (cổng allowlist)
+let myGender = "";        // "Nam"|"Nữ"|"" — giới tính theo DANH SÁCH CHO PHÉP (chỉ khi ALLOWLIST_GENDERCHECK).
+                          // CHỈ ở RAM: đọc lại từ server mỗi lần tải trang (init) / lưu hồ sơ (save) ⇒ admin sửa file là có hiệu lực.
 
 const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
 const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };

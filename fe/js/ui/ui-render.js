@@ -52,7 +52,8 @@ function renderProfile() {
 
   if (done) {
     closeProfileModal();
-    const metaBits = FIELDS.filter(f => f.key !== "name").map(f => me.fields[f.key]).filter(Boolean).join("  ·  ");
+    // + giới tính THEO DANH SÁCH (khi bật "Check giới tính") — người chơi thấy hệ thống xếp mình vào giới nào; sai ⇒ báo BTC sửa file.
+    const metaBits = FIELDS.filter(f => f.key !== "name").map(f => me.fields[f.key]).concat(myGender).filter(Boolean).join("  ·  ");
     profileBoxEl.innerHTML = `
       <div class="summary">
         <div class="ava" style="background:${myIcon ? byEmoji[myIcon].color : 'var(--accent)'}">${initial(me.fields.name)}</div>
@@ -176,8 +177,9 @@ function showProfileModal() {
     dupBlocked = false;
 
     // CỔNG danh sách cho phép — SAU cổng dedup: MSNV không trong danh sách → chặn, KHÔNG ghi hồ sơ.
-    // apiAllowlistInfo trả {allowed, name}: name = tên đã đăng ký (để đối chiếu họ tên ngay bên dưới).
-    let allow = { allowed: true, name: "" };
+    // apiAllowlistInfo trả {allowed, name, gender}: name = tên đã đăng ký (để đối chiếu họ tên ngay bên dưới);
+    // gender = giới tính theo danh sách (phân phòng theo giới — chỉ dùng khi ALLOWLIST_GENDERCHECK).
+    let allow = { allowed: true, name: "", gender: "" };
     if (typeof apiAllowlistInfo === "function") {
       if (btn) { btn.disabled = true; btn.textContent = TEXT.profile.checking; }
       try { allow = await apiAllowlistInfo(me.fields[DEDUP_FIELD]); } catch (e) {}
@@ -190,6 +192,7 @@ function showProfileModal() {
       return;
     }
     allowBlocked = false;
+    myGender = ALLOWLIST_GENDERCHECK ? (allow.gender || "") : "";   // lưới khoá phòng khác giới theo giá trị này
 
     // ĐỐI CHIẾU HỌ TÊN với danh sách — chỉ khi BẬT cờ ALLOWLIST_NAMECHECK & dòng CÓ lưu tên: tên nhập phải
     // khớp sau chuẩn hoá (bỏ dấu, gộp khoảng trắng, không phân biệt hoa/thường). Lệch → báo ngay ô họ tên,
@@ -402,6 +405,7 @@ function renderState() {
   // ── Đội còn chỗ (count < CAPACITY) ──
   const grid = $("grid"); grid.innerHTML = "";
   let open = 0;
+  let openForMe = 0;   // đội còn chỗ mà mình vào ĐƯỢC theo giới tính (phòng đúng giới hoặc phòng chung)
   let tileIndex = 0;
   ICONS.forEach(iconDef => {
     const team = teamOf(iconDef.icon);
@@ -409,15 +413,23 @@ function renderState() {
     if (team.count >= cap) return;             // đủ người → biến mất khỏi lưới này
     open++;
     const mine    = iconDef.icon === myIcon;
-    const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách) mới được tham gia
+    // PHÂN PHÒNG THEO GIỚI: phòng gắn giới KHÁC giới của mình (theo danh sách cho phép) ⇒ khoá. myGender chỉ có
+    // giá trị khi bật ALLOWLIST_GENDERCHECK; phòng không gắn giới / mình chưa rõ giới ⇒ không khoá (fail-open).
+    const roomG   = roomGender(iconDef.icon);
+    const gLocked = !myIcon && !!myGender && !!roomG && roomG !== myGender;
+    if (!gLocked) openForMe++;
+    const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked && !gLocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách / khác giới) mới được tham gia
     const pct     = Math.round(team.count / cap * 100);
     const avatarChips = team.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
                   + (team.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${team.count - AVATAR_PREVIEW_MAX}</span>` : "")
                   || `<span class="mini empty">·</span>`;
-    const label   = !ready ? TEXT.grid.tileFill : (myIcon ? (mine ? TEXT.grid.tileMine : TEXT.grid.tileOther) : TEXT.grid.tileJoin);
+    const label   = !ready ? TEXT.grid.tileFill
+                  : myIcon ? (mine ? TEXT.grid.tileMine : TEXT.grid.tileOther)
+                  : gLocked ? TEXT.grid.tileGender(roomG)
+                  : TEXT.grid.tileJoin;
 
     const tileEl = document.createElement("div");
-    tileEl.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "");
+    tileEl.className = "tile " + (canJoin ? "sel" : "disabled") + (mine ? " mine" : "") + (gLocked ? " gender-lock" : "");
     tileEl.style.setProperty("--c", iconDef.color);
     tileEl.style.animationDelay = (tileIndex * 0.035) + "s";
     tileIndex++;
@@ -438,7 +450,10 @@ function renderState() {
   layoutFreeGrid();   // chia đều số cột theo số đội còn chỗ hiện tại (vd 10 → 5/5)
   $("freeHead").textContent  = TEXT.grid.headOpen;
   $("freeCount").textContent = TEXT.grid.count(open, ICONS.length);
-  $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">${TEXT.grid.hint}</div>` : "";
+  $("freeHint").innerHTML    = (!profileComplete() && open > 0) ? `<div class="hint">${TEXT.grid.hint}</div>`
+    // Còn đội trống nhưng KHÔNG đội nào hợp giới của mình → nói rõ (thay vì để lưới toàn ô bị khoá không lời giải thích).
+    : (ready && !myIcon && myGender && open > 0 && openForMe === 0) ? `<div class="hint">${TEXT.grid.genderFull(myGender)}</div>`
+    : "";
   // open === 0 ⇒ MỌI đội đã đủ người → màn hình "hoàn thành" nổi bật (chỉ khi đã tải state thật
   // từ server, tránh chớp nhoáng lúc mới vào trang khi state chưa về).
   $("freeEmpty").innerHTML = (stateLoaded && open === 0)

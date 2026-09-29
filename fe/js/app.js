@@ -62,6 +62,7 @@ async function doClaim(iconDef) {
       else if (reason === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.dup(labelOf(DEDUP_FIELD))); }   // thua đua join → dọn signup trùng của mình
       else if (reason === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.notAllowed); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
       else if (reason === REASON.NAME_MISMATCH) { editing = true; toast(TEXT.toast.nameMismatch); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
+      else if (reason === REASON.GENDER_MISMATCH) toast(TEXT.toast.genderMismatch(roomGender(iconDef.icon)));   // phòng khác giới (theo danh sách) → báo rõ; lưới đã khoá sẵn nên hiếm khi tới đây
       else if (reason === REASON.DEDUP_CONFIG) toast(TEXT.toast.dupConfig);   // chống trùng bật mà không lấy được giá trị để dedup (cấu hình sai) → báo rõ, KHÔNG cho join trùng
       else if (reason === REASON.MISSING)   toast(TEXT.toast.missing);   // claim thiếu name (vd cấu hình sai key) → báo rõ, KHÔNG đổ "mạng đông"
       // apiClaim đã retry vài lần mới tới đây → KHÔNG đổ "đội đầy", chỉ là mạng đang đông.
@@ -162,9 +163,16 @@ async function init() {
 
   // CỔNG danh sách cho phép NGAY KHI VÀO TRANG: bật allowlist & MSNV KHÔNG nằm trong danh sách
   // → chặn vào lưới chọn đội (giống cổng chống trùng). apiClaim vẫn là chốt cuối.
-  if (MODE === MODE_FIREBASE && !myIcon && !dupBlocked && profileComplete()
-      && ALLOWLIST_MODE && DEDUP_FIELD && typeof apiAllowlistAllowed === "function") {
-    allowBlocked = !(await apiAllowlistAllowed(me.fields[DEDUP_FIELD]));
+  // CÙNG 1 lần đọc lấy luôn GIỚI TÍNH theo danh sách (phân phòng theo giới) — đọc cả khi đã vào phòng để
+  // hiện ở thanh tóm tắt. Cổng chặn giữ NGUYÊN điều kiện cũ (!myIcon && !dupBlocked).
+  if (MODE === MODE_FIREBASE && profileComplete()
+      && ALLOWLIST_MODE && DEDUP_FIELD && typeof apiAllowlistInfo === "function") {
+    const gate = !myIcon && !dupBlocked;
+    if (gate || ALLOWLIST_GENDERCHECK) {
+      const allow = await apiAllowlistInfo(me.fields[DEDUP_FIELD]);
+      if (gate) allowBlocked = !allow.allowed;
+      myGender = ALLOWLIST_GENDERCHECK ? (allow.gender || "") : "";
+    }
   }
 
   // Đồng bộ hồ sơ lên server để admin có data (kể cả CHƯA chọn đội). NHƯNG nếu bị chặn (trùng MSNV
@@ -333,8 +341,9 @@ function showCountdownScreen() {
     `<img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">` +
     `<span class="logo-text">FARADAY</span></div></div>`;
   const titleHtml = _eventTitle ? `<h1 class="sched-event-title">${esc(_eventTitle)}</h1>` : "";
-  // subtitle là HTML do admin nhập (cho phép <b>…</b>) — render RAW như #appContent .sub (app.js boot), KHÔNG esc.
-  const subHtml = _eventSubtitle ? `<p class="sched-event-sub">${_eventSubtitle}</p>` : "";
+  // subtitle là HTML do admin nhập (cho phép <b>…</b>, <ul><li>) — render RAW như #appContent .sub (app.js boot), KHÔNG esc.
+  // Bọc bằng <div> (KHÔNG phải <p>): parser tự đóng <p> khi gặp <ul> ⇒ danh sách rơi ra ngoài .sched-event-sub.
+  const subHtml = _eventSubtitle ? `<div class="sched-event-sub">${_eventSubtitle}</div>` : "";
   pre.innerHTML = logoHtml + titleHtml + subHtml + `<div class="schedule-card">${_waitSvg}` +
     `<div class="sched-title">${TEXT.schedule.soonTitle}</div>` +
     `<div class="sched-count" id="cdTimer">${_fmtCountdown(OPEN_AT - Date.now())}</div>` +
@@ -439,6 +448,7 @@ async function startSchedule() {
     CLOSE_AT = (cfg.closeAt && typeof cfg.closeAt.toMillis === "function") ? cfg.closeAt.toMillis() : null;
     if (typeof cfg.allowlistMode === "boolean")             ALLOWLIST_MODE = cfg.allowlistMode;
     if (typeof cfg.allowlistNameCheck === "boolean")        ALLOWLIST_NAMECHECK = cfg.allowlistNameCheck;
+    if (typeof cfg.allowlistGenderCheck === "boolean")      ALLOWLIST_GENDERCHECK = cfg.allowlistGenderCheck;   // phân phòng theo giới (giới lấy từ danh sách)
 
     // CHẶN CỨNG cấu hình lỗi: app cần MỘT field key "name" (apiClaim + ui-render dùng me.fields.name
     // để hiển thị tên trong danh sách đội). Thiếu → người chơi vào được lưới nhưng KHÔNG join được

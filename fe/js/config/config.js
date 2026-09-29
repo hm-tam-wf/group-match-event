@@ -57,6 +57,33 @@ let DATA_EPOCH  = 0;   // "thế hệ" dữ liệu sự kiện — admin "Xóa d
 // vì nạp ĐẦU chuỗi → mọi file sau đều gọi được (xem [[ui-pipeline]] thứ tự nạp).
 function capOf(icon) { const c = CAPS && CAPS[icon]; return (typeof c === "number" && c > 0) ? c : CAPACITY; }
 
+// ── Phân phòng theo GIỚI TÍNH — nguồn sự thật: cột "Giới tính" trong Danh sách cho phép (admin import xlsx) ──
+// Bật theo sự kiện bằng cờ ALLOWLIST_GENDERCHECK (firebase-config.js). Phòng gắn giới ở ICONS[].gender (admin).
+// Mọi nơi (ô Excel, dữ liệu Firestore, select của admin, so khớp lúc join) đều quy về ĐÚNG 2 hằng dưới đây
+// qua normGender() ⇒ so sánh "===" an toàn, không lệch NFC/NFD hay hoa/thường. admin.html cũng nạp file này.
+const GENDER_OPTIONS = ["Nam", "Nữ"];
+
+// Gập chuỗi tiếng Việt để so khớp khoan dung: bỏ dấu, đ→d, chữ thường, trim. Dải dấu kết hợp U+0300..U+036F
+// dựng bằng fromCharCode (giống _normName ở api.js) để KHÔNG có ký tự vô hình trong mã nguồn.
+const _VN_MARKS = new RegExp("[" + String.fromCharCode(768) + "-" + String.fromCharCode(879) + "]", "g");
+function _foldVN(v) {
+  return String(v == null ? "" : v).normalize("NFD").replace(_VN_MARKS, "").toLowerCase().replace(/đ/g, "d").trim();
+}
+
+// 1 giá trị giới tính bất kỳ → "Nam" | "Nữ" | "" (không rõ/để trống ⇒ KHÔNG khoá phòng nào — fail-open).
+function normGender(v) {
+  const s = _foldVN(v);
+  if (s === "nam" || s === "male" || s === "m") return GENDER_OPTIONS[0];
+  if (s === "nu"  || s === "female" || s === "f") return GENDER_OPTIONS[1];
+  return "";
+}
+
+// Giới tính gắn cho 1 phòng. "" = phòng chung (không khoá theo giới).
+function roomGender(icon) {
+  const iconDef = ICONS.find(d => d.icon === icon);
+  return normGender(iconDef && iconDef.gender);
+}
+
 // Lịch mở/đóng đăng ký theo giờ (ms epoch). null = không giới hạn phía đó. boot() gán từ
 // meta/config.openAt / .closeAt (Firestore Timestamp → toMillis). Enforce CỨNG ở firestore.rules
 // (inWindow() so request.time). Client tự hiển thị: trước openAt = đếm ngược; sau closeAt = đã kết thúc.
@@ -144,6 +171,8 @@ const STRINGS = {
       ftYou:        " · you",
       takenEmpty:   (capacity) => `No ${UE.one} has reached ${capacity} members yet. Invite more friends to join!`,
       player:       "Player",
+      tileGender:   (gender) => `${gender} only`,                              // nút của phòng khác giới (bị khoá)
+      genderFull:   (gender) => `All ${UE.many} for ${gender} are full.`,     // hết phòng đúng giới còn chỗ
     },
     confirm: {
       title: (name) => `Join ${name}?`,   // KHÔNG ghép đơn vị: tên đội (admin điền) là nhãn đầy đủ
@@ -163,6 +192,7 @@ const STRINGS = {
       missing:        "Missing required info (display name) — check your details, or tell the organizer if the event has no name field.",
       network:        "The network's a bit busy — couldn't join. Please try again.",
       checkingResult: "Checking the result…",
+      genderMismatch: (gender) => `This ${UE.one} is for ${gender} only.`,
     },
     validate: {
       required:   "Required",
@@ -234,6 +264,8 @@ const STRINGS = {
       ftYou:        " · bạn",
       takenEmpty:   (capacity) => `Chưa có ${UV.one} nào đủ ${capacity} người. Cùng rủ thêm bạn nào!`,
       player:       "Người chơi",
+      tileGender:   (gender) => `Chỉ dành cho ${gender}`,                         // nút của phòng khác giới (bị khoá)
+      genderFull:   (gender) => `Các ${UV.many} dành cho ${gender} đã đủ người.`,  // hết phòng đúng giới còn chỗ
     },
     confirm: {
       title: (name) => `Tham gia ${name}?`,   // KHÔNG ghép đơn vị: tên đội (admin điền) là nhãn đầy đủ
@@ -253,6 +285,7 @@ const STRINGS = {
       missing:        "Thiếu thông tin bắt buộc (tên hiển thị) — kiểm tra lại thông tin của bạn, hoặc báo ban tổ chức nếu sự kiện thiếu trường tên.",
       network:        "Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.",
       checkingResult: "Đang kiểm tra kết quả…",
+      genderMismatch: (gender) => `${_cap(UV.one)} này chỉ dành cho ${gender}.`,
     },
     validate: {
       required:   "Bắt buộc nhập",
@@ -269,5 +302,7 @@ try {
   const langParam = new URLSearchParams(location.search).get("lang");
   if (langParam === "en" || langParam === "vi") LANG = langParam;
 } catch (e) {}
-const TEXT = STRINGS[LANG] || STRINGS.en;   // bảng chuỗi theo ngôn ngữ đang chọn (fallback EN)
+// `let` (không phải const): biến thể sự kiện (themes/<tên>/variants/<biến-thể>/strings.js, nạp ngay sau
+// file này) được phép chuyển cả trang sang ngôn ngữ khác — gán lại TEXT TRƯỚC khi mọi file UI chạy.
+let TEXT = STRINGS[LANG] || STRINGS.en;   // bảng chuỗi theo ngôn ngữ đang chọn (fallback EN)
 try { document.documentElement.lang = LANG; } catch (e) {}   // đồng bộ <html lang> với ngôn ngữ UI (a11y/SEO)

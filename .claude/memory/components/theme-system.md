@@ -1,9 +1,9 @@
 ---
 title: theme-system
 tags: [ui, component, theme]
-code: [fe/js/config/theme.js, fe/assets/styles.css, fe/assets/themes.css, fe/themes/tech/tech.css, fe/themes/tech/chip.css, fe/themes/tech/strings.js, fe/themes/tech/circuit.js, fe/themes/tech/img/chip.svg, fe/themes/tech/img/chip-pink.svg, fe/index.html, fe/admin.html]
-related: [[design-tokens]], [[ui-pipeline]], [[conventions]], [[index]]
-updated: 2026-06-06
+code: [fe/js/config/theme.js, fe/assets/styles.css, fe/assets/themes.css, fe/themes/tech/tech.css, fe/themes/tech/chip.css, fe/themes/tech/strings.js, fe/themes/tech/circuit.js, fe/themes/tech/img/chip.svg, fe/themes/tech/img/chip-pink.svg, fe/themes/tech/variants/tnt/tnt.css, fe/themes/tech/variants/tnt/strings.js, fe/themes/tech/variants/tnt/img/tnt-logo.png, fe/index.html, fe/admin.html]
+related: [[design-tokens]], [[ui-pipeline]], [[conventions]], [[i18n-system]], [[0001-gender-rooms-from-allowlist]], [[index]]
+updated: 2026-09-29
 ---
 
 # Theme System — đổi giao diện bằng 1 cờ
@@ -45,10 +45,45 @@ themes/tech/tech.css → themes/tech/chip.css`; admin.html nạp `themes/tech/te
   (end-user không tự đổi giao diện). Nút lật `data-theme` + ghi `localStorage`; theme.js áp lại khi tải.
 
 ## Biến thể theo sự kiện (§E.3 — tuỳ chọn)
-`ACTIVE_VARIANT='eventX'` đặt thêm `data-variant`; khối
-`[data-theme="tech"][data-variant="eventX"]` kế thừa toàn bộ token theme nền, chỉ
-override `--page-bg-image` + 1–2 màu nhấn. Mặc định `''` ⇒ INERT (ảnh trong url()
-không tải). Mỗi dịp = 1 khối nhỏ, không nhân bản cả theme.
+Cờ go-live = `DEFAULT_VARIANT` ([theme.js](../../fe/js/config/theme.js)); `ACTIVE_VARIANT` = kết quả (cờ, hoặc
+URL `?variant=<tên>` để XEM TRƯỚC trên production không cần deploy — kiểm `/^[a-z0-9-]{0,32}$/`; `?variant=`
+rỗng = ép tắt). Đặt `data-variant` trên `<html>`. Biến thể nhỏ = 1 khối `[data-theme="tech"][data-variant="x"]`
+trong tech.css (override `--page-bg-image` + 1–2 màu). Biến thể LỚN (copy + logo + CSS) = thư mục riêng
+`fe/themes/tech/variants/<tên>/` (xem tnt dưới). Mặc định `''` ⇒ INERT (ảnh trong url() không tải).
+admin.html cũng chạy theme.js (có `data-variant`) nhưng KHÔNG link CSS/strings biến thể ⇒ admin không đổi.
+
+### Biến thể `tnt` (sự kiện Mini Outing · brand TNT, 2026-09-29)
+Nguồn: PDF BTC "MINI MINI MINI.pdf" (copy nguyên văn) + phân phòng Nam/Nữ ([[0001-gender-rooms-from-allowlist]]).
+Thư mục `fe/themes/tech/variants/tnt/`: `tnt.css` (link SAU chip.css) + `strings.js` (script SAU
+themes/tech/strings.js — xem [[i18n-system]]) + `img/tnt-logo.png`. Mọi selector scope
+`[data-theme="tech"][data-variant="tnt"]` (0,3,x) > tech (0,2,x) ⇒ thắng bất kể thứ tự. **Giữ nguyên
+visual tech** (PDF không đổi màu) — chỉ đổi logo/loader/copy + 3 fix.
+- **Logo đổi THUẦN CSS** (không sửa JS): 4 chỗ hiện logo (header index.html, popup định danh ui-render,
+  màn đếm ngược + kết thúc app.js) dùng CHUNG `.tech-logo-only > .logo-wrap > img.logo-icon + span.logo-text`
+  ⇒ ẩn icon + chữ FARADAY, vẽ logo bằng `.logo-wrap::before{background:var(--tnt-logo) center/contain}`
+  + `aspect-ratio:var(--tnt-ratio)`. Popup định danh logo nhỏ hơn (84px). Loader: ẩn `.tech-chip`,
+  `.loader-spinner::before` = logo + `animation: chipPulse` (keyframe tech, glow theo alpha). 0 FOUC.
+- **tnt-logo.png**: file BTC là JPG chữ trắng trên NỀN ĐEN (2560×1632) — đặt thẳng lên navy sẽ lộ khối đen.
+  Đã tách nền bằng Pillow: alpha = độ sáng (max kênh) ánh xạ [28..230]→[0..255], RGB trắng, cắt sát + đệm 1%,
+  800×558 (~40KB). Đổi file ⇒ sửa `--tnt-ratio` (800 / 558). Logo thực tế là "TRINITY agency".
+- **Terminal**: dòng VI dài ~42–47 ký tự bị tech (nowrap + width 0→100%) CẮT CỤT trên điện thoại ⇒ biến thể
+  cho `white-space:normal` + hanging indent (`padding-left:2ch;text-indent:-2ch`) + CHỈ đổi `animation-name`
+  → `termReveal` (clip-path inset trái→phải; đích `inset(-0.5em … 0)` để không xén dấu) ⇒ giữ nguyên
+  duration/delay ⇒ vẫn khớp timer 4000ms. ≤560px: font 12.5px.
+- **GOTCHA H1 mất dấu**: h1 chữ-gradient (`background-clip:text`) + `line-height:1.02` ⇒ phần dấu CHỒNG TẦNG
+  vượt khung (dấu sắc của "Ố" trong "MUỐN") KHÔNG được tô ⇒ biến mất. Fix trong biến thể: `h1{padding-top:.25em}`
+  (áp cả `.sched-event-title` vì cũng là h1). Faraday ("LẬP ĐỘI NÀO!") không có dấu chồng nên chưa lộ — theme
+  khác gặp tiêu đề có Ố/Ấ/Ề… thì nhớ fix này.
+- Verify (headless Edge, harness demo + iframe 360/390): loader, terminal, form, lưới khoá phòng khác giới,
+  confirm, joined, countdown có `<ul>`; biến thể TẮT so pixel với master ⇒ 4 cảnh Δ≤6/255, terminal/loader chỉ
+  lệch pha hoạt ảnh ⇒ Faraday BẤT BIẾN.
+- **Go-live**: chỉ SAU khi Faraday kết thúc: `DEFAULT_VARIANT='tnt'` → push (GitHub Pages tự deploy) +
+  `firebase deploy --only hosting` → kích hoạt sự kiện mới. Cache HTML/JS: Firebase 1h, Pages 10' ⇒ đổi cờ
+  ≥60' trước `openAt`. Rollback: `DEFAULT_VARIANT=''` + deploy. Preview production `?variant=tnt` CHỈ
+  để xem — submit form sẽ ghi vào sự kiện đang active.
+- **Trạng thái local (2026-09-29)**: `DEFAULT_VARIANT` đang set `'tnt'` thẳng trong theme.js (branch
+  `feat/mini-outing-variant`, CHƯA commit/push) để user xem trước không cần `?variant=`. **Nhớ trả về `''`
+  trước khi push/deploy** nếu Faraday còn sống — nếu không patch này sẽ bật biến thể cho mọi người xem trang.
 
 ## Admin cũng có theme (scope riêng)
 admin.html có `:root` + bộ token RIÊNG (`--ink/--pri/--grad/--card-2/--accent-soft

@@ -40,6 +40,7 @@ const REASON = {
   NAME_MISMATCH: "nameMismatch",
   FULL:          "full",
   DEDUP_CONFIG:  "dedupConfig",   // chống trùng BẬT mà không lấy được giá trị để dedup (cấu hình sai) → fail-closed
+  GENDER_MISMATCH: "genderMismatch", // "Check giới tính" BẬT & giới tính theo danh sách ≠ giới của phòng
   ERROR:         "error",
 };
 
@@ -140,19 +141,21 @@ async function apiRegTaken(value) {
 
 // Khi ALLOWLIST_MODE bật: kiểm tra định danh (DEDUP_FIELD) có nằm trong allowlist chưa — để CHẶN NGAY
 // ở cổng vào (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc allowlist (rules cho phép get).
-// Trả {allowed, name}: allowed=TRUE (cho qua) khi không bật chế độ / không firebase / lỗi mạng → KHÔNG
+// Trả {allowed, name, gender}: allowed=TRUE (cho qua) khi không bật chế độ / không firebase / lỗi mạng → KHÔNG
 // chặn nhầm; allowed=FALSE = NGOÀI danh sách. name = tên đã đăng ký ("" nếu danh sách không có cột tên),
-// dùng để đối chiếu HỌ TÊN ở popup (transaction apiClaim vẫn là tuyến chặn cuối cho cả hai).
+// dùng để đối chiếu HỌ TÊN ở popup; gender = "Nam"|"Nữ"|"" theo cột giới tính (phân phòng theo giới — caller
+// chỉ dùng khi ALLOWLIST_GENDERCHECK). Transaction apiClaim vẫn là tuyến chặn cuối cho cả ba.
 async function apiAllowlistInfo(value) {
-  if (MODE !== MODE_FIREBASE || !ALLOWLIST_MODE || !DEDUP_FIELD) return { allowed: true, name: "" };
+  if (MODE !== MODE_FIREBASE || !ALLOWLIST_MODE || !DEDUP_FIELD) return { allowed: true, name: "", gender: "" };
   const key = _dedupKey(value);
-  if (!key) return { allowed: false, name: "" };   // bật allowlist mà không có định danh → coi như ngoài danh sách
+  if (!key) return { allowed: false, name: "", gender: "" };   // bật allowlist mà không có định danh → coi như ngoài danh sách
   try {
     const snap = await col(COL.ALLOWLIST).doc(key).get();
-    if (!snap.exists) return { allowed: false, name: "" };
-    return { allowed: true, name: String((snap.data() || {}).name || "") };
+    if (!snap.exists) return { allowed: false, name: "", gender: "" };
+    const d = snap.data() || {};
+    return { allowed: true, name: String(d.name || ""), gender: normGender(d.gender) };
   } catch (e) {
-    return { allowed: true, name: "" };   // lỗi mạng → KHÔNG chặn nhầm; apiClaim là chốt cuối
+    return { allowed: true, name: "", gender: "" };   // lỗi mạng → KHÔNG chặn nhầm; apiClaim là chốt cuối
   }
 }
 // Tiện ích boolean cho cổng vào lúc tải trang (chỉ cần biết được/không) — tái dùng apiAllowlistInfo.
@@ -287,6 +290,14 @@ async function apiClaim(payload) {
         const wantName = String((allowSnap.data() || {}).name || "");
         if (wantName && _normName(wantName) !== _normName(name)) return { ok: false, reason: REASON.NAME_MISMATCH };
       }
+      // PHÂN PHÒNG THEO GIỚI — cũng chỉ dùng `allowSnap` ĐÃ ĐỌC (không thêm read, không đổi thứ tự đọc-ghi).
+      // Giới tính lấy từ DANH SÁCH (không phải người chơi tự khai). Thiếu giới ở dòng danh sách HOẶC phòng
+      // không gắn giới ⇒ cho qua (fail-open, đúng quyết định sản phẩm).
+      if (allowRef && allowSnap.exists && ALLOWLIST_GENDERCHECK) {
+        const listGender = normGender((allowSnap.data() || {}).gender);
+        const needGender = roomGender(icon);
+        if (listGender && needGender && listGender !== needGender) return { ok: false, reason: REASON.GENDER_MISMATCH };
+      }
 
       const count = teamSnap.exists ? (teamSnap.data().count || 0) : 0;
       const names = teamSnap.exists ? (teamSnap.data().names || []) : [];
@@ -342,11 +353,18 @@ async function apiClaim(payload) {
   }
   // Danh sách cho phép (demo) — SAU already/dup, TRƯỚC full (khớp thứ tự nhánh firebase). Demo không có
   // UI admin nên seed thủ công khi dev: localStorage["linhthu:allowlistMode:<EVENT_ID>"]="true" +
-  // localStorage["linhthu:allowlist:<EVENT_ID>"]=JSON.stringify({"NV2026001":1,"NV2026002":1,...}).
+  // localStorage["linhthu:allowlist:<EVENT_ID>"]=JSON.stringify({"NV2026001":1,"NV2026002":1,...})
+  // (muốn thử phân phòng theo giới: entry dạng object, vd {"NV2026001":{"gender":"Nam"}}).
   if ((await sGet(SK.ALLOWLIST_MODE, true)) === "true" && DEDUP_FIELD) {
     const allowKey  = _dedupKey(fields[DEDUP_FIELD] || "");
     const allowList = JSON.parse(await sGet(SK.ALLOWLIST, true) || "{}");
     if (!allowKey || !allowList[allowKey]) return { ok: false, reason: REASON.NOT_ALLOWED };
+    // Giới tính (khớp nhánh firebase): entry demo dạng object {gender:"Nam"} mới có giới; dạng 1/true ⇒ bỏ qua.
+    if (ALLOWLIST_GENDERCHECK) {
+      const listGender = normGender((allowList[allowKey] || {}).gender);
+      const needGender = roomGender(payload.icon);
+      if (listGender && needGender && listGender !== needGender) return { ok: false, reason: REASON.GENDER_MISMATCH };
+    }
   }
   const arr = obj[payload.icon] || (obj[payload.icon] = []);
   if (arr.length >= capOf(payload.icon)) return { ok: false, reason: REASON.FULL };

@@ -21,6 +21,9 @@
 <link rel="stylesheet" href="themes/tech/tech.css">
 <!-- Addon tùy biến của tech: icon đội = chip cyan (nạp SAU tech.css để đè .ic/.bi; index-only). -->
 <link rel="stylesheet" href="themes/tech/chip.css">
+<!-- Biến thể sự kiện "tnt" của tech (fe/themes/tech/variants/tnt/) — mọi rule scope
+     [data-theme="tech"][data-variant="tnt"] ⇒ INERT khi ACTIVE_VARIANT khác (theme.js). -->
+<link rel="stylesheet" href="themes/tech/variants/tnt/tnt.css">
 <!-- Áp theme TRƯỚC khi vẽ (0 FOUC). Nguồn sự thật DUY NHẤT: ACTIVE_THEME trong theme.js. -->
 <script src="js/config/theme.js"></script>
 <style>
@@ -103,10 +106,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <!-- Nạp ĐÚNG THỨ TỰ phụ thuộc biến toàn cục (script thường, KHÔNG type=module):
-     config → [themes/tech/strings] → firebase-config → storage → api → ui-utils → ui-render → app -->
+     config → [themes/tech/strings → variants/tnt/strings] → firebase-config → storage → api → ui-utils → ui-render → app -->
 <script src="js/config/config.js"></script>
 <!-- Text riêng-theo-theme (terminal boot của theme `tech`, gói trong fe/themes/tech/) — merge vào STRINGS, phải nạp SAU config.js. -->
 <script src="themes/tech/strings.js"></script>
+<!-- Copy riêng biến thể "tnt" (tự return nếu ACTIVE_VARIANT khác) — phải nạp SAU themes/tech/strings.js. -->
+<script src="themes/tech/variants/tnt/strings.js"></script>
 <script src="js/config/firebase-config.js"></script>
 <script src="js/data/storage.js"></script>
 <script src="js/data/api.js"></script>

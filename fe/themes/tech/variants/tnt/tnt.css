@@ -1,0 +1,102 @@
+/* ============================================================================
+   BIẾN THỂ "tnt" của theme tech — sự kiện Mini Outing (brand TNT · tìm roommate)
+   ----------------------------------------------------------------------------
+   Bật: DEFAULT_VARIANT='tnt' ở js/config/theme.js (hoặc ?variant=tnt để xem trước).
+   MỌI selector scope [data-theme="tech"][data-variant="tnt"] ⇒ INERT với sự kiện khác (ảnh trong
+   url() cũng KHÔNG tải). Specificity (0,3,x) > rule tech (0,2,x) ⇒ thắng bất kể thứ tự nạp.
+   Chỉ OVERRIDE phần khác của dịp này — palette/bề mặt kế thừa nguyên theme tech. Chữ: strings.js cùng thư mục.
+
+   Logo: img/tnt-logo.png = logo TNT (TRINITY agency) đã TÁCH NỀN từ file JPG nền đen của BTC
+   (độ sáng → alpha, chữ trắng, cắt sát; 800×558). Dùng background-image — KHÔNG dùng mask (render rỗng ở
+   headless Edge / flex item, xem memory theme-system). Tỉ lệ khung: --tnt-ratio (đổi file ⇒ sửa số này).
+   ============================================================================ */
+[data-theme="tech"][data-variant="tnt"] {
+  --tnt-logo:  url('img/tnt-logo.png');
+  --tnt-ratio: 800 / 558;
+  --tnt-glow:  drop-shadow(0 0 10px color-mix(in srgb, var(--c-accent-cyan) 38%, transparent));
+}
+
+/* —— Logo TNT thay FARADAY ——
+   4 chỗ hiện logo (header, popup định danh, màn đếm ngược, màn kết thúc) dùng CHUNG markup
+   .tech-logo-only > .logo-wrap > img.logo-icon + span.logo-text ⇒ đổi thuần CSS, không đụng JS:
+   ẩn icon + chữ FARADAY, vẽ logo TNT bằng ::before của .logo-wrap. */
+[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-icon,
+[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-text {
+  display: none;
+}
+[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-wrap::before {
+  content: "";
+  display: block;
+  height: clamp(92px, 17vw, 124px);
+  aspect-ratio: var(--tnt-ratio);
+  background: var(--tnt-logo) center / contain no-repeat;
+  filter: var(--tnt-glow);
+  transition: transform 0.2s ease;
+}
+[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-wrap:hover::before {
+  transform: scale(1.03);
+}
+/* Popup định danh chật hơn trang → logo nhỏ lại để form không bị đẩy xuống. */
+[data-theme="tech"][data-variant="tnt"] .profile-modal .tech-logo-only {
+  margin-bottom: 14px;
+}
+[data-theme="tech"][data-variant="tnt"] .profile-modal .tech-logo-only .logo-wrap::before {
+  height: 84px;
+}
+
+/* —— Tiêu đề (trang + màn đếm ngược/kết thúc — đều là h1) ——
+   H1 tech là chữ-gradient (background-clip:text) với line-height 1.02: phần dấu CHỒNG TẦNG vượt khỏi khung
+   phần tử KHÔNG được tô ⇒ "MUỐN" mất dấu sắc (đã thấy trên screenshot). Nới đệm trên để khung ôm trọn dấu. */
+[data-theme="tech"][data-variant="tnt"] h1 {
+  padding-top: 0.25em;
+}
+
+/* —— Màn loading: logo TNT thay con chip (PDF trang 1 hỏi "đổi được không?" → có) ——
+   data-variant đặt ngay trong <head> (theme.js) ⇒ loader hiện đúng logo từ khung hình đầu, không nháy chip. */
+[data-theme="tech"][data-variant="tnt"] .tech-chip {
+  display: none;
+}
+[data-theme="tech"][data-variant="tnt"] .loader-spinner {
+  width: auto;
+  height: auto;
+}
+[data-theme="tech"][data-variant="tnt"] .loader-spinner::before {
+  content: "";
+  display: block;
+  height: 104px;
+  aspect-ratio: var(--tnt-ratio);
+  background: var(--tnt-logo) center / contain no-repeat;
+  animation: chipPulse 2s ease-in-out infinite;   /* keyframe của tech: phập phồng + glow cyan theo alpha logo */
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Giống chip: vẫn chuyển động rất chậm để không bị hiểu nhầm là treo. */
+  [data-theme="tech"][data-variant="tnt"] .loader-spinner::before {
+    animation: chipPulse 4s ease-in-out infinite !important;
+  }
+}
+
+/* —— Terminal khởi động (popup định danh) ——
+   Dòng tiếng Việt của dịp này dài ~42–47 ký tự: tech dùng nowrap + width:0→100% nên bị CẮT CỤT trên điện
+   thoại. Ở đây cho XUỐNG DÒNG và lộ chữ bằng clip-path trái→phải (vẫn "gõ" theo steps). CHỈ đổi
+   animation-name ⇒ giữ nguyên duration/delay/steps/fill của tech ⇒ vẫn khớp timer 4000ms (ui-render.js).
+   Đầu cuối clip-path nới -0.5em để KHÔNG xén dấu tiếng Việt chồng tầng (Ấ, Ộ…). */
+[data-theme="tech"][data-variant="tnt"] .term-row {
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.5;
+  padding-left: 2ch;
+  text-indent: -2ch;   /* dòng tràn thụt thẳng hàng sau dấu ">" */
+}
+[data-theme="tech"][data-variant="tnt"] .profile-modal.tech-booting .term-row:nth-child(n) {
+  animation-name: termReveal;
+}
+@keyframes termReveal {
+  from { opacity: 1; clip-path: inset(0 100% 0 0); }
+  to   { opacity: 1; clip-path: inset(-0.5em -0.5em -0.5em 0); }
+}
+@media (max-width: 560px) {
+  [data-theme="tech"][data-variant="tnt"] .profile-modal .terminal-boot {
+    font-size: 12.5px;
+    padding: 24px 18px;
+  }
+}

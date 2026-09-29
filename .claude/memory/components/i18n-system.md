@@ -1,9 +1,9 @@
 ---
 title: i18n-system
 tags: [ui, component, i18n]
-code: [fe/js/config/config.js, fe/themes/tech/strings.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
+code: [fe/js/config/config.js, fe/themes/tech/strings.js, fe/themes/tech/variants/tnt/strings.js, fe/js/app.js, fe/js/ui/ui-render.js, fe/js/ui/ui-utils.js, fe/index.html]
 related: [[conventions]], [[ui-pipeline]], [[theme-system]], [[firestore-schema]], [[index]]
-updated: 2026-06-08
+updated: 2026-09-29
 ---
 
 # i18n System — đổi ngôn ngữ UI bằng 1 cờ
@@ -67,6 +67,21 @@ nên merge thêm namespace SAU khi config.js gán `TEXT` vẫn thấy được �
 - **Quyết định:** user chọn file vật lý riêng (rõ ràng hơn) dù note cũ khuyên "không thêm file";
   đánh đổi = +1 `<script>` trong chuỗi nạp. Theme strings tương lai → thêm vào `tech`/namespace mới
   cùng file này, KHÔNG đụng config.js.
+
+## Copy riêng BIẾN THỂ sự kiện (`themes/tech/variants/<tên>/strings.js`) — 2026-09-29
+Biến thể `tnt` ([[theme-system]]) mang copy riêng của dịp (PDF BTC + đề xuất "đội"→"phòng"):
+- **`TEXT` giờ là `let`** (config.js) — biến thể được CHUYỂN NGÔN NGỮ cả trang: nếu URL không có `?lang=en|vi`
+  thì `LANG="vi"; TEXT=STRINGS.vi; <html lang=vi>`. Chạy NGAY sau themes/tech/strings.js, TRƯỚC mọi file UI ⇒
+  không file nào kịp giữ tham chiếu TEXT cũ (đã kiểm: mọi đọc TEXT đều trong hàm). `?lang=en` vẫn thắng (test).
+- Ghi đè bằng `Object.assign(STRINGS.vi[ns], COPY[ns])` cho `tech/profile/confirm/celebrate/banner/grid/toast/dup`.
+  Guard `ACTIVE_VARIANT !== "tnt"` ⇒ return (INERT; test vm: STRINGS giống hệt khi không nạp file).
+- **QUY TẮC: key gốc là HÀM thì bản ghi đè cũng phải là HÀM** (call site gọi `TEXT.x.y(args)`) — vd
+  `terminalLine2: () => "Welcome to Tìm người chung chăn gối!"` (cố ý bỏ qua title/H1). Truyền string ⇒ TypeError
+  vỡ popup. Chuỗi còn gán qua textContent (`profile.start`) phải là text thuần ("&" chứ không "&amp;").
+- Tên phòng admin có thể đã mở đầu "Phòng …" ⇒ helper `room()/Room()` tránh "phòng Phòng 101".
+- `grid.takenEmpty` biến thể bỏ tham số capacity (mỗi phòng số giường riêng — `CAPACITY` chung không đúng).
+- Key MỚI ở base (en+vi, parity): `grid.tileGender(g)`, `grid.genderFull(g)`, `toast.genderMismatch(g)`
+  (phân phòng theo giới — [[0001-gender-rooms-from-allowlist]]).
 
 ## KHÔNG nằm trong registry (tầng config per-event)
 i18n CHỈ lo text hardcode. Text đổi-theo-sự-kiện vẫn ở tầng config ([[firestore-schema]]):
