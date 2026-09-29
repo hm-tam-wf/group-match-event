@@ -407,7 +407,10 @@ function renderState() {
   let open = 0;
   let openForMe = 0;   // đội còn chỗ mà mình vào ĐƯỢC theo giới tính (phòng đúng giới hoặc phòng chung)
   let tileIndex = 0;
-  ICONS.forEach(iconDef => {
+  // Đã biết giới & chưa vào phòng ⇒ phòng ĐÚNG giới lên đầu, phòng chung ở giữa, phòng khác giới (bị khoá) xuống cuối.
+  const genderRank = ic => { const g = roomGender(ic.icon); return !g ? 1 : (g === myGender ? 0 : 2); };
+  const shownIcons = (myGender && !myIcon) ? ICONS.slice().sort((a, b) => genderRank(a) - genderRank(b)) : ICONS;
+  shownIcons.forEach(iconDef => {
     const team = teamOf(iconDef.icon);
     const cap  = capOf(iconDef.icon);          // sĩ số RIÊNG của đội (nếu có) ngược lại CAPACITY chung
     if (team.count >= cap) return;             // đủ người → biến mất khỏi lưới này
@@ -433,7 +436,9 @@ function renderState() {
     tileEl.style.setProperty("--c", iconDef.color);
     tileEl.style.animationDelay = (tileIndex * 0.035) + "s";
     tileIndex++;
-    tileEl.innerHTML = `
+    const genderTag = (ALLOWLIST_GENDERCHECK && roomG)
+      ? `<div class="g-tag ${roomG === GENDER_OPTIONS[0] ? "g-m" : "g-f"}">${esc(TEXT.grid.roomTag(roomG))}</div>` : "";
+    tileEl.innerHTML = `${genderTag}
       <div class="ic">${iconDef.icon}</div>
       <div class="nm">${iconDef.name}</div>
       <div class="cap">${team.count}/${cap}</div>
@@ -499,10 +504,12 @@ function renderState() {
     teamEl.className = "full-team " + (full ? "is-full" : "is-forming") + (mine ? " mine" : "");
     teamEl.style.setProperty("--c", iconDef.color);
     teamEl.style.animationDelay = (i * 0.045) + "s";
+    const ftG = ALLOWLIST_GENDERCHECK ? roomGender(iconDef.icon) : "";
+    const ftGenderTag = ftG ? ` <span class="g-tag ${ftG === GENDER_OPTIONS[0] ? "g-m" : "g-f"}">${esc(TEXT.grid.roomTag(ftG))}</span>` : "";
     teamEl.innerHTML = `
       <div class="ft-head">
         <span class="ti">${iconDef.icon}</span>
-        <div class="ft-meta"><div class="lab">${full ? `${LOCK_SVG}${TEXT.grid.ftLocked}` : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}</div></div>
+        <div class="ft-meta"><div class="lab">${full ? `${LOCK_SVG}${TEXT.grid.ftLocked}` : TEXT.grid.ftForming}</div><div class="ft-name">${iconDef.name}${ftGenderTag}</div></div>
         <span class="ft-badge">${team.count}/${cap}${mine ? TEXT.grid.ftYou : ""}</span>
       </div>
       <ol class="ft-list">${memberItems}</ol>`;

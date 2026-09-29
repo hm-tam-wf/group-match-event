@@ -72,7 +72,7 @@
       ftForming:    "Đang gom người",
       ftLocked:     "Đã khoá cửa",
       takenEmpty:   () => "Chưa phòng nào có người. Nhanh tay chốt cạ nào!",   // bỏ tham số capacity: mỗi phòng có số giường riêng
-      tileGender:   (gender) => `Phòng ${gender}`,
+      tileGender:   (gender) => `Chỉ dành cho ${gender}`,
       genderFull:   (gender) => `Các phòng ${gender} đã kín giường — liên hệ BTC nếu cần hỗ trợ.`,
     },
     toast: {                                                             // ĐX

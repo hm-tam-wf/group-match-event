@@ -14,6 +14,19 @@
   --tnt-logo:  url('img/tnt-logo.png');
   --tnt-ratio: 800 / 558;
   --tnt-glow:  drop-shadow(0 0 10px color-mix(in srgb, var(--c-accent-cyan) 38%, transparent));
+  /* Nền KV sự kiện (ảnh sáng) — lớp phủ navy mỏng hơn tech (94%) để ảnh hiện rõ mà chữ trắng vẫn đọc được. */
+  --page-bg-image:   url('img/bg-kv.jpg');
+  --page-bg-overlay: linear-gradient(color-mix(in srgb, var(--c-deep-navy) 45%, transparent),
+                                     color-mix(in srgb, var(--c-deep-navy) 72%, transparent));
+}
+
+/* Hiệu ứng mạch điện + lưới ô vuông của tech không hợp nền phong cảnh → tắt, chỉ giữ lớp phủ + ảnh. */
+[data-theme="tech"][data-variant="tnt"] #circuit-canvas { display: none; }
+[data-theme="tech"][data-variant="tnt"] body::before {
+  background:
+    var(--page-bg-overlay),
+    var(--page-bg-image) center / cover no-repeat fixed,
+    var(--c-deep-navy);
 }
 
 /* —— Logo TNT thay FARADAY ——
@@ -49,6 +62,16 @@
    phần tử KHÔNG được tô ⇒ "MUỐN" mất dấu sắc (đã thấy trên screenshot). Nới đệm trên để khung ôm trọn dấu. */
 [data-theme="tech"][data-variant="tnt"] h1 {
   padding-top: 0.25em;
+}
+/* Tiêu đề TRẮNG (bỏ chữ-gradient chạy màu của tech) + bóng tối mềm để nổi trên nền KV sáng. */
+[data-theme="tech"][data-variant="tnt"] h1,
+[data-theme="tech"][data-variant="tnt"] .sched-event-title {
+  background: none;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  animation: none;
+  text-shadow: 0 2px 18px color-mix(in srgb, var(--c-deep-navy) 70%, transparent),
+               0 0 2px color-mix(in srgb, var(--c-deep-navy) 60%, transparent);
 }
 
 /* —— Màn loading: logo TNT thay con chip (PDF trang 1 hỏi "đổi được không?" → có) ——

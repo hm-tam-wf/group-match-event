@@ -151,3 +151,12 @@ Review phản biện đa-lens phát hiện & vá (commit sau merge feat):
 ## Fixtures (`sample-allowlist/`, đã commit) — 20 MSNV `NV2026001…020`
 `-A.json` mảng string · `-B.json` mảng object `{employeeId,hoTen}` · `-C.json` map · `.csv` header
 `employeeId,hoTen` · `.xlsx` cùng cột. Test parser bằng `xlsx@0.18.5` (xem auto-memory: node-test-browser-code).
+
+## Đối chiếu theo HỌ TÊN thay MSNV (sự kiện TNT, 2026-09-29)
+File BTC "Nhân sự.xlsx" chỉ có `STT | NAME | Gender` (không MSNV) ⇒ cấu hình sự kiện: fields CHỈ `name`,
+`dedupField = "name"`, bật allowlist + "Check giới tính" (KHÔNG cần "Đối chiếu họ tên" — khoá đã là tên).
+Import: `pickColumn` khớp header "NAME" (so lowercase) ⇒ tự chọn cột; cột "Gender" tự nhận. Khoá = `_dedupKey(tên)`:
+bỏ khoảng trắng + IN HOA + **NFC** (thêm NFC ở CẢ api.js và admin.html — phải giữ 2 bản giống hệt) ⇒ khác hoa/thường
+và dạng dấu tổ hợp vẫn khớp, nhưng **gõ thiếu dấu thì KHÔNG khớp** (user đã chấp nhận). 2 người trùng tên sẽ chặn nhau.
+UI: `.g-tag` "Phòng Nam/Nữ" trên mọi thẻ phòng gắn giới (cả khu roster) khi ALLOWLIST_GENDERCHECK; đã biết giới ⇒
+phòng đúng giới xếp đầu, phòng khác giới cuối + khoá (nút `tileGender` = "Chỉ dành cho …").

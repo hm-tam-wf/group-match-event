@@ -66,6 +66,9 @@ visual tech** (PDF không đổi màu) — chỉ đổi logo/loader/copy + 3 fix
 - **tnt-logo.png**: file BTC là JPG chữ trắng trên NỀN ĐEN (2560×1632) — đặt thẳng lên navy sẽ lộ khối đen.
   Đã tách nền bằng Pillow: alpha = độ sáng (max kênh) ánh xạ [28..230]→[0..255], RGB trắng, cắt sát + đệm 1%,
   800×558 (~40KB). Đổi file ⇒ sửa `--tnt-ratio` (800 / 558). Logo thực tế là "TRINITY agency".
+- **Nền KV (2026-09-29)**: `img/bg-kv.jpg` (từ "Background KV.png" của BTC — phong cảnh SÁNG, 1671×941, nén JPG q82
+  ~373KB). tnt.css đè `--page-bg-image` + `--page-bg-overlay` (navy 45%→72%, tech gốc là 94%) và viết lại
+  `body::before` chỉ còn overlay + ảnh (bỏ lưới ô 44px + radial magenta của tech); ẩn `#circuit-canvas`.
 - **Terminal**: dòng VI dài ~42–47 ký tự bị tech (nowrap + width 0→100%) CẮT CỤT trên điện thoại ⇒ biến thể
   cho `white-space:normal` + hanging indent (`padding-left:2ch;text-indent:-2ch`) + CHỈ đổi `animation-name`
   → `termReveal` (clip-path inset trái→phải; đích `inset(-0.5em … 0)` để không xén dấu) ⇒ giữ nguyên

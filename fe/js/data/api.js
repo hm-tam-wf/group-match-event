@@ -47,7 +47,7 @@ const REASON = {
 // Mọi collection của 1 sự kiện nằm dưới events/{EVENT_ID}/ → đổi EVENT_ID là sang không gian dữ liệu mới.
 const col = name => db.collection("events").doc(EVENT_ID).collection(name);
 
-function _dedupKey(v) { return String(v || "").trim().toUpperCase().replace(/\s+/g, ""); }
+function _dedupKey(v) { return String(v || "").normalize("NFC").trim().toUpperCase().replace(/\s+/g, ""); }   // NFC: tên tiếng Việt gõ dạng dấu tổ hợp (NFD) vẫn ra cùng khoá
 
 // Chuẩn hoá HỌ TÊN để so khớp với danh sách cho phép: bỏ dấu tiếng Việt, gộp khoảng trắng, IN HOA.
 // "Lê Văn A" / "le  van a" → "LE VAN A". Khoan dung (bỏ dấu) để tránh chặn nhầm người gõ thiếu/khác dấu.

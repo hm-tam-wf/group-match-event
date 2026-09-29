@@ -605,7 +605,7 @@
   };
   // Chuẩn hoá khóa chống trùng — GIỐNG HỆT _dedupKey trong js/data/api.js (trim + UPPER + bỏ khoảng trắng)
   // để admin phát hiện trùng đúng theo cách backend đã/đang chặn.
-  const _dedupKey = v => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+  const _dedupKey = v => String(v == null ? "" : v).normalize("NFC").trim().toUpperCase().replace(/\s+/g, "");
   // Icon cảnh báo (SVG → luôn hiển thị, không phụ thuộc font emoji).
   const dupIconSvg = () =>
     "<svg viewBox='0 0 24 24' width='20' height='20' aria-hidden='true' fill='none'>" +

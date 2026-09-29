@@ -172,6 +172,7 @@ const STRINGS = {
       takenEmpty:   (capacity) => `No ${UE.one} has reached ${capacity} members yet. Invite more friends to join!`,
       player:       "Player",
       tileGender:   (gender) => `${gender} only`,                              // nút của phòng khác giới (bị khoá)
+      roomTag:      (gender) => `${gender} room`,                              // nhãn giới trên MỌI thẻ phòng gắn giới
       genderFull:   (gender) => `All ${UE.many} for ${gender} are full.`,     // hết phòng đúng giới còn chỗ
     },
     confirm: {
@@ -265,6 +266,7 @@ const STRINGS = {
       takenEmpty:   (capacity) => `Chưa có ${UV.one} nào đủ ${capacity} người. Cùng rủ thêm bạn nào!`,
       player:       "Người chơi",
       tileGender:   (gender) => `Chỉ dành cho ${gender}`,                         // nút của phòng khác giới (bị khoá)
+      roomTag:      (gender) => `Phòng ${gender}`,                                // nhãn giới trên MỌI thẻ phòng gắn giới
       genderFull:   (gender) => `Các ${UV.many} dành cho ${gender} đã đủ người.`,  // hết phòng đúng giới còn chỗ
     },
     confirm: {
