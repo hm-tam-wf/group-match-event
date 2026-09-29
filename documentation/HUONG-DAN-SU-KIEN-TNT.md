@@ -12,14 +12,38 @@ Người chơi chỉ cần **nhập họ tên**. Hệ thống tự tra giới t�
 
 ---
 
+## Cách nhanh — điền file mẫu rồi chạy 1 lệnh
+
+File mẫu (tên giả): `sample-allowlist/tnt-mau-nhap-lieu.xlsx` (có sheet "Hướng dẫn" bên trong).
+**Dữ liệu thật** của BTC để ở thư mục `btc-data/` — thư mục này KHÔNG đưa lên git vì repo GitHub đang public
+(có họ tên nhân sự). File đã điền sẵn: `btc-data/tnt-nhap-lieu.xlsx` — script dùng file này mặc định.
+
+- **Sheet "Nhân sự"** (phải là sheet đầu): `NAME` | `Gender` | `Phòng`.
+  Cột **Phòng** để trống = người đó tự chọn trên web; ghi **số thứ tự phòng** (1, 2, 3…) = BTC xếp sẵn.
+  Người được xếp sẵn không cần vào web — tên họ hiện luôn trong "Danh sách roommate".
+- **Sheet "Phòng"**: `STT` | `Tên phòng` | `Số giường` | `Giới tính` (Nam/Nữ, trống = phòng chung) | `Team` (tuỳ chọn — hiện thành "Phòng 1 · Team 1") | `Emoji` (tuỳ chọn).
+
+Chạy trong thư mục dự án (cần file `serviceAccountKey.json` ở thư mục gốc):
+
+```
+node backend/scripts/tnt-import.js --file "đường-dẫn-file.xlsx"                 ← chỉ KIỂM TRA, không ghi gì
+node backend/scripts/tnt-import.js --file "đường-dẫn-file.xlsx" --apply --open  ← tạo sự kiện + mở luôn
+```
+
+Lệnh kiểm tra in ra danh sách phòng, số người, số giường và mọi lỗi (trùng tên, sai giới, xếp quá số giường,
+thiếu giường…). Hết lỗi mới chạy `--apply`. Sự kiện mặc định có ID `mini-outing-2026` (đổi bằng `--event <id>`);
+nếu ID đã tồn tại thì script dừng, không ghi đè. Làm xong có thể chỉnh tiếp trong admin như bình thường.
+
+Muốn làm tay trong admin thì theo các bước dưới.
+
 ## Bước 1 — Chuẩn bị file Excel
 
 File `.xlsx`, dòng đầu là tiêu đề, cần 2 cột:
 
 | NAME | Gender |
 |---|---|
-| DƯƠNG QUỲNH LÂM | Nam |
-| TRƯƠNG NGỌC KIM THANH | Nữ |
+| NGUYỄN VĂN A | Nam |
+| TRẦN THỊ B | Nữ |
 
 - **NAME**: họ tên **có dấu đầy đủ**, đúng như người chơi sẽ gõ. Viết hoa hay thường đều được.
 - **Gender**: ghi `Nam` hoặc `Nữ`. Ô trống ⇒ người đó được vào mọi phòng.
@@ -51,6 +75,8 @@ Vào admin → đăng nhập → trong **Danh sách sự kiện**, bấm **Sửa
 1. Chuyển sang tab **Danh sách cho phép** → chọn đúng **Sự kiện**.
 2. Chọn file Excel. Hệ thống tự nhận cột `NAME` và `Gender`, rồi báo số người Nam / Nữ / trống.
 3. Lần đầu: bấm **Xoá cũ & nạp mới**. Bổ sung thêm người sau này: bấm **Nhập (thêm vào danh sách)**.
+   Nếu file có cột **Phòng** (xếp sẵn): tích **Chia đội** rồi bấm **Xoá cũ & nạp mới + chia đội**.
+   Số trong cột Phòng = thứ tự phòng trong "Danh sách đội" của sự kiện (dòng 1 = phòng 1…).
 4. Sửa nhanh 1 người (sai tên / sai giới): dùng ô thêm/sửa 1 dòng ngay trong tab này.
 
 ## Bước 4 — Mở sự kiện

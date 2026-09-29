@@ -1847,7 +1847,7 @@
       if (!aoa.length){ showResult('File rỗng.', true); return; }
       const headers = aoa[0].map(h=>String(h));
       const nameIdx = headers.findIndex(h=>/h[oọ]\s*t[eê]n|^(full\s*)?name$|^t[eê]n$/i.test(String(h).trim()));   // neo ^...$ cho "name" để "username"/"lastname"/"displayName" KHÔNG bị nhận nhầm là cột tên
-      const teamIdx = headers.findIndex(h=>/^(team|đội|đôi|doi|nh[oó]m)$/i.test(String(h).trim()));   // cột chia đội sẵn (tuỳ chọn)
+      const teamIdx = headers.findIndex(h=>/^(team|room|đội|đôi|doi|nh[oó]m|ph[oò]ng|phong)$/i.test(String(h).trim()));   // cột chia đội/phòng sẵn (tuỳ chọn) — giá trị = SỐ THỨ TỰ đội/phòng
       // Cột giới tính (tuỳ chọn — cho "Check giới tính"): so sau khi gập dấu ⇒ "Giới tính"/"GIOI TINH"/"Mã giới"/"Gender" đều khớp.
       const genderIdx = headers.findIndex(h=>/^(gioi tinh|gioi|ma gioi|ma gioi tinh|gender|sex)$/.test(_foldVN(h).replace(/\s+/g,' ')));
       let colIdx = pickColumn(headers);

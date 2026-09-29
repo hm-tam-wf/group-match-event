@@ -22,3 +22,6 @@ shot-*.png
 
 # Cache deploy của Firebase CLI (local hosting cache) — không commit
 .firebase/
+
+# Dữ liệu BTC (họ tên nhân sự thật, tài liệu nội bộ) — KHÔNG đưa lên git (repo public)
+btc-data/
