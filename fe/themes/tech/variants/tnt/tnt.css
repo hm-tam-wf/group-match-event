@@ -16,6 +16,8 @@
   --tnt-ratio: 800 / 558;
   --tnt-mark-ratio: 359 / 511;
   --tnt-glow:  drop-shadow(0 0 10px color-mix(in srgb, var(--c-accent-cyan) 38%, transparent));
+  /* Màn terminal: dòng cuối xong ~3.6s, giữ thêm 1s ở "Sẵn sàng" rồi mới mở form (tech gốc 4000). */
+  --boot-hold-ms: 5000;
   /* Nền KV sự kiện (ảnh sáng) — lớp phủ navy mỏng hơn tech (94%) để ảnh hiện rõ mà chữ trắng vẫn đọc được. */
   --page-bg-image:   url('img/bg-kv.jpg');
   --page-bg-overlay: linear-gradient(color-mix(in srgb, var(--c-deep-navy) 45%, transparent),

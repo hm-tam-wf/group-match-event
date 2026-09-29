@@ -255,12 +255,14 @@ function showProfileModal() {
     inp.addEventListener("input",   () => { $("m_" + f.key).textContent = ""; inp.classList.remove("bad"); });
   });
   if (showBoot) {
+    // Thời gian giữ màn terminal: theme/biến thể khai --boot-hold-ms (vd TNT 5000); mặc định 4000 khớp nhịp CSS tech.
+    const bootHoldMs = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--boot-hold-ms"), 10) || 4000;
     setTimeout(() => {
       const modalEl = modalBgEl.querySelector(".profile-modal");
       if (modalEl) modalEl.classList.remove("tech-booting");
       const firstInputEl = $("f_" + FIELDS[0].key);
       if (firstInputEl) firstInputEl.focus();
-    }, 4000);
+    }, bootHoldMs);
   } else {
     const firstInputEl = $("f_" + FIELDS[0].key);
     if (firstInputEl) setTimeout(() => firstInputEl.focus(), 40);
