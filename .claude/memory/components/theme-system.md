@@ -58,11 +58,15 @@ Thư mục `fe/themes/tech/variants/tnt/`: `tnt.css` (link SAU chip.css) + `stri
 themes/tech/strings.js — xem [[i18n-system]]) + `img/tnt-logo.png`. Mọi selector scope
 `[data-theme="tech"][data-variant="tnt"]` (0,3,x) > tech (0,2,x) ⇒ thắng bất kể thứ tự. **Giữ nguyên
 visual tech** (PDF không đổi màu) — chỉ đổi logo/loader/copy + 3 fix.
-- **Logo đổi THUẦN CSS** (không sửa JS): 4 chỗ hiện logo (header index.html, popup định danh ui-render,
-  màn đếm ngược + kết thúc app.js) dùng CHUNG `.tech-logo-only > .logo-wrap > img.logo-icon + span.logo-text`
-  ⇒ ẩn icon + chữ FARADAY, vẽ logo bằng `.logo-wrap::before{background:var(--tnt-logo) center/contain}`
-  + `aspect-ratio:var(--tnt-ratio)`. Popup định danh logo nhỏ hơn (84px). Loader: ẩn `.tech-chip`,
-  `.loader-spinner::before` = logo + `animation: chipPulse` (keyframe tech, glow theo alpha). 0 FOUC.
+- **Logo & Mark đổi THUẦN CSS** (không sửa JS): 4 chỗ hiện logo dùng CHUNG `.tech-logo-only > .logo-wrap`
+  vẽ logo TNT bằng `var(--tnt-logo)`. Loader ẩn `.tech-chip`, vẽ logo TNT.
+  **Icon phòng (2026-09-29)**: `chip.css` đè `.tile .ic` + `.banner .bi` thành chip cyan (`chip.svg`) và
+  `.empty-ic` thành chip hồng (`chip-pink.svg`). Biến thể TNT đè lại bằng biểu tượng mark chữ A tam giác
+  đặc trưng của Trinity: `img/tnt-mark.png` (`--tnt-mark`) trích xuất từ logo gốc (359×511, cắt sát), kèm glow
+  cyan và hover scale 1.08. Loại bỏ hoàn toàn hình con chip bo mạch khỏi theme TNT.
+- **Tối ưu UI (2026-09-29)**: `p.sub` thêm khung kính mờ (frosted glass) để chữ thể lệ sắc nét trên nền trời KV sáng;
+  `.summary` nâng cấp viền cyan phát sáng nhẹ dạng badge định danh; `.tile` thêm backdrop-filter blur 12px và
+  badge giới tính `.g-tag` viên thuốc bo tròn phát sáng.
 - **tnt-logo.png**: file BTC là JPG chữ trắng trên NỀN ĐEN (2560×1632) — đặt thẳng lên navy sẽ lộ khối đen.
   Đã tách nền bằng Pillow: alpha = độ sáng (max kênh) ánh xạ [28..230]→[0..255], RGB trắng, cắt sát + đệm 1%,
   800×558 (~40KB). Đổi file ⇒ sửa `--tnt-ratio` (800 / 558). Logo thực tế là "TRINITY agency".

@@ -12,7 +12,9 @@
    ============================================================================ */
 [data-theme="tech"][data-variant="tnt"] {
   --tnt-logo:  url('img/tnt-logo.png');
+  --tnt-mark:  url('img/tnt-mark.png');
   --tnt-ratio: 800 / 558;
+  --tnt-mark-ratio: 359 / 511;
   --tnt-glow:  drop-shadow(0 0 10px color-mix(in srgb, var(--c-accent-cyan) 38%, transparent));
   /* Nền KV sự kiện (ảnh sáng) — lớp phủ navy mỏng hơn tech (94%) để ảnh hiện rõ mà chữ trắng vẫn đọc được. */
   --page-bg-image:   url('img/bg-kv.jpg');
@@ -123,3 +125,109 @@
     padding: 24px 18px;
   }
 }
+
+/* —— Biểu tượng icon Trinity thay cho con chip điện tử ——
+   chip.css áp chip cyan cho .tile .ic và .banner .bi, chip hồng cho .empty-ic.
+   Với biến thể TNT (chủ đề Outing / Săn Roommate), đổi toàn bộ sang biểu tượng icon
+   chữ A tam giác đặc trưng của Trinity (img/tnt-mark.png). */
+[data-theme="tech"][data-variant="tnt"] .tile .ic,
+[data-theme="tech"][data-variant="tnt"] .banner .bi {
+  background-image: var(--tnt-mark);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c-accent-cyan) 65%, transparent))
+         drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease;
+}
+[data-theme="tech"][data-variant="tnt"] .tile .ic {
+  width: clamp(40px, 8vw, 50px);
+  height: clamp(48px, 9.5vw, 60px);
+  margin: 2px auto 6px;
+}
+/* Hiệu ứng tương tác hover trên card phòng còn mở */
+[data-theme="tech"][data-variant="tnt"] .tile.sel:hover .ic {
+  transform: translateY(-2px) scale(1.08);
+  filter: drop-shadow(0 0 14px var(--c-accent-cyan))
+         drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+/* Khi phòng bị khoá (phòng khác giới) */
+[data-theme="tech"][data-variant="tnt"] .tile.disabled .ic {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.15)) opacity(0.45);
+}
+
+/* Empty-state: thay chip hồng bằng biểu tượng Trinity */
+[data-theme="tech"][data-variant="tnt"] .empty-note .empty-ic {
+  background-image: var(--tnt-mark);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--c-accent-cyan) 50%, transparent));
+}
+
+/* —— TỐI ƯU GIAO DIỆN THEME TNT —— */
+
+/* 1. Khối mô tả & thể lệ sự kiện (p.sub): panel kính mờ giúp chữ trắng nổi bật, dễ đọc trên nền trời KV */
+[data-theme="tech"][data-variant="tnt"] .sub {
+  background: color-mix(in srgb, var(--c-deep-navy) 48%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--c-accent-cyan) 18%, transparent);
+  border-radius: var(--r);
+  padding: 16px 24px;
+  max-width: 680px;
+  margin: 14px auto 0;
+  color: #E2E8F0;
+  box-shadow: 0 12px 30px -10px rgba(7, 11, 26, 0.55),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+[data-theme="tech"][data-variant="tnt"] .sub b {
+  color: #FFFFFF;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+}
+[data-theme="tech"][data-variant="tnt"] .sub ul {
+  margin-top: 10px;
+}
+[data-theme="tech"][data-variant="tnt"] .sub li {
+  color: #CBD5E1;
+  line-height: 1.6;
+}
+
+/* 2. Thanh hồ sơ người chơi (.summary): badge định danh sang trọng với viền phát sáng nhẹ */
+[data-theme="tech"][data-variant="tnt"] .summary {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c-deep-navy) 82%, transparent), color-mix(in srgb, #141B34 88%, transparent));
+  border: 1.5px solid color-mix(in srgb, var(--c-accent-cyan) 32%, transparent);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.45),
+              0 0 18px -4px color-mix(in srgb, var(--c-accent-cyan) 25%, transparent),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+[data-theme="tech"][data-variant="tnt"] .summary .nm {
+  color: #FFFFFF;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-theme="tech"][data-variant="tnt"] .summary .meta {
+  color: var(--c-accent-cyan);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* 3. Thẻ phòng (.tile) & Badge giới tính (.g-tag) */
+[data-theme="tech"][data-variant="tnt"] .tile {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s ease, border-color 0.22s ease;
+}
+[data-theme="tech"][data-variant="tnt"] .tile.sel:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--c-accent-cyan) 60%, transparent);
+  box-shadow: 0 24px 44px -16px rgba(0, 0, 0, 0.6),
+              0 0 24px -4px color-mix(in srgb, var(--c-accent-cyan) 40%, transparent);
+}
+[data-theme="tech"][data-variant="tnt"] .tile .g-tag {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 11px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
