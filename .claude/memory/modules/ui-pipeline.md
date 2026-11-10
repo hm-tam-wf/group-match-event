@@ -34,7 +34,7 @@ Cả hai không phụ thuộc / không bị phụ thuộc → không phá chuỗ
 `styles.css` (base/`:root` default) → `themes.css` (BASE/registry, KHÔNG rule active) →
 `themes/tech/tech.css` (khối `[data-theme="tech"]`) → `themes/tech/chip.css` (tùy biến chip
 cyan — index.html-only, phải SAU tech.css để đè `.tile .ic`/`.banner .bi`; INERT nếu
-data-theme≠tech). admin.html chỉ nạp `themes/tech/tech.css` (chứa §ADMIN body.admin).
+data-theme≠tech). admin.html KHÔNG nạp CSS theme — chỉ `assets/admin.css` (UI riêng, từ 2026-11-10).
 Mỗi theme gói trong `fe/themes/<tên>/` — xem [[theme-system]].
 
 ## app.js — Main init flow

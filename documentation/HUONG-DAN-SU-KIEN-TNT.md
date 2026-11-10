@@ -6,7 +6,7 @@ Người chơi chỉ cần **nhập họ tên**. Hệ thống tự tra giới t�
 | Trang | Link |
 |---|---|
 | Trang người chơi | https://pickyourgroup.web.app/ (dự phòng: https://hm-tam-wf.github.io/group-match-event/) |
-| Trang quản trị (admin) | https://pickyourgroup.web.app/admin.html |
+| Trang quản trị (admin) | https://hm-tam-wf.github.io/group-match-event/admin.html (chỉ chạy trên GitHub Pages; link cũ `pickyourgroup.web.app/admin.html` tự chuyển sang đây) |
 
 > Trang admin **không** hiện giao diện TNT — đó là bình thường, chỉ trang người chơi mới có.
 

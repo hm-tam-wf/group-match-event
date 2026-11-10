@@ -10,7 +10,7 @@
    Base/registry + recipe THÊM THEME ở fe/assets/themes.css; token DEFAULT ở
    styles.css (:root). NẠP SAU styles.css + themes.css để [data-theme] thắng
    cascade; theme.js (<head>) áp data-theme TRƯỚC khi vẽ → 0 FOUC. CHỈ index.html
-   nạp file này — admin.html dùng theme cố định riêng (fe/themes/midnight/).
+   nạp file này — admin.html dùng UI riêng (fe/assets/admin.css), không theme.
    ============================================================================ */
 
 /* ============================================================================

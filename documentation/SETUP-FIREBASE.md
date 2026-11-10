@@ -88,7 +88,9 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 **6.3. Truy cập & tải Excel**
 
-- Mở `admin.html` cùng gốc với app: `https://pickyourgroup.web.app/admin.html` (hoặc `npx serve fe` rồi vào `/admin.html` khi chạy thử).
+- Mở trang admin trên GitHub Pages: `https://hm-tam-wf.github.io/group-match-event/admin.html` (hoặc `npx serve fe` rồi vào `/admin.html` khi chạy thử).
+  Firebase Hosting **không** deploy `admin.html` (xem `ignore` + `redirects` trong `firebase.json`): `pickyourgroup.web.app/admin.html` chuyển 301 sang link trên.
+  Cần thêm `hm-tam-wf.github.io` vào Firebase Console → Authentication → Settings → **Authorized domains** để đăng nhập được.
 - Đăng nhập bằng email/mật khẩu ở bước 6.1.
 - Ô **Sự kiện (EVENT_ID)** mặc định là sự kiện hiện tại; sửa để xem sự kiện cũ rồi bấm **Tải dữ liệu**.
 - Bảng hiện đủ Họ tên, MSNV, Đội, Thời gian + tổng số người và số người mỗi đội.

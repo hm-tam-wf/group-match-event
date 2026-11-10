@@ -9,7 +9,13 @@
       "ignore": [
         "firebase.json",
         "**/.*",
-        "**/node_modules/**"
+        "**/node_modules/**",
+        "admin.html",
+        "assets/admin.css"
+      ],
+      "redirects": [
+        { "source": "/admin.html", "destination": "https://hm-tam-wf.github.io/group-match-event/admin.html", "type": 301 },
+        { "source": "/admin", "destination": "https://hm-tam-wf.github.io/group-match-event/admin.html", "type": 301 }
       ]
     },
     {

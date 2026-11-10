@@ -15,7 +15,9 @@ updated: 2026-11-10
   mỗi incognito context = 1 thiết bị. Static server vá `firebase-config.js`/`config.js` trong bộ nhớ để trỏ emulator, KHÔNG sửa repo. Kết quả hiện tại 46/46 PASS (xem [[0002-cross-device-lookup]]).
 - Deploy (SONG SONG 2 hosting, cùng serve `fe/`, cùng Firestore project `icon-picker`):
   - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → https://pickyourgroup.web.app (site `pickyourgroup`, không build step). Site cũ `pickyoursquad-faraday.web.app` redirect 301 sang đây.
-  - **GitHub Pages** (tự động): `.github/workflows/pages.yml` upload `fe/` làm artifact + `deploy-pages` mỗi khi push master đụng `fe/` → https://hm-tam-wf.github.io/group-match-event/. Cần 1 lần bật Settings → Pages → Source = GitHub Actions. Trang admin trên domain Pages cần thêm `hm-tam-wf.github.io` vào Firebase Auth → Authorized domains.
+    **Chỉ chạy trang sự kiện** (user quyết định 2026-11-10): `ignore` bỏ `admin.html` + `assets/admin.css` khỏi deploy, `redirects` đưa `/admin.html`, `/admin` → 301 sang admin trên GitHub Pages. Admin CHỈ chạy trên GitHub Pages. Không phải lớp bảo mật — dữ liệu vẫn do Firestore rules (UID admin) bảo vệ.
+    GOTCHA kiểm thử: Hosting emulator (firebase-tools 15.19, nhiều site) KHÔNG áp `redirects` (cả site faraday vốn chạy thật trên prod cũng không) và không áp `ignore` ⇒ không dùng emulator để kiểm redirect; kiểm bằng preview channel (`firebase hosting:channel:deploy <tên> --only pickyourgroup`) hoặc curl prod sau deploy.
+  - **GitHub Pages** (tự động): `.github/workflows/pages.yml` upload `fe/` làm artifact + `deploy-pages` mỗi khi push master đụng `fe/` → https://hm-tam-wf.github.io/group-match-event/. Cần 1 lần bật Settings → Pages → Source = GitHub Actions. **Nơi duy nhất chạy admin**: https://hm-tam-wf.github.io/group-match-event/admin.html — cần `hm-tam-wf.github.io` trong Firebase Auth → Authorized domains.
 
 ## Code style
 - **Language:** Vanilla HTML/CSS/JS — không framework, không module system, không bundler
