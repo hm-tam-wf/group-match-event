@@ -25,3 +25,6 @@ shot-*.png
 
 # Dữ liệu BTC (họ tên nhân sự thật, tài liệu nội bộ) — KHÔNG đưa lên git (repo public)
 btc-data/
+
+# Đầu ra của bộ test (log emulator, kết quả JSON, bản admin dựng tạm, ảnh smoke) — không commit
+tests/.out/

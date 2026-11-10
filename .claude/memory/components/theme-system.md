@@ -42,6 +42,10 @@ Thêm theme = thêm thư mục, KHÔNG đụng JS lõi. Xem [[ui-pipeline]].
   `#themeToggle` (từng ở admin) ĐÃ GỠ 2026-11-10 ⇒ không còn UI nào ghi key `theme`.
 
 ## Biến thể theo sự kiện (§E.3 — tuỳ chọn)
+**Từ 2026-11-10 (bước 2): sự kiện chọn biến thể bằng DỮ LIỆU `meta/config.profile.variant`** — `DEFAULT_VARIANT` chỉ còn là
+giá trị khi hồ sơ không khai `variant` (sự kiện cũ) + cho trang không phải trang sự kiện (travel.html). Danh sách biến thể
+cho admin: `AVAILABLE_VARIANTS` (config.js). `setActiveVariant()` (theme.js) đổi data-variant lúc chạy; vẽ đầu dùng hồ sơ
+đã cache. Chi tiết + cách thêm biến thể: [[event-profile]]. Phần dưới là lịch sử cơ chế cờ (vẫn đúng cho `?variant=`).
 Cờ go-live = `DEFAULT_VARIANT` ([theme.js](../../fe/js/config/theme.js)); `ACTIVE_VARIANT` = kết quả (cờ, hoặc
 URL `?variant=<tên>` để XEM TRƯỚC trên production không cần deploy — kiểm `/^[a-z0-9-]{0,32}$/`; `?variant=`
 rỗng = ép tắt). Đặt `data-variant` trên `<html>`. Biến thể nhỏ = 1 khối `[data-theme="tech"][data-variant="x"]`

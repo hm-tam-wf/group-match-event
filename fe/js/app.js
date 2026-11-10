@@ -383,9 +383,7 @@ function showClosedScreen() {
   if (pre)        pre.hidden = true;
   if (closed) {
     closed.hidden = false;
-    const logoHtml = `<div class="tech-logo-only"><div class="logo-wrap">` +
-      `<img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">` +
-      `<span class="logo-text">FARADAY</span></div></div>`;
+    const logoHtml = brandLogoHtml();   // logo theo hồ sơ sự kiện (ui-utils.js)
     const titleHtml = _eventTitle ? `<h1 class="sched-event-title">${esc(_eventTitle)}</h1>` : "";
     closed.innerHTML = logoHtml + titleHtml + `<div class="schedule-card">${_endedSvg}` +
       `<div class="sched-title">${TEXT.schedule.endedTitle}</div>` +
@@ -398,9 +396,7 @@ function showCountdownScreen() {
   const pre        = document.getElementById("preOpen");
   if (appLoading) appLoading.hidden = true;
   if (!pre) return;
-  const logoHtml = `<div class="tech-logo-only"><div class="logo-wrap">` +
-    `<img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">` +
-    `<span class="logo-text">FARADAY</span></div></div>`;
+  const logoHtml = brandLogoHtml();   // logo theo hồ sơ sự kiện (ui-utils.js)
   const titleHtml = _eventTitle ? `<h1 class="sched-event-title">${esc(_eventTitle)}</h1>` : "";
   // subtitle là HTML do admin nhập (cho phép <b>…</b>, <ul><li>) — render RAW như #appContent .sub (app.js boot), KHÔNG esc.
   // Bọc bằng <div> (KHÔNG phải <p>): parser tự đóng <p> khi gặp <ul> ⇒ danh sách rơi ra ngoài .sched-event-sub.
@@ -425,9 +421,10 @@ async function startSchedule() {
   return goLiveNow();
 }
 
-// ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
-(async function boot() {
-  // i18n: chữ "đang tải" trên màn loader theo LANG (HTML tĩnh = fallback pre-JS). Set sớm cho MỌI mode.
+// Chữ + logo của màn khởi động theo ngôn ngữ / hồ sơ ĐANG áp. Gọi lúc vào boot() (hồ sơ đã lưu hoặc mặc định)
+// và gọi LẠI ngay sau khi áp hồ sơ thật của sự kiện (applyEventProfile ở js/config/profile.js).
+function applyBootTexts() {
+  // i18n: chữ "đang tải" trên màn loader theo LANG (HTML tĩnh = fallback pre-JS).
   const loaderTextEl = document.querySelector("#appLoading .loader-text");
   if (loaderTextEl && typeof TEXT !== "undefined") loaderTextEl.textContent = TEXT.boot.loading;
 
@@ -440,6 +437,12 @@ async function startSchedule() {
     const brandH1 = document.querySelector("#appContent h1");
     if (brandH1) brandH1.textContent = TEXT.tech.appTitle;
   }
+  renderBrandSlot();   // khối logo đầu trang theo profile.brand (ui-utils.js)
+}
+
+// ── boot(): điểm vào duy nhất — nạp config Firestore rồi mới chạy init() ─────
+(async function boot() {
+  applyBootTexts();
 
   if (MODE !== MODE_FIREBASE) {
     // Cấu hình CÓ projectId (định chạy firebase) nhưng SDK chưa nạp được (CDN lỗi/offline) → FIREBASE_ON
@@ -481,17 +484,32 @@ async function startSchedule() {
   }
 
   try {
-    // ── Bước 1: lấy sự kiện đang mở (domain có trong EVENT_ID_BY_HOST ⇒ dùng sự kiện cố định, không đọc config/active) ──
-    const hostEvent = hostEventId(location.hostname);
-    if (hostEvent) {
-      EVENT_ID = hostEvent;
+    // ── Bước 1: chọn sự kiện — ?e=<id> > config/hosts.byHost[domain] > config/active ──
+    const fromUrl = eventIdFromUrl();   // theme.js
+    if (fromUrl.given) {
+      if (!fromUrl.id) { showMsg(noEvent); return; }   // ?e= sai định dạng ⇒ coi như không có sự kiện
+      EVENT_ID = fromUrl.id;
     } else {
-      const activeSnap = await db.collection("config").doc("active").get();
-      if (!activeSnap.exists || !activeSnap.data().eventId) {
-        showMsg(noEvent);
-        return;
+      // Đọc SONG SONG (không thêm độ trễ): domain có trong map ⇒ sự kiện cố định của domain (vd GitHub Pages = bản demo,
+      // không đụng sự kiện thật); không có ⇒ sự kiện đang mở. Map là dữ liệu: backend/scripts/hosts.js.
+      const [hostsSnap, activeSnap] = await Promise.all([
+        db.collection("config").doc("hosts").get(),
+        db.collection("config").doc("active").get(),
+      ]);
+      const byHost = hostsSnap.exists ? hostsSnap.data().byHost : null;
+      const mapped = (byHost && typeof byHost === "object" && Object.prototype.hasOwnProperty.call(byHost, location.hostname))
+        ? byHost[location.hostname] : undefined;
+      if (mapped !== undefined) {
+        const id = typeof mapped === "string" ? mapped.trim() : "";
+        if (!EVENT_ID_RE.test(id)) { showMsg(noEvent); return; }   // map hỏng ⇒ CHẶN, không rơi về sự kiện đang mở
+        EVENT_ID = id;
+      } else {
+        if (!activeSnap.exists || !activeSnap.data().eventId) {
+          showMsg(noEvent);
+          return;
+        }
+        EVENT_ID = String(activeSnap.data().eventId).trim();
       }
-      EVENT_ID = String(activeSnap.data().eventId).trim();
     }
     if (!EVENT_ID) { showMsg(noEvent); return; }
 
@@ -501,6 +519,11 @@ async function startSchedule() {
     if (!cfgSnap.exists) { showMsg(noEvent); return; }
 
     const cfg = cfgSnap.data();
+    // Hồ sơ sự kiện (skin / ngôn ngữ / logo / câu chữ / trang home / intro) — áp TRƯỚC mọi thứ vẽ chữ + logo bên dưới
+    // (nội dung chính còn ẩn sau loader ⇒ không nháy), lưu lại để lần mở sau vẽ đầu đúng skin.
+    applyEventProfile(cfg.profile);
+    cacheEventProfile(cfg.profile);
+    applyBootTexts();
     _eventTitle = cfg.title || "";
     _eventSubtitle = cfg.subtitle || "";
     if (Array.isArray(cfg.fields)   && cfg.fields.length)   FIELDS      = cfg.fields;

@@ -267,25 +267,37 @@ function closeProfileModal(callback) {
   else if (callback) callback();
 }
 
-// "Trang chủ" để quay về = referrer CÙNG ORIGIN là trang travel/home hoặc gốc site. Trước đây mọi referrer kết thúc bằng "/"
-// (vd https://www.facebook.com/) cũng bị coi là trang chủ ⇒ bấm Huỷ đưa người chơi sang site khác.
+// Trang "home" của sự kiện (profile.homeUrl, js/config/profile.js): null = hành vi cũ (trang travel),
+// "" = sự kiện KHÔNG có trang home ⇒ ẩn mọi nút rời trang, Huỷ chỉ đóng popup; chuỗi = link home.
+function _homeUrl() { return (typeof HOME_URL === "undefined") ? null : HOME_URL; }
+function hasHome() { return _homeUrl() !== ""; }
+
+// Referrer là trang home ⇒ quay về đúng URL đó (giữ query/hash). CHỈ referrer CÙNG ORIGIN: trước đây mọi referrer
+// kết thúc bằng "/" (vd https://www.facebook.com/) cũng bị coi là trang chủ ⇒ bấm Huỷ đưa người chơi sang site khác.
 function _homeReferrer() {
   try {
-    if (!document.referrer) return "";
+    const home = _homeUrl();
+    if (home === "" || !document.referrer) return "";
     const u = new URL(document.referrer);
     if (u.origin !== location.origin) return "";
-    return (u.pathname.includes("travel") || u.pathname.endsWith("/")) ? u.href : "";
+    if (home === null) return (u.pathname.includes("travel") || u.pathname.endsWith("/")) ? u.href : "";   // hành vi cũ
+    const h = new URL(home, location.href);
+    return (h.origin === u.origin && h.pathname === u.pathname) ? u.href : "";
   } catch (e) { return ""; }
 }
-// Chuyển trang mượt mà khi quay lại trang chủ / trang travel (tránh giật và che màn hình bên trong)
+// Chuyển trang mượt mà khi quay lại trang home (tránh giật và che màn hình bên trong). Không có home ⇒ không làm gì
+// (nút gọi tới đây đã bị ẩn khi !hasHome()).
 function _travelSmoothBack() {
+  const home = _homeUrl();
+  if (home === "") return;
   document.body.style.transition = "opacity 0.16s ease-out";
   document.body.style.opacity = "0";
   setTimeout(() => {
-    const home = _homeReferrer();
-    if (home) window.location.href = home;
-    else if (window.history.length > 1) window.history.back();
-    else window.location.href = "travel.html";
+    const ref = _homeReferrer();
+    if (ref) window.location.href = ref;
+    else if (home !== null) window.location.href = home;          // link home của sự kiện
+    else if (window.history.length > 1) window.history.back();    // hành vi cũ
+    else window.location.href = LEGACY_HOME_URL;
   }, 150);
 }
 // Bấm Back sau khi _travelSmoothBack rời trang ⇒ trình duyệt KHÔI PHỤC trang từ bfcache nguyên trạng, kể cả opacity 0
@@ -320,14 +332,7 @@ function showProfileModal() {
       </div>
       ` : ""}
       <div class="modal-content-wrap">
-        ${isTech ? `
-        <div class="tech-logo-only" style="margin-top: 10px;">
-          <div class="logo-wrap">
-            <img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">
-            <span class="logo-text">FARADAY</span>
-          </div>
-        </div>
-        ` : `
+        ${isTech ? brandLogoHtml("margin-top: 10px;") : `
         <div class="pm-emoji">🐾</div>
         `}
         <h3>${TEXT.profile.greeting}</h3>
@@ -499,7 +504,7 @@ function showProfileModal() {
       saveMe();
     }
     const fromTravel = !!_homeReferrer();
-    if (fromTravel || !myIcon || wasBlocked) {
+    if ((fromTravel || !myIcon || wasBlocked) && hasHome()) {   // không có trang home ⇒ ở lại, chỉ đóng popup
       _travelSmoothBack();
       return;
     }
@@ -545,13 +550,13 @@ function showDupBlockedModal() {
       <p>${dupNote && dupNote.ascii ? TEXT.lookup.asciiTaken(esc(dupNote.name), esc(splitTeam((byEmoji[dupNote.icon] || { name: "" }).name).base))
           : dupNote && dupNote.ambiguous ? TEXT.lookup.ambiguous : TEXT.dup.body(esc(fieldLabel))}</p>
       <div class="row">
-        <button class="cancel" id="dupCancel">${(TEXT.profile && TEXT.profile.back) || "Quay lại"}</button>
+        ${hasHome() ? `<button class="cancel" id="dupCancel">${(TEXT.profile && TEXT.profile.back) || "Quay lại"}</button>` : ""}
         <button class="confirm" id="dupBack">${TEXT.dup.btn}</button>
       </div>
     </div>`;
   document.body.appendChild(modalBgEl);
   $("dupBack").onclick = () => { dismissModal(modalBgEl, () => { editing = true; renderProfile(); }); };
-  $("dupCancel").onclick = (e) => {
+  if ($("dupCancel")) $("dupCancel").onclick = (e) => {
     if (e) e.preventDefault();
     dupBlocked = false;
     dupNote = null;
@@ -580,13 +585,13 @@ function showAllowBlockedModal() {
       <h3>${TEXT.allow.title}</h3>
       <p>${TEXT.allow.body(esc(fieldLabel))}</p>
       <div class="row">
-        <button class="cancel" id="allowCancel">${(TEXT.profile && TEXT.profile.back) || "Quay lại"}</button>
+        ${hasHome() ? `<button class="cancel" id="allowCancel">${(TEXT.profile && TEXT.profile.back) || "Quay lại"}</button>` : ""}
         <button class="confirm" id="allowBack">${TEXT.allow.btn}</button>
       </div>
     </div>`;
   document.body.appendChild(modalBgEl);
   $("allowBack").onclick = () => { dismissModal(modalBgEl, () => { editing = true; renderProfile(); }); };
-  $("allowCancel").onclick = (e) => {
+  if ($("allowCancel")) $("allowCancel").onclick = (e) => {
     if (e) e.preventDefault();
     allowBlocked = false;
     dupBlocked = false;

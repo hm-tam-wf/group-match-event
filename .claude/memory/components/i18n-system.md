@@ -16,9 +16,10 @@ trọng [[ui-pipeline]] (thứ tự script). Thêm 2026-06-06 (refactor từ chu
 - Registry ở [config.js](../../fe/js/config/config.js): `const STRINGS = { en:{…}, vi:{…} }`
   (nằm cuối file, mục ➏). config.js nạp ĐẦU TIÊN trong chuỗi thiêng ⇒ `TEXT` global dùng
   được ở mọi file sau (ui-utils, ui-render, app). KHÔNG thêm file → không đụng thứ tự script.
-- Cờ: `let LANG = "en"` (đổi mặc định tại đây). Override test nhanh bằng URL `?lang=vi`
-  / `?lang=en` (đọc vào `langParam`, bọc try/catch cho an toàn ngoài browser).
-- `const TEXT = STRINGS[LANG] || STRINGS.en` — bảng đang chọn, **fallback EN** nếu LANG lạ.
+- Cờ: `const DEFAULT_LANG = "en"`; `LANG_PARAM` = `?lang=vi|en` (null nếu không có); `let LANG = LANG_PARAM || DEFAULT_LANG`.
+  Từ 2026-11-10 ngôn ngữ thật của trang do `profile.js` quyết: `?lang=` > `profile.lang` > `defaultLang` của biến thể > DEFAULT_LANG.
+- `let TEXT = STRINGS[LANG] || STRINGS.en` lúc nạp; `profile.js` THAY bằng `buildText()` = bản sao + chữ biến thể +
+  `profile.copy` (STRINGS gốc không bị sửa) — xem [[event-profile]]. **fallback EN** nếu LANG lạ.
   (Trước tên là `T`; đổi `T`→`TEXT` 2026-06-06 để rõ nghĩa — tránh tên 1 chữ cái.)
 - Chuỗi tĩnh = string; chuỗi có biến nội suy = **HÀM** đối số rõ ràng
   (vd `TEXT.toast.full(name, capacity)`, `TEXT.confirm.title(name)`, `TEXT.grid.count(shown, total)`).
@@ -69,6 +70,11 @@ nên merge thêm namespace SAU khi config.js gán `TEXT` vẫn thấy được �
   cùng file này, KHÔNG đụng config.js.
 
 ## Copy riêng BIẾN THỂ sự kiện (`themes/tech/variants/<tên>/strings.js`) — 2026-09-29
+**ĐÃ ĐỔI 2026-11-10 (bước 2):** file biến thể chỉ `registerVariantCopy("tnt", { vi: COPY })`, KHÔNG còn tự chuyển LANG/TEXT
+hay `Object.assign` vào STRINGS; `profile.js` phủ chữ biến thể lên BẢN SAO khi hồ sơ chọn tnt (thiếu variant ⇒ tnt mặc định).
+`defaultLang` của biến thể nằm ở `AVAILABLE_VARIANTS` (config.js). Ghi chú "chạy 2 runInContext riêng sẽ FALSE PASS" bên dưới
+KHÔNG đúng khi dùng CÙNG một vm context (const/let top-level chia sẻ — unit-step2 kiểm 2026-11-10). Quy tắc HÀM vẫn giữ.
+Phần dưới là mô tả cơ chế cũ (lịch sử):
 Biến thể `tnt` ([[theme-system]]) mang copy riêng của dịp (PDF BTC + đề xuất "đội"→"phòng"):
 - **`TEXT` giờ là `let`** (config.js) — biến thể được CHUYỂN NGÔN NGỮ cả trang: nếu URL không có `?lang=en|vi`
   thì `LANG="vi"; TEXT=STRINGS.vi; <html lang=vi>`. Chạy NGAY sau themes/tech/strings.js, TRƯỚC mọi file UI ⇒
