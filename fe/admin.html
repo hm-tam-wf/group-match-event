@@ -425,15 +425,18 @@
 
   // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
   // list: [{ kind: "err"|"warn"|"ok"|"", text }] — danh sách hậu quả / kết quả kiểm tra hiện dưới message (chữ qua textContent).
-  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "", list = null }) {
+  // select: { label, options: [{ value, label, disabled }], value, onChange(value) → list mới } — Xác nhận trả về GIÁ TRỊ đang chọn.
+  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "", list = null, select = null }) {
     return new Promise(resolve => {
       const bg = document.createElement("div");
       bg.className = "cm-bg";
+      const hasList = !!(list && list.length) || !!(select && select.onChange);
       bg.innerHTML = `
-        <div class="cm-box${list && list.length ? " wide" : ""}" role="dialog" aria-modal="true">
+        <div class="cm-box${hasList ? " wide" : ""}" role="dialog" aria-modal="true">
           <h3 class="cm-title"></h3>
           <p class="cm-msg"></p>
-          ${list && list.length ? `<ul class="cm-list"></ul>` : ""}
+          ${select ? `<label class="field cm-select"><span></span><select class="cm-sel"></select></label>` : ""}
+          ${hasList ? `<ul class="cm-list"></ul>` : ""}
           ${requireText ? `<input class="cm-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />` : ""}
           <div class="cm-row">
             <button class="cm-cancel"></button>
@@ -445,13 +448,26 @@
       bg.querySelector(".cm-cancel").textContent  = cancelText;
       bg.querySelector(".cm-confirm").textContent = confirmText;
       if (!message) bg.querySelector(".cm-msg").hidden = true;
-      if (list && list.length) {
+      const fillList = items => {
         const ul = bg.querySelector(".cm-list");
-        list.forEach(it => { const li = document.createElement("li"); if (it.kind) li.className = it.kind; li.textContent = it.text; ul.appendChild(li); });
-      }
+        if (!ul) return;
+        ul.textContent = "";
+        (items || []).forEach(it => { const li = document.createElement("li"); if (it.kind) li.className = it.kind; li.textContent = it.text; ul.appendChild(li); });
+        ul.hidden = !ul.children.length;
+      };
+      fillList(list);
       if (!cancelText) bg.querySelector(".cm-cancel").hidden = true;
       const confirmBtn = bg.querySelector(".cm-confirm");
       const input      = bg.querySelector(".cm-input");
+      const sel        = bg.querySelector(".cm-sel");
+      if (sel) {
+        bg.querySelector(".cm-select > span").textContent = select.label || "";
+        (select.options || []).forEach(o => { const op = document.createElement("option"); op.value = o.value; op.textContent = o.label; op.disabled = !!o.disabled; sel.appendChild(op); });
+        sel.value = select.value != null ? select.value : "";
+        const sync = () => { confirmBtn.disabled = !sel.value; if (select.onChange) fillList(select.onChange(sel.value)); };
+        sel.addEventListener("change", sync);
+        sync();
+      }
       if (input) {
         input.placeholder = "Gõ lại: " + requireText;
         confirmBtn.disabled = true;
@@ -466,15 +482,51 @@
         bg.classList.add("is-leaving");
         setTimeout(() => bg.remove(), REDUCED ? 0 : 170);
       };
+      const okVal = () => sel ? sel.value : true;
       const onKey = e => {
         if (e.key === "Escape") close(false);
-        if (e.key === "Enter" && !confirmBtn.disabled) close(true);
+        if (e.key === "Enter" && !confirmBtn.disabled && e.target !== sel) close(okVal());
       };
       bg.querySelector(".cm-cancel").onclick = () => close(false);
-      confirmBtn.onclick = () => { if (!confirmBtn.disabled) close(true); };
+      confirmBtn.onclick = () => { if (!confirmBtn.disabled) close(okVal()); };
       bg.addEventListener("click", e => { if (e.target === bg) close(false); });
       document.addEventListener("keydown", onKey);
-      setTimeout(() => (input || confirmBtn).focus(), 30);
+      setTimeout(() => (input || sel || confirmBtn).focus(), 30);
+    });
+  }
+
+  // Hộp chọn THAO TÁC (mỗi nút: tên + 1 dòng giải thích; nút bị khoá hiện lý do). Trả id thao tác, null = đóng.
+  function actionSheet({ title, sub, actions }) {
+    return new Promise(resolve => {
+      const bg = document.createElement("div");
+      bg.className = "cm-bg";
+      bg.innerHTML = `<div class="cm-box" role="dialog" aria-modal="true"><h3 class="cm-title"></h3><p class="cm-msg"></p>
+        <div class="act-list"></div><div class="cm-row"><button class="cm-cancel" type="button">Đóng</button></div></div>`;
+      bg.querySelector(".cm-title").textContent = title || "";
+      bg.querySelector(".cm-msg").textContent = sub || "";
+      const list = bg.querySelector(".act-list");
+      actions.forEach(a => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "act-btn" + (a.danger ? " danger" : ""); b.dataset.act = a.id; b.disabled = !!a.disabled;
+        const t = document.createElement("span"), s = document.createElement("small");
+        t.textContent = a.label; s.textContent = a.disabled && a.why ? a.why : (a.desc || "");
+        b.append(t, s); list.appendChild(b);
+      });
+      document.body.appendChild(bg);
+      let closed = false;
+      const close = v => {
+        if (closed) return; closed = true;
+        document.removeEventListener("keydown", onKey);
+        resolve(v);
+        bg.classList.add("is-leaving");
+        setTimeout(() => bg.remove(), REDUCED ? 0 : 170);
+      };
+      const onKey = e => { if (e.key === "Escape") close(null); };
+      list.addEventListener("click", e => { const b = e.target.closest(".act-btn"); if (b && !b.disabled) close(b.dataset.act); });
+      bg.querySelector(".cm-cancel").onclick = () => close(null);
+      bg.addEventListener("click", e => { if (e.target === bg) close(null); });
+      document.addEventListener("keydown", onKey);
+      setTimeout(() => { const f = list.querySelector(".act-btn:not(:disabled)") || bg.querySelector(".cm-cancel"); f.focus(); }, 30);
     });
   }
 
@@ -504,6 +556,7 @@
   // Icon nút nhỏ dùng chung (thay emoji ✕ / ✎ — emoji phụ thuộc font, không theo màu chữ).
   const ICON_X    = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 6l12 12M18 6 6 18'/></svg>";
   const ICON_EDIT = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4'/></svg>";
+  const ICON_MORE = "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='5' cy='12' r='1.6'/><circle cx='12' cy='12' r='1.6'/><circle cx='19' cy='12' r='1.6'/></svg>";
   const emptyState   = txt => "<div class='empty-state'>" + emptySvg() + "<div>" + txt + "</div></div>";
   const loadingState = txt => "<div class='loading-row'><span class='spinner'></span>" + esc(txt) + "</div>";
 
@@ -2332,7 +2385,7 @@
       const teamName  = ic => String((sigIcons[ic] && sigIcons[ic].name) || ic || "—");
       const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
 
-      sigRows = sigSnap.docs.map(d => d.data());
+      sigRows = sigSnap.docs.map(d => Object.assign({ _id: d.id }, d.data()));   // _id = pid (doc id) cho thao tác từng người
       sigRows.sort((a, b) => {
         const tn = teamName(a.icon).localeCompare(teamName(b.icon), "vi");
         if (tn) return tn;
@@ -2381,17 +2434,18 @@
     // data-label trên mỗi <td> → trên điện thoại bảng biến thành thẻ "nhãn : giá trị".
     $("thead").innerHTML = "<tr><th class='num'>#</th><th>Đội</th>"
       + sigFields.map(f => "<th>" + esc(f.label) + "</th>").join("")
-      + "<th>Thời gian</th></tr>";
+      + "<th>Thời gian</th><th class='td-act'><span class='sr-only'>Thao tác</span></th></tr>";
     $("tbody").innerHTML = sigRows.map((r, i) => {
       const isDup = sigDedupField && dupKeys.has(_dedupKey(r[sigDedupField]));
       return "<tr" + (isDup ? " class='is-dup'" : "") + ">"
         + "<td class='num' data-label='#'>" + (i+1) + "</td>"
-        + "<td class='td-team' data-label='Đội'>" + esc(teamLabel(r.icon)) + "</td>"
+        + "<td class='td-team' data-label='Đội'>" + esc(r.icon ? teamLabel(r.icon) : "Chưa chọn") + "</td>"
         + sigFields.map(f => {
             const dupMark = (f.key === sigDedupField && isDup) ? " <span class='dup-tag'>trùng</span>" : "";
             return "<td data-label=\"" + esc(f.label) + "\">" + esc(r[f.key]) + dupMark + "</td>";
           }).join("")
-        + "<td class='td-time' data-label='Thời gian'>" + esc(fmtTime(r.at)) + "</td></tr>";
+        + "<td class='td-time' data-label='Thời gian'>" + esc(fmtTime(r.at)) + "</td>"
+        + "<td class='td-act' data-label='Thao tác'><button type='button' class='icon-btn row-act' data-pid=\"" + esc(r._id) + "\" title='Chuyển phòng, gỡ, bỏ chặn, xoá' aria-label=\"Thao tác với " + esc(r.name || r._id) + "\">" + ICON_MORE + "</button></td></tr>";
     }).join("");
 
     const per = {};
@@ -2430,6 +2484,228 @@
           "Hãy xử lý thủ công — giữ lại một, xoá phần thừa. Lượt đăng ký trùng MỚI từ giờ đã bị hệ thống chặn.</div>" +
       "</div>";
   }
+
+  // ── Thao tác TỪNG NGƯỜI (tab Đăng ký): chuyển phòng · gỡ khỏi phòng · bỏ chặn · xoá đăng ký ──────────────────────────
+  // Giữ ĐỒNG BỘ mọi thứ apiClaim (js/data/api.js) ghi lúc join: teams/{icon}.count+names · members/{pid} · signups/{pid}.icon ·
+  // dedup_keys/k1 {at, icon} · dedup_keys/m~{fold} (DÙNG CHUNG cho mọi tên có dấu cùng gốc ⇒ chỉ xoá khi không còn ai giữ) · reg_keys/k1.
+  // Đọc danh sách (signups, dedup_keys, teams) để lập kế hoạch + hiện hậu quả, rồi 1 TRANSACTION đọc lại các doc chính:
+  // dữ liệu đổi giữa chừng (vd người đó vừa đổi phòng) ⇒ huỷ cả lượt, không ghi nửa vời.
+  const STALE = "Dữ liệu vừa thay đổi — đã tải lại bảng, hãy thử lại.";
+  const teamNameOf = (cfg, ic) => { const g = (Array.isArray(cfg.icons) ? cfg.icons : []).find(x => x && x.icon === ic); const nm = String((g && g.name) || ic || "—"); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };
+  const capOfCfg = (cfg, ic) => { const c = cfg.caps && cfg.caps[ic]; return (typeof c === "number" && c > 0) ? c : (Number(cfg.capacity) || 0); };
+  async function personPlan(eid, pid) {
+    const ev = db.collection("events").doc(eid);
+    const [cfgSnap, sigSnap, dkSnap, tSnap] = await Promise.all([ev.collection("meta").doc("config").get(),
+      ev.collection("signups").get(), ev.collection("dedup_keys").get(), ev.collection("teams").get()]);
+    const cfg = cfgSnap.exists ? (cfgSnap.data() || {}) : {};
+    const sigs = sigSnap.docs.map(d => Object.assign({ _id: d.id }, d.data()));
+    const row = sigs.find(s => s._id === pid);
+    if (!row) throw new Error("Đăng ký này không còn (có thể vừa bị xoá). Bấm Tải dữ liệu.");
+    const field = String(cfg.dedupField || "");
+    const raw = field && row[field] != null ? String(row[field]).trim() : "";
+    const k1 = raw ? _dedupKey(raw) : "", F = raw ? _foldKey(raw) : "";
+    const M = (k1 && F && k1 !== F) ? "m~" + F : "";                       // chỉ tên CÓ dấu mới có doc m~ (api.js _dedupPlan)
+    const same = k1 ? sigs.filter(s => s._id !== pid && _dedupKey(field ? s[field] : "") === k1) : [];
+    const dkIds = new Set(dkSnap.docs.map(d => d.id));
+    // người khác còn giữ M: khoá k1 khác (không phải m~), CÓ dấu, cùng gốc không dấu
+    const mOthers = M ? [...dkIds].filter(id => !id.startsWith("m~") && id !== k1 && id !== _foldKey(id) && _foldKey(id) === F).length : 0;
+    const k1Shared = same.some(s => s.icon);                                  // hồ sơ khác CÙNG mã đang ở phòng ⇒ khoá là của họ
+    const teams = {}; tSnap.docs.forEach(d => { const t = d.data() || {}; teams[d.id] = { count: Number(t.count) || 0, names: Array.isArray(t.names) ? t.names : [] }; });
+    let gender = "";
+    if (k1 && cfg.allowlistMode) { try { const a = await ev.collection("allowlist").doc(k1).get(); gender = a.exists ? normGender((a.data() || {}).gender) : ""; } catch (e) {} }
+    return { eid, ev, cfg, row, field, raw, k1, M, teams, gender, name: String(row.name == null ? "" : row.name).trim(),
+      k1Exists: !!k1 && dkIds.has(k1), mExists: !!M && dkIds.has(M), k1Shared, mKeep: k1Shared || mOthers > 0, mOthers, regShared: same.length > 0 };
+  }
+  // Bỏ 1 lần xuất hiện của tên khỏi names (khớp đúng chuỗi; không có thì khớp theo _dedupKey).
+  function namesWithout(names, name) {
+    const arr = (Array.isArray(names) ? names : []).filter(n => typeof n === "string");
+    let i = arr.lastIndexOf(name);
+    if (i < 0 && name) { const k = _dedupKey(name); i = arr.map(n => _dedupKey(n)).lastIndexOf(k); }
+    if (i >= 0) arr.splice(i, 1);
+    return { names: arr, found: i >= 0 };
+  }
+  // Ghi trong transaction: gỡ người khỏi teams/{icon}. Không thấy tên ⇒ chỉ giảm count khi count đang lớn hơn số tên (dữ liệu cũ
+  // không lưu tên); còn lại GIỮ NGUYÊN đội (giữ names.length == count để client join tiếp được — rules đòi đúng bằng).
+  // Về 0 người ⇒ XOÁ doc đội (như "Xóa dữ liệu"): client join lại theo nhánh tạo đội mới (count 1). Doc {count:0, names:[]}
+  // từng làm rules của client lỗi ở phép so tiền tố names[0:0] ⇒ không ai vào lại được phòng đó.
+  function txLeaveTeam(tx, ref, snap, name) {
+    if (!snap || !snap.exists) return "nodoc";
+    const t = snap.data() || {}, count = Number(t.count) || 0, rm = namesWithout(t.names, name);
+    let next = null;
+    if (rm.found) next = { count: Math.max(0, count - 1), names: rm.names };
+    else if (count > rm.names.length) next = { count: count - 1, names: rm.names };
+    else return "notfound";
+    if (next.count <= 0 && !next.names.length) tx.delete(ref); else tx.update(ref, next);
+    return rm.found ? "ok" : "countOnly";
+  }
+  function keyLines(P, { regDelete }) {
+    const L = [];
+    if (P.k1Exists) L.push(P.k1Shared ? { kind: "warn", text: `Giữ khoá chống trùng "${P.raw}": còn hồ sơ khác cùng mã đang ở phòng.` }
+                                      : { text: `Gỡ khoá chống trùng "${P.raw}" (dedup_keys).` });
+    if (P.mExists) L.push(P.mKeep ? { text: `Giữ khoá tên không dấu (${P.M}): còn ${P.mOthers || "người"} khác cùng gốc không dấu.` }
+                                  : { text: `Gỡ khoá tên không dấu (${P.M}).` });
+    if (regDelete && P.k1) L.push(P.regShared && regDelete === "ifAlone" ? { text: "Giữ giữ-chỗ khi điền form (reg_keys): còn hồ sơ khác cùng mã." }
+                                                                         : { text: "Gỡ giữ-chỗ khi điền form (reg_keys)." });
+    return L;
+  }
+
+  async function personMenu(pid) {
+    const eid = sigShownEid, row = sigRows.find(r => r._id === pid);
+    if (!eid || !row) return;
+    const joined = !!row.icon;
+    const fLabel = (sigFields.find(f => f.key === sigDedupField) || {}).label || sigDedupField;
+    const act = await actionSheet({
+      title: String(row.name || "(chưa có tên)"),
+      sub: (joined ? "Đang ở " + String((sigIcons[row.icon] && sigIcons[row.icon].name) || row.icon) : "Chưa chọn phòng")
+        + (sigDedupField && row[sigDedupField] ? ` · ${fLabel}: ${row[sigDedupField]}` : ""),
+      actions: [
+        { id: "move", label: "Chuyển phòng…", desc: "Sang phòng khác; khoá chống trùng đi theo, vẫn không đăng ký lần 2 được.", disabled: !joined, why: "Chưa ở phòng nào để chuyển." },
+        { id: "unjoin", label: "Gỡ khỏi phòng", desc: "Trả 1 chỗ; giữ hồ sơ. Người này chọn lại phòng được trên thiết bị đã đăng ký.", disabled: !joined, why: "Chưa ở phòng nào." },
+        { id: "unblock", label: "Bỏ chặn (kèm khoá ghi lúc chọn phòng)", desc: "Gỡ giữ-chỗ điền form + khoá chống trùng ⇒ đăng ký lại được trên mọi thiết bị.",
+          disabled: joined, why: "Đang ở phòng — gỡ khỏi phòng trước (gỡ khoá khi còn ở phòng sẽ cho chọn thêm phòng thứ hai)." },
+        { id: "delete", label: "Xoá đăng ký", desc: "Xoá hồ sơ + chỗ trong phòng + mọi khoá chặn. Không hoàn tác.", danger: true },
+      ],
+    });
+    if (!act) return;
+    let P;
+    try { P = await personPlan(eid, pid); }
+    catch (err) { toast("Không đọc được dữ liệu: " + (err.message || err), "err"); return; }
+    if ((act === "move" || act === "unjoin") && !P.row.icon) { toast(STALE, "err"); loadSignups(eid); return; }
+    if (act === "unblock" && P.row.icon) { toast(STALE, "err"); loadSignups(eid); return; }
+    const runs = { move: personMove, unjoin: personUnjoin, unblock: personUnblock, delete: personDelete };
+    let done = "";
+    try { done = await runs[act](P); }
+    catch (err) {
+      const stale = err && err.message === STALE;
+      toast(stale ? STALE : "Lỗi: " + (err.message || err), "err");
+      if (stale) loadSignups(eid);
+      return;
+    }
+    if (!done) return;                                            // admin huỷ ở hộp xác nhận
+    toast(done);
+    await loadSignups(eid);
+    loadEventList();                                              // số người trên thẻ / tổng quan
+  }
+
+  async function personMove(P) {
+    const from = P.row.icon, cfg = P.cfg, icons = Array.isArray(cfg.icons) ? cfg.icons : [];
+    const cnt = ic => (P.teams[ic] ? P.teams[ic].count : 0);
+    const to = await confirmModal({
+      title: `Chuyển ${P.name || "người này"} sang phòng khác?`,
+      message: `Đang ở ${teamNameOf(cfg, from)} (${cnt(from)}/${capOfCfg(cfg, from)}).`,
+      confirmText: "Chuyển phòng",
+      select: {
+        label: "Phòng mới", value: "",
+        options: [{ value: "", label: "— Chọn phòng —" }].concat(icons.map(g => {
+          const c = cnt(g.icon), cap = capOfCfg(cfg, g.icon), gd = normGender(g.gender);
+          return { value: g.icon, disabled: g.icon === from, label: `${teamNameOf(cfg, g.icon)} · ${c}/${cap}${c >= cap ? " (đầy)" : ""}${gd ? " · Phòng " + gd : ""}${g.icon === from ? " — đang ở" : ""}` };
+        })),
+        onChange: v => {
+          if (!v) return [];
+          const g = icons.find(x => x.icon === v) || {}, c = cnt(v), cap = capOfCfg(cfg, v), gd = normGender(g.gender);
+          const L = [{ text: `${teamNameOf(cfg, from)}: ${cnt(from)} → ${Math.max(0, cnt(from) - 1)} người (trả 1 chỗ).` },
+                     { kind: c >= cap ? "warn" : "", text: `${teamNameOf(cfg, v)}: ${c} → ${c + 1}/${cap} người` + (c >= cap ? " — VƯỢT số chỗ (admin vẫn chuyển được)." : ".") }];
+          if (cfg.allowlistGenderCheck && gd && P.gender && gd !== P.gender) L.push({ kind: "warn", text: `Người này là ${P.gender} theo danh sách, phòng mới chỉ dành cho ${gd}.` });
+          if (P.k1Exists) L.push({ text: `Khoá chống trùng "${P.raw}" chuyển theo sang phòng mới — vẫn chặn đăng ký lần 2.` });
+          L.push({ text: "Máy người này thấy phòng mới khi tải lại trang." });
+          return L;
+        },
+      },
+    });
+    if (!to) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), memRef = ev.collection("members").doc(pid);
+      const aRef = ev.collection("teams").doc(from), bRef = ev.collection("teams").doc(to);
+      const kRef = P.k1 ? ev.collection("dedup_keys").doc(P.k1) : null, mRef = P.M ? ev.collection("dedup_keys").doc(P.M) : null;
+      const [sS, memS, aS, bS, kS, mS] = await Promise.all([tx.get(sigRef), tx.get(memRef), tx.get(aRef), tx.get(bRef),
+        kRef ? tx.get(kRef) : null, mRef ? tx.get(mRef) : null]);
+      if (!sS.exists || (sS.data() || {}).icon !== from) throw new Error(STALE);
+      txLeaveTeam(tx, aRef, aS, P.name);
+      const b = bS.exists ? (bS.data() || {}) : null;
+      const bNames = (b && Array.isArray(b.names) ? b.names.filter(n => typeof n === "string") : []).concat(P.name || "—");
+      if (b) tx.update(bRef, { count: (Number(b.count) || 0) + 1, names: bNames });
+      else tx.set(bRef, { icon: to, count: 1, names: bNames });
+      if (memS.exists) tx.update(memRef, { icon: to }); else tx.set(memRef, { icon: to, at: FV.serverTimestamp() });
+      tx.update(sigRef, { icon: to });
+      if (kS && kS.exists && !P.k1Shared) tx.update(kRef, { icon: to });   // k1 {at, icon}: giữ at, đổi icon (bảng tra xuyên thiết bị)
+      if (mS && mS.exists && !P.mKeep && (mS.data() || {}).icon === from) tx.update(mRef, { icon: to });
+    });
+    return `Đã chuyển ${P.name || pid} sang ${teamNameOf(cfg, to)}.`;
+  }
+
+  async function personUnjoin(P) {
+    const from = P.row.icon, t = P.teams[from] || { count: 0 };
+    const ok = await confirmModal({
+      title: `Gỡ ${P.name || "người này"} khỏi phòng?`, message: `${teamNameOf(P.cfg, from)}:`, confirmText: "Gỡ khỏi phòng", danger: true,
+      list: [{ text: `${teamNameOf(P.cfg, from)}: ${t.count} → ${Math.max(0, t.count - 1)} người (trả 1 chỗ cho người khác).` },
+             { text: "Giữ hồ sơ trong danh sách đăng ký (chưa có phòng)." }]
+        .concat(keyLines(P, { regDelete: false }))
+        .concat([{ text: "Giữ giữ-chỗ khi điền form (reg_keys): máy đã đăng ký chọn lại phòng được; máy khác vẫn bị chặn tới khi Bỏ chặn." }]),
+    });
+    if (!ok) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), memRef = ev.collection("members").doc(pid), tRef = ev.collection("teams").doc(from);
+      const kRef = P.k1 ? ev.collection("dedup_keys").doc(P.k1) : null;
+      const [sS, memS, tS, kS] = await Promise.all([tx.get(sigRef), tx.get(memRef), tx.get(tRef), kRef ? tx.get(kRef) : null]);
+      if (!sS.exists || (sS.data() || {}).icon !== from) throw new Error(STALE);
+      txLeaveTeam(tx, tRef, tS, P.name);
+      if (memS.exists) tx.delete(memRef);
+      tx.update(sigRef, { icon: FV.delete() });
+      if (kS && kS.exists && !P.k1Shared) tx.delete(kRef);
+      if (P.mExists && !P.mKeep) tx.delete(ev.collection("dedup_keys").doc(P.M));
+    });
+    return `Đã gỡ ${P.name || pid} khỏi ${teamNameOf(P.cfg, from)}.`;
+  }
+
+  async function personUnblock(P) {
+    if (!P.k1) { await confirmModal({ title: "Không có khoá để gỡ", message: "Sự kiện không có ô kiểm tra trùng hoặc hồ sơ này để trống ô đó.", confirmText: "Đóng", cancelText: "" }); return ""; }
+    const ok = await confirmModal({
+      title: `Bỏ chặn ${P.name || P.raw}?`, message: "Người này chưa ở phòng nào. Sẽ:", confirmText: "Bỏ chặn", danger: true,
+      list: [{ text: `Gỡ giữ-chỗ khi điền form (reg_keys/${P.k1}).` }].concat(keyLines(P, { regDelete: false }))
+        .concat([{ text: "Giữ hồ sơ. Tải lại trang là đăng ký / chọn phòng được (kể cả máy khác)." }]),
+    });
+    if (!ok) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), kRef = ev.collection("dedup_keys").doc(P.k1);
+      const [sS, kS] = await Promise.all([tx.get(sigRef), tx.get(kRef)]);
+      if (!sS.exists || (sS.data() || {}).icon) throw new Error(STALE);
+      tx.delete(ev.collection("reg_keys").doc(P.k1));
+      if (kS.exists && !P.k1Shared) tx.delete(kRef);
+      if (P.mExists && !P.mKeep) tx.delete(ev.collection("dedup_keys").doc(P.M));
+    });
+    return `Đã bỏ chặn ${P.name || P.raw}.`;
+  }
+
+  async function personDelete(P) {
+    const from = P.row.icon, t = from ? (P.teams[from] || { count: 0 }) : null;
+    const fLabel = (Array.isArray(P.cfg.fields) ? P.cfg.fields : []).find(f => f && f.key === P.field);
+    const ok = await confirmModal({
+      title: `Xoá đăng ký của ${P.name || "người này"}?`, message: "Không hoàn tác được. Sẽ:", confirmText: "Xoá đăng ký", danger: true,
+      list: (t ? [{ kind: "warn", text: `${teamNameOf(P.cfg, from)}: ${t.count} → ${Math.max(0, t.count - 1)} người.` }] : [])
+        .concat([{ kind: "warn", text: `Xoá hồ sơ (họ tên${fLabel ? ", " + fLabel.label : ""}, thời gian) khỏi danh sách đăng ký và file xuất.` }])
+        .concat(keyLines(P, { regDelete: "ifAlone" }))
+        .concat([{ text: "Người này đăng ký lại được từ đầu." }]),
+    });
+    if (!ok) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), memRef = ev.collection("members").doc(pid);
+      const tRef = from ? ev.collection("teams").doc(from) : null, kRef = P.k1 ? ev.collection("dedup_keys").doc(P.k1) : null;
+      const [sS, memS, tS, kS] = await Promise.all([tx.get(sigRef), tx.get(memRef), tRef ? tx.get(tRef) : null, kRef ? tx.get(kRef) : null]);
+      if (!sS.exists || ((sS.data() || {}).icon || "") !== (from || "")) throw new Error(STALE);
+      if (tRef) txLeaveTeam(tx, tRef, tS, P.name);
+      if (memS.exists) tx.delete(memRef);
+      tx.delete(sigRef);
+      if (kS && kS.exists && !P.k1Shared) tx.delete(kRef);
+      if (P.mExists && !P.mKeep) tx.delete(ev.collection("dedup_keys").doc(P.M));
+      if (P.k1 && !P.regShared) tx.delete(ev.collection("reg_keys").doc(P.k1));
+    });
+    return `Đã xoá đăng ký của ${P.name || pid}.`;
+  }
+  $("tbody").addEventListener("click", e => { const b = e.target.closest(".row-act"); if (b) personMenu(b.dataset.pid); });
 
   function exportExcel() {
     if (!sigRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }

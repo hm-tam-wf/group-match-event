@@ -60,7 +60,8 @@ service cloud.firestore {
                           && request.resource.data.count <= capFor(icon)
                           && request.resource.data.names is list
                           && request.resource.data.names.size() == request.resource.data.count
-                          && request.resource.data.names[0:resource.data.names.size()] == resource.data.names
+                          // đội đang rỗng (admin reset/gỡ người về 0) ⇒ không so tiền tố: names[0:0] làm rules báo lỗi index ⇒ chặn nhầm
+                          && (resource.data.names.size() == 0 || request.resource.data.names[0:resource.data.names.size()] == resource.data.names)
                           && okName(request.resource.data.names[request.resource.data.names.size() - 1])
                           && inWindow());
         allow delete: if isAdmin();       // <-- cần để clear / xoá
@@ -70,7 +71,7 @@ service cloud.firestore {
         allow get:    if true;
         allow list:   if isAdmin();       // <-- cần để admin liệt kê khi clear
         allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
-        allow update: if false;
+        allow update: if isAdmin();       // client KHÔNG sửa (1 người 1 đội); admin "Chuyển phòng" đổi icon trong transaction
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
@@ -89,7 +90,7 @@ service cloud.firestore {
                              == (exists(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon))
                                   ? get(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon)).data.count
                                   : 0) + 1);
-        allow update: if false;
+        allow update: if isAdmin();       // client KHÔNG ghi đè khoá; admin "Chuyển phòng" cập nhật icon (k1 / m~)
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 

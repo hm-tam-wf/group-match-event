@@ -452,6 +452,16 @@ input[readonly]{background:rgba(255,255,255,.03);color:var(--mut);cursor:not-all
 .cm-confirm.danger{background:var(--danger-solid);box-shadow:0 8px 22px -12px rgba(255,92,122,.8)}
 .cm-input{width:100%;margin:0 0 16px;font-family:var(--mono)!important;font-weight:600}
 .cm-box.wide{max-width:540px}
+.cm-select{margin:0 0 14px}
+/* hộp chọn thao tác (từng người ở tab Đăng ký): mỗi nút = tên + 1 dòng giải thích / lý do bị khoá */
+.act-list{display:flex;flex-direction:column;gap:8px;margin:0 0 18px}
+.act-btn{flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;width:100%;min-height:0;padding:11px 14px;border-radius:12px;
+  text-align:left;font-weight:600;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line-2)}
+.act-btn small{font-size:12.5px;font-weight:400;line-height:1.45;color:var(--mut)}
+.act-btn:hover:not(:disabled){background:rgba(255,255,255,.08)}
+.act-btn.danger{color:#FF9BAD;background:var(--danger-soft);box-shadow:inset 0 0 0 1px rgba(255,92,122,.26)}
+.act-btn.danger:hover:not(:disabled){background:rgba(255,92,122,.2)}
+.row-act svg circle{fill:currentColor;stroke:none}
 .cm-msg:has(+ .cm-list){margin-bottom:12px}
 .cm-list{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px;max-height:min(46vh,380px);overflow:auto}
 .cm-list li{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
