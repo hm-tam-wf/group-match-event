@@ -8,12 +8,12 @@ Không bao giờ chạm Firebase production (xem [An toàn](#an-toàn)).
 
 | Suite | Lệnh | Cần | Kiểm gì | Hiện có |
 |---|---|---|---|---|
-| unit | `npm run test:unit` | Node | hàm FE / guard script backend chạy trong `vm` | 26 |
+| unit | `npm run test:unit` | Node | hàm FE / guard script backend chạy trong `vm` (gồm hồ sơ sự kiện, schema/Excel trang home) | 116 |
 | rules | `npm run test:rules` | Node + Java + firebase-tools | rules `dedup_keys` / `teams` / `signups` / `admins` (client trần, user thường, admin gốc, admin theo dữ liệu) | 6 nhóm |
-| scripts | `npm run test:scripts` | Node + Java + firebase-tools | `backend/scripts/*.js` chạy thật trên emulator (export, backfill) | 12 |
-| admin | `npm run test:admin` | Node + Chrome/Edge | `fe/admin.html` thật với Firebase GIẢ (không mạng) | 18 |
+| scripts | `npm run test:scripts` | Node + Java + firebase-tools | `backend/scripts/*.js` chạy thật trên emulator (export, backfill, hosts, home-import) | 31 |
+| admin | `npm run test:admin` | Node + Chrome/Edge | `fe/admin.html` thật với Firebase GIẢ (không mạng), gồm trình soạn trang home | 26 |
 | admin-e2e | `npm run test:admin-e2e` | Node + Java + firebase-tools + Chrome/Edge | `fe/admin.html` thật, đăng nhập thật (Auth Emulator) + rules thật: Nhận diện, file mẫu, nhân bản, thao tác từng người, kiểm tra trước khi mở, quản trị viên | 34 |
-| e2e | `npm run test:e2e` | Node + Java + firebase-tools + Chrome/Edge | luồng đăng ký: "thiết bị" Node (`a*`) + trình duyệt thật (`b*`) | 54 |
+| e2e | `npm run test:e2e` | Node + Java + firebase-tools + Chrome/Edge | luồng đăng ký: "thiết bị" Node (`a*`) + trình duyệt thật (`b*`, gồm hồ sơ sự kiện / `?e=` / `config/hosts`, trang home) | 112 |
 
 `npm test` chạy cả 6 suite **tuần tự** (suite trước FAIL vẫn chạy suite sau) rồi in tổng kết. Chọn bớt: `node tests/run-all.js unit rules`.
 Thời gian đo trên máy dev (Windows, Edge): unit ~2s, rules ~10s, scripts ~10s, admin ~10s, admin-e2e ~1 phút, e2e ~3 phút (gồm bật/tắt emulator).
