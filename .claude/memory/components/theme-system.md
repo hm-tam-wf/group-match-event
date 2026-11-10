@@ -16,7 +16,7 @@ build, không dependency, không module — tôn trọng [[ui-pipeline]] (thứ 
 Trước đây cả theme `tech` dồn vào `assets/themes.css` (~700 dòng) → phình to khi thêm
 theme. ĐÃ TÁCH theo theme: mỗi theme gói TRỌN trong `fe/themes/<tên>/`:
 - `<tên>.css` — toàn bộ khối `[data-theme="<tên>"]` (palette/token + bề mặt + §D.2 +
-  §A·TECH + §BIẾN THỂ). Hiện: [tech.css](../../fe/themes/tech/tech.css) (§ADMIN đã GỠ 2026-11-10 — admin dùng `midnight`).
+  §A·TECH + §BIẾN THỂ). Hiện: [tech.css](../../fe/themes/tech/tech.css) (§ADMIN đã GỠ 2026-11-10).
 - `chip.css` — addon tùy biến (icon đội = chip cyan), CHỈ index.html.
 - `strings.js` — text riêng-theo-theme (merge `STRINGS`) — xem [[i18n-system]].
 - `circuit.js` — hoạt ảnh canvas riêng (IIFE), nạp CUỐI body, chỉ index.html.
@@ -25,7 +25,7 @@ theme. ĐÃ TÁCH theo theme: mỗi theme gói TRỌN trong `fe/themes/<tên>/`:
 `assets/styles.css` = token DEFAULT (`:root`) — KHÔNG đụng. `assets/themes.css` thu nhỏ
 thành BASE/REGISTRY (template + recipe thêm theme), CỐ Ý không có rule active, vẫn `<link>`
 SAU styles.css để giữ "khe" lớp theme. Thứ tự nạp index.html: `styles.css → themes.css →
-themes/tech/tech.css → themes/tech/chip.css`; admin.html CHỈ nạp `themes/midnight/midnight.css`.
+themes/tech/tech.css → themes/tech/chip.css`; admin.html nạp `assets/admin.css` (UI riêng, không theme).
 Thêm theme = thêm thư mục, KHÔNG đụng JS lõi. Xem [[ui-pipeline]].
 
 ## Một nguồn sự thật
@@ -37,7 +37,7 @@ Thêm theme = thêm thư mục, KHÔNG đụng JS lõi. Xem [[ui-pipeline]].
   comment trỏ tới.)
 - Đổi giao diện = đổi **đúng chuỗi đó**. KHÔNG hardcode tên theme ở chỗ khác.
 - `index.html` link `assets/themes.css` (base/registry) + `themes/tech/tech.css` và nạp `theme.js`.
-  `admin.html` KHÔNG nạp theme.js/tech.css (từ 2026-11-10) — xem §Theme midnight.
+  `admin.html` KHÔNG nạp theme.js/tech.css (từ 2026-11-10) — xem §Admin.
 - `theme.js` đọc `localStorage('theme') || 'tech'` (cờ có thể bị ghi đè per-browser). Nút lật
   `#themeToggle` (từng ở admin) ĐÃ GỠ 2026-11-10 ⇒ không còn UI nào ghi key `theme`.
 
@@ -89,12 +89,9 @@ visual tech** (PDF không đổi màu) — chỉ đổi logo/loader/copy + 3 fix
   `feat/mini-outing-variant`, CHƯA commit/push) để user xem trước không cần `?variant=`. **Nhớ trả về `''`
   trước khi push/deploy** nếu Faraday còn sống — nếu không patch này sẽ bật biến thể cho mọi người xem trang.
 
-## Admin — theme CỐ ĐỊNH, tách khỏi theme sự kiện (2026-11-10)
-User chốt: admin KHÔNG cần theme/biến thể của các sự kiện. admin.html đặt sẵn `<html data-theme="midnight">`,
-chỉ link `themes/midnight/midnight.css`, bỏ theme.js + tech.css + nút `#themeToggle`; khối §ADMIN
-(`[data-theme="tech"] body.admin`) đã xoá khỏi tech.css. `:root` inline của admin (Cloud Candy sáng) còn
-làm token gốc — midnight override qua `[data-theme="midnight"] body.admin` (specificity cao hơn). Chi tiết
-token/layout: §Theme `midnight` cuối file.
+## Admin — UI riêng, tách khỏi theme sự kiện (2026-11-10)
+admin.html KHÔNG nạp theme.js / tech.css / CSS biến thể; khối §ADMIN đã xoá khỏi tech.css. UI admin là 1 file
+riêng `fe/assets/admin.css` (không qua `data-theme`) — xem [[admin-panel]] §Giao diện.
 
 ## Tại sao không bọc fallback (khác prompt)
 `styles.css` **đã tokenized sẵn** bằng `:root` CSS vars (`--bg`, `--card`, `--text`,
@@ -238,14 +235,3 @@ phân biệt qua fill cap-bar ⇒ `--c` rút 3→1 nhấn (bỏ glow icon + bỏ
 - Verify: screenshot pick **default** (candy bất biến) vs **tech** (glass), contrast
   AA/AAA. Default 0 đổi (mọi rule scope tech). (Chấm màu đội trước tên đã BỎ 2026-06-06.)
 
-## Theme `midnight` — CHỈ admin (dashboard tối kiểu bento, 2026-11-10, nhánh `feat/admin-midnight`)
-File [midnight.css](../../fe/themes/midnight/midnight.css); mọi rule scope `[data-theme="midnight"] body.admin`.
-- **Cố định**: `<html data-theme="midnight">` tĩnh trong admin.html; không có nút/key đổi theme (xem §Admin ở trên).
-- **Sidebar thuần CSS**: markup bọc `.bar` + `.tabs` trong `<aside class="side">`.
-  ≥1024px: `#adminView` grid `252px | 1fr`, `.side` sticky, `.tab-panel` cột 2. <1024px: thanh trên + nav cuộn ngang.
-- **Thêm vào markup/JS**: `.tab-ic` (SVG nav), `.ev-kpis` (4 KPI từ `ev.metrics` — `renderEvKpis`), `.ev-fill`
-  (thanh lấp đầy — `fillBar`, aria-hidden vì % đã có ở dòng stats).
-- Token: nền `#06070D`, card `#0D1020/#121629/#181D35`, line `rgba(148,160,255,.10/.18)`, ink `#EDF0FF`, mut `#9BA3C7`
-  (~7:1), CTA `--grad #5560FF→#3B44E0` (chữ trắng ≥4.5:1), danger đặc `#D92D50` (KHÔNG dùng `#FF5C7A` làm nền chữ trắng
-  — chỉ ~3:1), ok `#3DD6A9`, warn `#F5B454`; font Inter. Inline style markup dùng `--text/--muted` ⇒ midnight map lại.
-- Verify: harness mock `window.firebase` + headless Edge (3 tab desktop + mobile).

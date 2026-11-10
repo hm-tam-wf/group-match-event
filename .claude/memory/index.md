@@ -10,13 +10,13 @@
 ## Modules
 - [[api-layer]] — 3 backends (firebase/sheet/demo), apiState/apiClaim/apiSubscribe
 - [[ui-pipeline]] — script loading order (sacred!), render pipeline, animation
-- [[admin-panel]] — Firebase Auth, export CSV, hardcoded UID gotcha
+- [[admin-panel]] — Firebase Auth, export CSV, hardcoded UID gotcha; UI dashboard tối: sidebar, 4 trang, drawer form
 - [[firestore-schema]] — collections, security rules, capacity sync gotcha
 - [[allowlist]] — danh sách MSNV được phép join: import Excel/CSV, toggle/sự kiện, cổng chặn client (mirror dedup); cột Giới tính → phân phòng Nam/Nữ
 
 ## UI & components
 - [[design-tokens]] — Soft Cloud Candy palette, fonts Baloo 2 + Nunito, motion
-- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME (theme.js, 0 FOUC) + data-theme; biến thể sự kiện (DEFAULT_VARIANT / ?variant=; `tnt` = brand TNT, Mini Outing); theme `tech` (chỉ app); admin cố định theme `midnight` (sidebar, không theo theme sự kiện)
+- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME (theme.js, 0 FOUC) + data-theme; biến thể sự kiện (DEFAULT_VARIANT / ?variant=; `tnt` = brand TNT, Mini Outing); theme `tech` (chỉ app); admin dùng UI riêng `assets/admin.css` (không theo theme sự kiện)
 - [[i18n-system]] — đổi ngôn ngữ UI bằng 1 cờ LANG (registry STRINGS en/vi + TEXT trong config.js); ?lang= override; tách text hardcode vs tầng config per-event; biến thể được chuyển LANG + ghi đè copy
 
 ## Decisions (ADRs)

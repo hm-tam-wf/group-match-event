@@ -1,531 +1,290 @@
 <!doctype html>
-<html lang="vi" data-theme="midnight">
+<html lang="vi">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin — Group Match</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Admin dùng theme CỐ ĐỊNH 'midnight' (data-theme đặt sẵn trên <html>) — KHÔNG theo theme/biến thể
-     sự kiện của trang công khai (không nạp theme.js / tech.css). -->
-<link rel="stylesheet" href="themes/midnight/midnight.css">
-<style>
-  :root{
-    /* ── Cloud Candy back-office: nền trung tính + nhấn tím "Linh Thú" ── */
-    --bg:#F4F2FB; --card:#FFFFFF; --card-2:#FBFAFE; --line:#E9E6F2;
-    --ink:#352F4D; --mut:#7B7497; --mut-2:#A9A2C2;
-    --pri:#7857E6;            /* tím đậm — chữ trắng đọc rõ (AA) */
-    --accent:#A98CFF;         /* nhấn brand: highlight / viền / active */
-    --accent-soft:#F1ECFE;    /* nền tím rất nhạt */
-    --bad:#E5484D; --danger:#F5476B; --danger-soft:#FFEEF1; --ok:#16A34A; --ok-soft:#E7F8EE;
-    --ring:0 0 0 3px rgba(169,140,255,.40);
-    /* spacing 4 / 8 / 12 / 16 / 24 / 32 */
-    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
-    /* radius */
-    --r-sm:10px; --r:14px; --r-lg:18px; --pill:999px;
-    /* shadow — diffuse, không gắt */
-    --sh:0 1px 2px rgba(53,47,77,.05),0 10px 26px -18px rgba(53,47,77,.22);
-    --sh-lg:0 22px 50px -24px rgba(120,87,230,.34),0 6px 16px -10px rgba(53,47,77,.16);
-    --grad:linear-gradient(135deg,#A488F7 0%,#7857E6 100%);
-    --display:'Baloo 2',system-ui,sans-serif;
-    --body:'Nunito',system-ui,sans-serif;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;font-weight:500;-webkit-font-smoothing:antialiased;
-    background-image:radial-gradient(900px 480px at 100% -8%,#EFE9FD 0%,transparent 60%),radial-gradient(720px 420px at -5% 0%,#FCEAF3 0%,transparent 55%)}
-  .wrap{max-width:none;margin:0 auto;padding:clamp(16px,4vw,32px) clamp(16px,4vw,28px) 72px}
-  h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,28px);letter-spacing:-.01em;margin:0 0 var(--s4);color:var(--ink)}
-  h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0 0 var(--s3);letter-spacing:-.01em;color:var(--ink)}
-  code{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:.88em;background:var(--accent-soft);color:#6A4FD0;padding:1px 6px;border-radius:6px}
-
-  /* ── card ── */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(16px,3vw,24px);box-shadow:var(--sh);margin-bottom:var(--s4);animation:rise .4s cubic-bezier(.2,.7,.3,1) both}
-  .card-head{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
-  .card-head h2{margin:0}
-
-  /* ── buttons (primary / secondary / ok / danger / delete) ── */
-  button{cursor:pointer;border:0;border-radius:var(--r-sm);padding:10px 16px;font-family:var(--body);font-size:14.5px;font-weight:700;line-height:1;color:var(--ink);
-    display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .15s,filter .15s,background .15s,box-shadow .15s}
-  button:active{transform:translateY(1px)}
-  .btn-pri{background:var(--grad);color:#fff;box-shadow:0 10px 22px -12px rgba(120,87,230,.7)}
-  .btn-pri:hover{filter:brightness(1.06)}
-  .btn-ghost{background:#F1EFF8;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
-  .btn-ghost:hover{background:#E9E5F5}
-  .btn-ok{background:var(--ok-soft);color:#15803D;box-shadow:inset 0 0 0 1px #BBE9CC}
-  .btn-ok:hover{background:#D6F3E0}
-  .btn-del{background:var(--danger-soft);color:#C42A4E;padding:7px 10px;font-size:13px;box-shadow:inset 0 0 0 1px #F8CDD7}
-  .btn-del:hover{background:#FFD9E0}
-  .btn-sm{padding:7px 13px;font-size:13px}
-  button:disabled{opacity:.5;cursor:not-allowed;filter:none;transform:none}
-  button:focus-visible,select:focus-visible,.tab:focus-visible{outline:none;box-shadow:var(--ring)}
-
-  /* ── messages ── */
-  .err{color:var(--bad);min-height:20px;margin:6px 0 0;font-size:14px;font-weight:600}
-  .ok-msg{color:var(--ok);min-height:20px;margin:6px 0 0;font-size:14px;font-weight:700}
-
-  /* ── login ── */
-  #loginView{max-width:400px;margin:8vh auto 0}
-  #loginView input{width:100%;padding:12px 13px;margin:8px 0;border:1.5px solid var(--line);border-radius:var(--r-sm);font-size:15px;font-family:var(--body);font-weight:600;background:var(--card-2)}
-  #loginView input:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring);background:#fff}
-
-  /* ── header bar ── */
-  .bar{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
-  .bar h1{margin:0}
-  .bar .who{color:var(--mut);font-size:13.5px;font-weight:600;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .bar-user{display:flex;align-items:center;gap:12px}
-
-  /* ── tabs ── */
-  .tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:var(--s5);overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tab{background:none;border:0;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;padding:11px 18px;font-size:15px;font-weight:700;color:var(--mut);border-radius:0;white-space:nowrap}
-  .tab:hover{color:var(--ink)}
-  .tab.active{color:var(--pri);border-bottom-color:var(--pri)}
-  .tab-panel{display:none;animation:fade .3s ease both}
-  .tab-panel.active{display:block}
-
-  /* ── event list ── */
-  .ev-list{display:flex;flex-direction:column;gap:var(--s2)}
-  .ev-row{display:flex;align-items:center;gap:var(--s3);padding:14px 16px;background:var(--card-2);border:1.5px solid var(--line);border-radius:var(--r);flex-wrap:wrap;transition:border-color .2s,box-shadow .2s}
-  .ev-row:hover{box-shadow:var(--sh)}
-  .ev-row.is-active{border-color:var(--accent);background:linear-gradient(120deg,var(--accent-soft),var(--card))}
-  .ev-info{flex:1;min-width:200px}
-  .ev-title{font-family:var(--display);font-weight:600;font-size:16.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .ev-meta{font-size:13px;color:var(--mut);margin-top:3px}
-  .ev-actions{display:flex;gap:var(--s2);flex-wrap:wrap}
-  .badge{display:inline-block;background:var(--grad);color:#fff;border-radius:var(--pill);padding:2px 10px;font-size:12px;font-weight:800}
-  .ev-live{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#15803D;background:var(--ok-soft);padding:4px 11px;border-radius:var(--pill);box-shadow:inset 0 0 0 1px #BBE9CC}
-  .ev-live .dot{width:7px;height:7px;border-radius:50%;background:#16A34A;box-shadow:0 0 0 3px rgba(22,163,74,.18);animation:pulse 1.8s ease infinite}
-  .ev-end{background:var(--danger);color:#fff;border-radius:var(--r-sm);padding:7px 13px;font-weight:700;font-size:13px;box-shadow:0 8px 18px -10px rgba(245,71,107,.7)}
-  .ev-end:hover{filter:brightness(1.05)}
-  .ev-status{display:inline-block;font-size:12px;font-weight:800;color:var(--mut);background:#F1EFF8;padding:4px 11px;border-radius:var(--pill);box-shadow:inset 0 0 0 1px var(--line)}
-  .ev-stats{margin-top:5px;font-variant-numeric:tabular-nums}
-  .ev-stats b{color:var(--ink);font-weight:800}
-
-  /* ── create form ── */
-  .form-row{display:flex;flex-wrap:wrap;gap:var(--s3);margin-bottom:var(--s4);align-items:flex-start}
-  .form-row > label{font-weight:700;font-size:13.5px;min-width:140px;padding-top:10px;color:var(--ink)}
-  .form-col{display:flex;flex-direction:column;gap:5px;flex:1;min-width:200px}
-  input[type=text],input[type=number],input[type=email],input[type=password],select,textarea{
-    padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-sm);font-size:14.5px;width:100%;font-family:var(--body);font-weight:600;color:var(--ink);background:var(--card-2);
-    transition:border-color .15s,box-shadow .15s,background .15s}
-  input::placeholder,textarea::placeholder{color:var(--mut-2);font-weight:500}
-  input[type=text]:focus,input[type=number]:focus,input[type=email]:focus,input[type=password]:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring);background:#fff}
-  #fId[readonly]{background:#EFECF8;color:var(--mut);cursor:not-allowed;box-shadow:inset 0 0 0 1px var(--line)}
-  .hint{font-size:12px;color:var(--mut);line-height:1.5}
-
-  /* ── dynamic rows ── */
-  .dyn-list{display:flex;flex-direction:column;gap:var(--s2)}
-  .dyn-row{display:flex;gap:var(--s2);align-items:center;padding:11px;background:var(--card-2);border:1.5px solid var(--line);border-radius:var(--r);flex-wrap:wrap}
-  .inp-key{max-width:130px;font-family:ui-monospace,Consolas,monospace}
-  .inp-emoji{max-width:60px;text-align:center;font-size:20px}
-  .inp-color{width:44px;height:38px;padding:2px 4px;cursor:pointer;border:1.5px solid var(--line);border-radius:8px;background:#fff}
-  .cb-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
-  .cb-wrap input{width:auto;padding:0;accent-color:var(--pri)}
-  .cb-wrap input:disabled{cursor:not-allowed}
-
-  /* ── banner chế độ form (sửa / nhân bản) + hiệu ứng nháy ── */
-  .form-mode{padding:10px 14px;border-radius:var(--r-sm);font-weight:800;font-size:14px;margin:0 0 var(--s4);display:flex;align-items:center;gap:8px}
-  .form-mode.edit{background:#FEF3C7;color:#92400E;box-shadow:inset 0 0 0 1px #FCE4A6}
-  .form-mode.dup{background:var(--accent-soft);color:#5B21B6;box-shadow:inset 0 0 0 1px rgba(169,140,255,.3)}
-  @keyframes formFlash{0%{box-shadow:var(--sh)}30%{box-shadow:var(--sh),0 0 0 4px rgba(120,87,230,.38)}100%{box-shadow:var(--sh)}}
-  .flash{animation:formFlash 1.1s ease}
-
-  /* ── signups controls ── */
-  .row-sig{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin-bottom:var(--s3)}
-  .row-sig label{font-weight:700}
-  .row-sig select{min-width:240px;flex:1}
-  .summary{color:var(--mut);margin:0 0 var(--s3);font-weight:600}
-  .summary b{color:var(--ink);font-weight:800}
-  .chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s2) 0 0}
-  .chip{background:var(--accent-soft);color:#5B4BA6;border-radius:var(--pill);padding:5px 13px;font-size:13.5px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(169,140,255,.25)}
-  .chip b{color:var(--pri)}
-
-  /* ── data table ── */
-  .table-wrap{overflow:auto;max-height:64vh;border:1px solid var(--line);border-radius:var(--r);margin-top:var(--s3);background:var(--card)}
-  .reg-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
-  .reg-table th,.reg-table td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
-  .reg-table thead th{color:var(--mut);font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;background:var(--card-2);position:sticky;top:0;z-index:1;box-shadow:0 1px 0 var(--line)}
-  .reg-table tbody tr{transition:background .12s}
-  .reg-table tbody tr:nth-child(even){background:var(--card-2)}
-  .reg-table tbody tr:hover{background:var(--accent-soft)}
-  .reg-table tbody tr:last-child td{border-bottom:0}
-  .reg-table td{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .reg-table .num{color:var(--mut-2);width:48px;font-weight:700}
-  .reg-table .td-team{font-weight:700}
-  .reg-table .td-time{color:var(--mut);font-size:13px}
-  .reg-table tbody tr.is-dup{background:var(--danger-soft)}
-  .reg-table tbody tr.is-dup:hover{background:#FFE2E8}
-  .dup-tag{display:inline-block;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:var(--pill);margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
-
-  /* ── duplicate warning ── */
-  .dup-warn{margin:var(--s3) 0;border:1.5px solid #F8C9D4;background:linear-gradient(120deg,var(--danger-soft),#fff);border-radius:var(--r);padding:14px 16px}
-  .dw-head{display:flex;align-items:center;gap:8px;color:#C42A4E;font-family:var(--display);font-weight:600;font-size:15.5px}
-  .dw-head svg{flex:0 0 auto}
-  .dw-list{margin:10px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
-  .dw-list li{font-size:13.5px;color:var(--ink);font-weight:600;background:rgba(255,255,255,.7);border-radius:8px;padding:6px 10px}
-  .dw-list b{font-family:ui-monospace,Consolas,monospace;color:#C42A4E}
-  .dw-note{font-size:12.5px;color:var(--mut);line-height:1.5}
-
-  /* ── empty & loading states ── */
-  .empty-state{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:var(--mut);font-weight:600;font-size:14px;padding:30px 16px;line-height:1.5}
-  .empty-state svg{opacity:.9}
-  .reg-table .empty-tr td,.reg-table .empty-tr:hover td{display:block;width:100%;max-width:none;text-align:center;background:transparent;border:0;white-space:normal}
-  .reg-table .empty-tr td::before{display:none}
-  .loading-row{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:14px;font-weight:600;padding:6px 2px}
-  .spinner{width:18px;height:18px;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex:0 0 auto}
-  .skeleton{height:62px;border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(90deg,var(--card-2) 25%,#F0EDF8 37%,var(--card-2) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite}
-  .skeleton + .skeleton{margin-top:var(--s2)}
-
-  [hidden]{display:none!important}
-
-  /* ── confirm modal (dùng chung) ── */
-  .cm-bg{position:fixed;inset:0;z-index:1000;background:rgba(40,30,60,.42);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px;animation:fade .2s ease}
-  .cm-box{width:100%;max-width:420px;background:#fff;border-radius:var(--r-lg);padding:26px 24px;box-shadow:var(--sh-lg);text-align:left;font-family:var(--body);animation:pop .3s cubic-bezier(.2,.8,.3,1) both}
-  .cm-title{margin:0 0 10px;font-family:var(--display);font-size:19px;font-weight:600;color:var(--ink)}
-  .cm-msg{margin:0 0 22px;font-size:14.5px;line-height:1.55;color:var(--mut)}
-  .cm-row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
-  .cm-row button{border:0;border-radius:var(--r-sm);padding:11px 18px;font-size:14.5px;font-weight:700;font-family:var(--body)}
-  .cm-cancel{background:#F1EFF8;color:var(--mut)}.cm-cancel:hover{background:#E9E5F5}
-  .cm-confirm{background:var(--grad);color:#fff}.cm-confirm:hover{filter:brightness(1.06)}
-  .cm-confirm.danger{background:var(--danger)}
-  .cm-input{width:100%;margin:0 0 16px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-sm);font-size:14.5px;font-family:ui-monospace,Consolas,monospace;font-weight:700;color:var(--ink);background:var(--card-2)}
-  .cm-input:focus{outline:none;border-color:var(--danger);box-shadow:0 0 0 3px rgba(245,71,107,.22);background:#fff}
-
-  /* ── animations ── */
-  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  @keyframes fade{from{opacity:0}to{opacity:1}}
-  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.18)}50%{box-shadow:0 0 0 5px rgba(22,163,74,.06)}}
-
-  /* ── responsive ── */
-  @media(max-width:640px){
-    .card{padding:16px;border-radius:var(--r)}
-    .bar .who{max-width:42vw}
-    .tab{padding:10px 14px;font-size:14px}
-    button{min-height:44px}
-    .btn-sm,.btn-del{min-height:40px}
-    .form-row{flex-direction:column;gap:6px}
-    .form-row > label{min-width:0;padding-top:0}
-    .form-col{min-width:0;width:100%;max-width:none!important}
-    .row-sig{align-items:stretch}
-    .row-sig select{min-width:0;width:100%;flex:none}
-    .row-sig button{flex:1}
-    .ev-actions{width:100%}
-    .ev-actions button{flex:1}
-    /* bảng nhiều cột → thẻ dọc (nhãn : giá trị) */
-    .table-wrap{max-height:none;overflow:visible;border:0;background:transparent;border-radius:0}
-    .reg-table thead{display:none}
-    .reg-table,.reg-table tbody,.reg-table tr,.reg-table td{display:block;width:100%}
-    .reg-table tr{border:1.5px solid var(--line);border-radius:var(--r);padding:6px 14px;margin-bottom:10px;background:var(--card);box-shadow:var(--sh)}
-    .reg-table tbody tr:nth-child(even),.reg-table tbody tr:hover{background:var(--card)}
-    .reg-table tbody tr.is-dup{border-color:#F2A9B8;background:var(--danger-soft)}
-    .reg-table td{display:flex;justify-content:space-between;gap:14px;align-items:baseline;border:0;border-bottom:1px solid var(--line);padding:9px 0;max-width:none;white-space:normal;text-align:right}
-    .reg-table tr td:last-child{border-bottom:0}
-    .reg-table td::before{content:attr(data-label);font-weight:800;color:var(--mut);text-align:left;flex:0 0 auto;white-space:nowrap}
-    .reg-table .num{width:auto}
-  }
-  @media(prefers-reduced-motion:reduce){
-    *{animation:none!important;transition:none!important}
-  }
-
-  /* ── Danh sách cho phép (allowlist) ── prefix al- để không đụng class cũ; màu map theo theme admin */
-  .al-status{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin:14px 0 6px;}
-  .al-stat{display:flex;flex-direction:column;gap:2px;}
-  .al-stat-k{font-size:12px;color:var(--mut);}
-  .al-stat-v{font-weight:600;}
-  .al-toggle{margin-left:auto;}                 /* đẩy toggle về cuối hàng */
-  .al-warn{
-    margin:10px 0;padding:10px 12px;border-radius:var(--r-sm);
-    background:var(--danger-soft);border:1px solid #F6C9D2;color:#9b2740;font-size:14px;line-height:1.5;
-  }
-  .al-import{margin:8px 0 4px;padding:14px;border:1px dashed var(--line);border-radius:var(--r);}
-  .al-import-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .al-col{max-width:240px;}
-  .al-import-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-  .al-result{margin-top:10px;font-size:14px;color:var(--ok);}
-  .al-result.err{color:var(--bad);}
-  .al-list-head{display:flex;gap:10px;align-items:center;margin:16px 0 8px;}
-  .al-search{flex:1;}
-  .al-table .num{width:48px;}
-  .al-table td:last-child{width:64px;text-align:right;}
-  .al-empty{padding:16px;text-align:center;color:var(--mut);}
-  .al-import.is-disabled{opacity:.5;pointer-events:none;}
-  @media (max-width:640px){
-    .al-status{gap:12px;}
-    .al-toggle{margin-left:0;}
-  }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- UI admin riêng (dashboard tối) — KHÔNG dùng theme/biến thể sự kiện của trang công khai. -->
+<link rel="stylesheet" href="assets/admin.css">
 </head>
 <body class="admin">
-<div class="wrap">
 
-  <!-- A) CHƯA ĐĂNG NHẬP -->
-  <div id="loginView" hidden>
-    <div class="card">
-      <h1>Trang quản trị</h1>
-      <form id="loginForm" autocomplete="on">
-        <input id="email" type="email" placeholder="Email admin" autocomplete="username" required />
-        <input id="password" type="password" placeholder="Mật khẩu" autocomplete="current-password" required />
-        <button type="submit" class="btn-pri" style="width:100%;margin-top:6px;">Đăng nhập</button>
-      </form>
-      <p id="loginErr" class="err"></p>
-    </div>
+<!-- ═════════ 0) Màn chờ: tới khi Firebase báo trạng thái đăng nhập. CSS chỉ cho hiện sau ~300ms (mạng nhanh không chớp) ═════════ -->
+<div id="bootView" class="boot" role="status" aria-live="polite">
+  <span class="brand-mark" aria-hidden="true"></span>
+  <span class="boot-spin" aria-hidden="true"></span>
+  <span class="boot-txt">Đang kiểm tra đăng nhập…</span>
+</div>
+
+<!-- ═════════ A) ĐĂNG NHẬP ═════════ -->
+<main id="loginView" class="login" hidden>
+  <div class="login-card">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Group Match <small>Admin</small></span></div>
+    <h1>Đăng nhập quản trị</h1>
+    <p class="login-sub">Dùng tài khoản quản trị đã được cấp quyền.</p>
+    <form id="loginForm" autocomplete="on">
+      <label class="field"><span>Email</span>
+        <input id="email" type="email" placeholder="admin@congty.vn" autocomplete="username" required /></label>
+      <label class="field"><span>Mật khẩu</span>
+        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" required /></label>
+      <button type="submit" id="btnLogin" class="btn-pri btn-block"><span class="btn-txt">Đăng nhập</span></button>
+    </form>
+    <p id="loginErr" class="err login-err" role="alert"></p>
   </div>
+</main>
 
-  <!-- B) ĐÃ ĐĂNG NHẬP -->
-  <div id="adminView" hidden>
-    <!-- .side = sidebar ở theme midnight (≥1024px); theme khác không style → bố cục cũ -->
-    <aside class="side">
-    <div class="bar">
-      <h1 style="margin:0;">ADMIN</h1>
-      <div class="bar-user">
-        <span class="who" id="who"></span>
-        <button id="btnLogout" class="btn-ghost">Đăng xuất</button>
-      </div>
+<!-- ═════════ B) ĐÃ ĐĂNG NHẬP ═════════ -->
+<div id="adminView" class="shell" hidden>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Group Match <small>Admin</small></span></div>
+
+    <div class="hello">
+      <div class="hello-date" id="helloDate"></div>
+      <div class="hello-title">Xin chào!</div>
+      <div class="hello-who" id="who"></div>
     </div>
 
-    <nav class="tabs" aria-label="Mục quản trị">
-      <button class="tab active" data-tab="tabEvents"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Quản lý sự kiện</button>
-      <button class="tab" data-tab="tabSignups"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Xem đăng ký</button>
-      <button class="tab" data-tab="tab-allowlist"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>Danh sách cho phép</button>
+    <nav class="nav" aria-label="Mục quản trị">
+      <span class="nav-ind" aria-hidden="true"></span>
+      <button class="tab active" data-tab="tabDash" data-title="Tổng quan" data-sub="Tình hình sự kiện đang chạy">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg><span class="tab-txt">Tổng quan</span></button>
+      <button class="tab" data-tab="tabEvents" data-title="Sự kiện" data-sub="Tạo, mở, kết thúc và quản lý dữ liệu sự kiện">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span class="tab-txt">Sự kiện</span></button>
+      <button class="tab" data-tab="tabSignups" data-title="Đăng ký" data-sub="Danh sách người đã chọn đội, xuất Excel, bỏ chặn mã">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4-6"/></svg><span class="tab-txt">Đăng ký</span></button>
+      <button class="tab" data-tab="tab-allowlist" data-title="Danh sách cho phép" data-sub="Chỉ người có tên trong danh sách mới được tham gia">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span class="tab-txt tab-long">Danh sách cho phép</span><span class="tab-short" aria-hidden="true">Cho phép</span></button>
     </nav>
-    </aside>
 
-    <!-- TAB: Quản lý sự kiện -->
-    <div id="tabEvents" class="tab-panel active">
+    <div class="side-foot">
+      <button id="btnLogout" class="btn-ghost btn-block" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3"/></svg><span class="btn-txt">Đăng xuất</span></button>
+    </div>
+  </aside>
 
-      <div class="card">
-        <div class="card-head">
-          <h2>Danh sách sự kiện</h2>
-          <button id="btnRefresh" class="btn-ghost btn-sm">↻ Làm mới</button>
-        </div>
-        <div id="evListWrap"><div class="loading-row"><span class="spinner"></span>Đang tải…</div></div>
+  <!-- Nội dung -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Tổng quan</h1>
+        <p id="pageSub" class="page-sub">Tình hình sự kiện đang chạy</p>
       </div>
-
-      <div class="card" id="createCard">
-        <div id="formModeBanner" class="form-mode" hidden></div>
-        <h2 id="formHeading">Tạo sự kiện mới</h2>
-        <p id="formErr" class="err"></p>
-        <p id="formOk"  class="ok-msg"></p>
-
-        <div class="form-row">
-          <label>ID sự kiện</label>
-          <div class="form-col">
-            <input type="text" id="fId" placeholder="vd: su-kien-2026-q2" spellcheck="false" />
-            <span class="hint">Chỉ dùng chữ thường, số, dấu gạch ngang. Tự sinh từ tên — có thể sửa tay.</span>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Tên sự kiện</label>
-          <div class="form-col">
-            <input type="text" id="fTitle" placeholder="Group Match" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Mô tả <span class="hint">(subtitle)</span></label>
-          <div class="form-col">
-            <textarea id="fSubtitle" rows="2" placeholder="Mỗi icon là &lt;b&gt;1 đội&lt;/b&gt;..."></textarea>
-            <span class="hint">HTML inline được phép (b, i, br). Hiển thị dưới tên sự kiện ở trang công khai.</span>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Sĩ số / đội</label>
-          <div class="form-col" style="max-width:300px;">
-            <input type="number" id="fCapacity" min="1" max="9999" value="10" style="max-width:120px;" />
-            <span class="hint">Sĩ số CHUNG, áp cho mọi đội. Muốn 1 vài đội khác đi (vd đội 9–12 = 26), điền ô <b>sĩ số riêng</b> ở từng dòng đội bên dưới.</span>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Lịch (theo giờ)</label>
-          <div class="form-col" style="max-width:440px;">
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Mở lúc (giờ VN)<br><input type="datetime-local" id="fOpenAt" style="margin-top:4px;" /></label>
-              <label style="flex:1;min-width:168px;font-size:13px;color:var(--muted);">Đóng lúc (giờ VN)<br><input type="datetime-local" id="fCloseAt" style="margin-top:4px;" /></label>
-            </div>
-            <span class="hint">Để trống = không giới hạn. Trước giờ mở, trang công khai <b>đếm ngược</b> (tự vào lưới khi tới giờ); sau giờ đóng hiện <b>"đã kết thúc"</b>. Chốt cứng ở rules theo giờ máy chủ.</span>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Chống trùng</label>
-          <div class="form-col" style="max-width:260px;">
-            <select id="fDedupField">
-              <option value="">Không chống trùng</option>
-            </select>
-            <span class="hint">Field dùng để phát hiện đăng ký trùng (VD: mã nhân viên).</span>
-          </div>
-          <div class="form-col" style="max-width:230px;padding-top:10px;">
-            <label class="cb-wrap">
-              <input type="checkbox" id="fBlockDup" checked />
-              Chặn đăng ký nếu trùng
-            </label>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Danh sách cho phép</label>
-          <div class="form-col">
-            <label class="cb-wrap"><input type="checkbox" id="fAllowlistMode" /> Chỉ cho người trong danh sách (Excel) được tham gia</label>
-            <span class="hint" id="fAllowlistHint">Cần chọn <b>field chống trùng</b> ở trên. Sau khi tạo, vào tab <b>Danh sách cho phép</b> để nạp file Excel.</span>
-            <label class="cb-wrap" style="margin-top:8px;"><input type="checkbox" id="fAllowlistNameCheck" /> Đối chiếu <b>họ tên</b> với danh sách (chặn nếu tên không khớp)</label>
-            <span class="hint" id="fNameCheckHint">Chỉ áp dụng khi <b>Danh sách cho phép</b> bật và dòng có cột tên. Khớp khoan dung (bỏ dấu, không phân biệt hoa/thường). Bỏ tích = chỉ kiểm có trong danh sách, không xét tên.</span>
-            <label class="cb-wrap" style="margin-top:8px;"><input type="checkbox" id="fAllowlistGenderCheck" /> Check <b>giới tính</b> — phân phòng Nam/Nữ theo danh sách</label>
-            <span class="hint" id="fGenderCheckHint">Giới tính lấy từ cột <b>Giới tính</b> trong file Excel của Danh sách cho phép (người chơi không tự chọn). Gắn Nam/Nữ cho từng đội/phòng ở mục <b>Đội</b> bên dưới — phòng để "Chung" nhận mọi người; người thiếu giới tính trong file không bị khoá phòng nào.</span>
-          </div>
-        </div>
-
-        <div class="form-row" style="align-items:flex-start;">
-          <label style="padding-top:6px;">Ô nhập (fields)</label>
-          <div class="form-col">
-            <div class="hint" style="margin-bottom:6px;">key: tên biến (a-z, không dấu) · nhãn: chữ hiển thị với người dùng · placeholder tuỳ chọn</div>
-            <div id="fieldsList" class="dyn-list"></div>
-            <button type="button" id="btnAddField" class="btn-ghost btn-sm" style="margin-top:8px;align-self:flex-start;">+ Thêm ô nhập</button>
-          </div>
-        </div>
-
-        <div class="form-row" style="align-items:flex-start;">
-          <label style="padding-top:6px;">Danh sách đội</label>
-          <div class="form-col">
-            <div class="hint" style="margin-bottom:6px;">Mỗi đội cần emoji duy nhất + tên + màu. Ô số cuối = <b>sĩ số riêng</b> đội đó (để trống = dùng sĩ số chung).</div>
-            <div id="iconsList" class="dyn-list"></div>
-            <button type="button" id="btnAddIcon" class="btn-ghost btn-sm" style="margin-top:8px;align-self:flex-start;">+ Thêm đội</button>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
-          <button type="button" id="btnSave" class="btn-pri">Tạo sự kiện</button>
-          <button type="button" id="btnCancel" class="btn-ghost" hidden>Huỷ</button>
-        </div>
+      <div class="topbar-actions">
+        <button id="btnRefresh" class="btn-ghost" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg><span class="btn-txt">Làm mới</span></button>
       </div>
+    </header>
 
-    </div><!-- /tabEvents -->
+    <!-- ── TRANG: Tổng quan ── -->
+    <section id="tabDash" class="tab-panel active" aria-label="Tổng quan">
+      <div id="dashGrid" class="dash"><div class="loading-row"><span class="spinner"></span>Đang tải…</div></div>
+    </section>
 
-    <!-- TAB: Xem đăng ký -->
-    <div id="tabSignups" class="tab-panel">
-      <div class="card">
-        <div class="row-sig">
-          <label>Sự kiện:</label>
-          <select id="sigSelect"></select>
-          <button id="btnLoad"  class="btn-ghost">Reload data</button>
-          <button id="btnExcel" class="btn-pri">Export excel</button>
-        </div>
-        <p id="loadErr" class="err"></p>
-        <p id="summary" class="summary"></p>
-        <div id="chips" class="chips"></div>
-        <div id="dupWarn"></div>
-        <div class="row-sig" id="unblockRow" style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
-          <label for="unblockCode">Bỏ chặn mã:</label>
-          <input id="unblockCode" type="text" placeholder="Nhập MSNV cần bỏ chặn" autocomplete="off"
-                 style="min-width:200px;padding:8px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit" />
-          <button id="btnUnblock" class="btn-ghost" type="button">Bỏ chặn</button>
-          <span id="unblockMsg" style="font-size:13px;color:var(--muted)"></span>
-        </div>
-        <div class="table-wrap">
-          <table id="tbl" class="reg-table">
-            <thead id="thead"></thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
+    <!-- ── TRANG: Sự kiện ── -->
+    <section id="tabEvents" class="tab-panel" aria-label="Sự kiện">
+      <div class="section-head">
+        <div class="seg" role="note"><span id="evCount">0</span> sự kiện</div>
+        <button id="btnNew" class="btn-pri" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Tạo sự kiện</button>
       </div>
-    </div><!-- /tabSignups -->
+      <div id="evListWrap"><div class="loading-row"><span class="spinner"></span>Đang tải…</div></div>
+    </section>
 
-    <!-- TAB: Danh sách cho phép -->
-    <section id="tab-allowlist" class="tab-panel">
-      <div class="card">
-        <!-- Hàng chọn sự kiện: tái dùng .row-sig của tab "Xem đăng ký" -->
-        <div class="row-sig">
-          <label for="alEvent">Sự kiện:</label>
-          <select id="alEvent"></select>
-          <button id="alReload" class="btn-ghost btn-sm" type="button">↻ Tải lại</button>
-        </div>
+    <!-- ── TRANG: Đăng ký ── -->
+    <section id="tabSignups" class="tab-panel" aria-label="Đăng ký">
+      <div class="panel toolbar">
+        <label class="field field-inline grow"><span>Sự kiện</span><select id="sigSelect"></select></label>
+        <button id="btnLoad" class="btn-ghost" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Tải dữ liệu</button>
+        <button id="btnExcel" class="btn-pri" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Xuất Excel</button>
+      </div>
+      <p id="loadErr" class="err" role="alert"></p>
 
-        <!-- Khối trạng thái -->
-        <div class="al-status">
-          <div class="al-stat">
-            <span class="al-stat-k">Field đối chiếu</span>
-            <span class="al-stat-v" id="alDedupField">—</span>
+      <div class="split">
+        <div class="panel">
+          <div class="panel-head"><h2>Người đăng ký</h2><p id="summary" class="summary"></p></div>
+          <div id="chips" class="chips"></div>
+          <div id="dupWarn"></div>
+          <div class="table-wrap">
+            <table id="tbl" class="reg-table">
+              <thead id="thead"></thead>
+              <tbody id="tbody"></tbody>
+            </table>
           </div>
-          <div class="al-stat">
-            <span class="al-stat-k">Tổng trong danh sách</span>
-            <span class="al-stat-v" id="alCount">0</span>
-          </div>
-          <label class="cb-wrap al-toggle">
-            <input type="checkbox" id="alMode" />
-            Chỉ cho người trong danh sách được tham gia
-          </label>
-          <label class="cb-wrap al-toggle">
-            <input type="checkbox" id="alNameCheck" />
-            Đối chiếu họ tên với danh sách (chặn nếu tên không khớp)
-          </label>
         </div>
 
-        <!-- Cảnh báo (ẩn mặc định; JS bật khi cần) -->
-        <div class="al-warn" id="alWarnNoField" hidden>
-          Sự kiện này chưa đặt <b>field chống trùng</b> nên chưa dùng được danh sách cho phép.
-          Hãy đặt field ở phần <b>Sửa</b> sự kiện trước.
-        </div>
-        <div class="al-warn" id="alWarnEmpty" hidden>
-          Đang <b>bật giới hạn</b> nhưng danh sách <b>trống</b> ⇒ sẽ chặn TẤT CẢ mọi người.
-        </div>
-        <div class="al-warn" id="alWarnNoGender" hidden>
-          Sự kiện đang bật <b>Check giới tính</b> nhưng danh sách <b>chưa có giới tính</b> nào ⇒ không phòng nào bị khoá theo giới.
-          Nạp lại file có cột <b>Giới tính</b> (Nam/Nữ).
-        </div>
-
-        <!-- Khối nhập từ Excel -->
-        <div class="al-import" id="alImport">
-          <div class="hint">Cột định danh sẽ tự khớp theo field đối chiếu. Nếu không khớp, chọn cột bên dưới.</div>
-          <div class="al-import-row">
-            <input type="file" id="alFile" accept=".xlsx,.xls,.csv" />
-            <select id="alCol" class="al-col" hidden></select>
-          </div>
-          <!-- Chia đội sẵn: chỉ hiện khi file có cột "team" với người đã được gán đội. Khi BẬT, dùng nút
-               "Làm mới & chia đội": XOÁ dữ liệu tham gia cũ rồi seed người có cột team vào đội (chiếm slot + khoá mã). -->
-          <label class="cb-wrap al-toggle" id="alSeedWrap" hidden>
-            <input type="checkbox" id="alSeedTeams" />
-            Chia đội theo cột “team” (seed người đã có đội · chiếm slot + khoá mã · <b>làm mới dữ liệu cũ</b>)
-          </label>
-          <div class="al-import-actions">
-            <button id="alAdd" class="btn-pri btn-sm" type="button" disabled>Nhập (thêm vào danh sách)</button>
-            <button id="alReplace" class="btn-ghost btn-sm" type="button" disabled>Xoá cũ &amp; nạp mới</button>
-          </div>
-          <div class="al-result" id="alResult" hidden></div>
-        </div>
-
-        <!-- Thêm / sửa nhanh 1 mã (không cần file) -->
-        <div class="al-list-head" id="alAddOneRow">
-          <input type="text" id="alOneKey"  class="al-search" placeholder="Định danh (vd NV001234)" autocomplete="off" style="flex:0 1 200px" />
-          <input type="text" id="alOneName" class="al-search" placeholder="Tên (tùy chọn)"          autocomplete="off" style="flex:0 1 180px" />
-          <select id="alOneGender" class="al-search" title="Giới tính (tùy chọn) — dùng khi sự kiện bật Check giới tính" style="flex:0 1 120px"></select>
-          <button id="alAddOne"    class="btn-pri btn-sm"   type="button">+ Thêm 1 mã</button>
-          <button id="alOneCancel" class="btn-ghost btn-sm" type="button" hidden>Hủy sửa</button>
-          <span id="alOneMsg" style="font-size:13px;color:var(--muted)"></span>
-        </div>
-
-        <!-- Danh sách hiện có -->
-        <div class="al-list-head">
-          <input type="text" id="alSearch" class="al-search" placeholder="Tìm theo định danh hoặc tên…" />
-          <button id="alDownload" class="btn-ghost btn-sm" type="button">Tải xuống CSV</button>
-        </div>
-        <div class="table-wrap">
-          <table class="reg-table al-table">
-            <thead><tr><th class="num">#</th><th>Định danh</th><th>Tên</th><th>Giới tính</th><th></th></tr></thead>
-            <tbody id="alBody"></tbody>
-          </table>
-        </div>
-        <div class="al-empty" id="alEmpty" hidden>Chưa có ai trong danh sách. Nạp file Excel ở trên.</div>
+        <aside class="panel side-panel" id="unblockRow">
+          <div class="panel-head"><h2>Bỏ chặn mã</h2></div>
+          <p class="hint">Mở khoá cổng cho 1 MSNV đang bị giữ chỗ lúc điền form. Mã đã ở trong một đội vẫn không chọn lại được.</p>
+          <label class="field"><span>MSNV</span>
+            <input id="unblockCode" type="text" placeholder="vd 22011463" autocomplete="off" /></label>
+          <button id="btnUnblock" class="btn-ghost btn-block" type="button">Bỏ chặn</button>
+          <p id="unblockMsg" class="hint" role="status"></p>
+        </aside>
       </div>
     </section>
 
-  </div><!-- /adminView -->
+    <!-- ── TRANG: Danh sách cho phép ── -->
+    <section id="tab-allowlist" class="tab-panel" aria-label="Danh sách cho phép">
+      <div class="panel toolbar">
+        <label class="field field-inline grow"><span>Sự kiện</span><select id="alEvent"></select></label>
+        <button id="alReload" class="btn-ghost" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Tải lại</button>
+      </div>
 
-</div><!-- /wrap -->
+      <div class="split split-left">
+        <div class="stack">
+          <div class="panel">
+            <div class="panel-head"><h2>Thiết lập</h2></div>
+            <div class="stat-row">
+              <div class="stat"><span class="stat-k">Field đối chiếu</span><span class="stat-v" id="alDedupField">—</span></div>
+              <div class="stat"><span class="stat-k">Trong danh sách</span><span class="stat-v" id="alCount">0</span></div>
+            </div>
+            <label class="switch"><input type="checkbox" id="alMode" /><span class="switch-ui" aria-hidden="true"></span>
+              <span>Chỉ người trong danh sách được tham gia</span></label>
+            <label class="switch"><input type="checkbox" id="alNameCheck" /><span class="switch-ui" aria-hidden="true"></span>
+              <span>Kiểm tra họ tên (chặn nếu tên không khớp)</span></label>
+            <div class="alert" id="alWarnNoField" hidden>Sự kiện chưa chọn <b>ô kiểm tra trùng</b> nên chưa dùng được danh sách. Chọn ở phần <b>Sửa</b> sự kiện trước.</div>
+            <div class="alert" id="alWarnEmpty" hidden>Đang <b>bật giới hạn</b> nhưng danh sách <b>trống</b> ⇒ sẽ chặn TẤT CẢ mọi người.</div>
+            <div class="alert" id="alWarnNoGender" hidden>Đang bật <b>Chia phòng theo giới tính</b> nhưng danh sách <b>chưa có giới tính</b>, nên chưa phòng nào bị giới hạn. Nạp lại file có cột <b>Giới tính</b>.</div>
+          </div>
+
+          <div class="panel al-import" id="alImport">
+            <div class="panel-head"><h2>Nhập từ Excel</h2></div>
+            <p class="hint">Cột định danh tự khớp theo field đối chiếu. Không khớp thì chọn cột bên dưới.</p>
+            <label class="drop">
+              <input type="file" id="alFile" accept=".xlsx,.xls,.csv" />
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+              <span>Chọn file .xlsx / .csv</span>
+            </label>
+            <select id="alCol" class="al-col" hidden></select>
+            <!-- Chia đội sẵn: chỉ hiện khi file có cột "team". BẬT ⇒ "Làm mới & chia đội" XOÁ dữ liệu tham gia cũ rồi seed. -->
+            <label class="switch" id="alSeedWrap" hidden><input type="checkbox" id="alSeedTeams" /><span class="switch-ui" aria-hidden="true"></span>
+              <span>Chia đội theo cột “team” (chiếm slot + khoá mã · <b>làm mới dữ liệu cũ</b>)</span></label>
+            <div class="btn-row">
+              <button id="alAdd" class="btn-pri" type="button" disabled>Nhập thêm</button>
+              <button id="alReplace" class="btn-ghost" type="button" disabled>Xoá cũ &amp; nạp mới</button>
+            </div>
+            <div class="al-result" id="alResult" role="status" hidden></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h2>Thêm / sửa 1 mã</h2></div>
+            <div class="form-grid" id="alAddOneRow">
+              <label class="field"><span>Định danh</span><input type="text" id="alOneKey" placeholder="vd NV001234" autocomplete="off" /></label>
+              <label class="field"><span>Tên (tuỳ chọn)</span><input type="text" id="alOneName" placeholder="Nguyễn Văn A" autocomplete="off" /></label>
+              <label class="field"><span>Giới tính</span><select id="alOneGender" title="Dùng khi sự kiện bật Chia phòng theo giới tính"></select></label>
+            </div>
+            <div class="btn-row">
+              <button id="alAddOne" class="btn-pri" type="button">+ Thêm 1 mã</button>
+              <button id="alOneCancel" class="btn-ghost" type="button" hidden>Huỷ sửa</button>
+            </div>
+            <p id="alOneMsg" class="hint" role="status"></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Danh sách hiện có</h2>
+            <button id="alDownload" class="btn-ghost btn-sm" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Tải CSV</button>
+          </div>
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="text" id="alSearch" placeholder="Tìm theo định danh hoặc tên…" aria-label="Tìm trong danh sách" />
+          </label>
+          <div class="table-wrap">
+            <table class="reg-table al-table">
+              <thead><tr><th class="num">#</th><th>Định danh</th><th>Tên</th><th>Giới tính</th><th><span class="sr-only">Thao tác</span></th></tr></thead>
+              <tbody id="alBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state al-empty" id="alEmpty" hidden>Chưa có ai trong danh sách. Nạp file ở khung "Nhập từ Excel".</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═════════ Modal giữa màn hình: tạo / sửa / nhân bản sự kiện (class .drawer giữ tên cũ; mobile = toàn màn hình) ═════════ -->
+  <div class="drawer-bg" id="drawerBg" hidden></div>
+  <aside class="drawer" id="createCard" role="dialog" aria-modal="true" aria-labelledby="formHeading" hidden>
+    <header class="drawer-head">
+      <div>
+        <h2 id="formHeading">Tạo sự kiện mới</h2>
+        <div id="formModeBanner" class="form-mode" hidden></div>
+      </div>
+      <button type="button" class="icon-btn" id="drawerClose" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </header>
+
+    <div class="drawer-body">
+      <fieldset class="fs">
+        <legend>Thông tin chung</legend>
+        <label class="field"><span>Tên sự kiện</span><input type="text" id="fTitle" placeholder="vd: Team Building Q2" /></label>
+        <label class="field"><span>ID sự kiện</span><input type="text" id="fId" placeholder="vd: team-building-q2" spellcheck="false" />
+          <small class="hint">Tự tạo từ tên. Chỉ gồm chữ thường, số và dấu gạch ngang.</small></label>
+        <label class="field"><span>Mô tả ngắn</span><textarea id="fSubtitle" rows="2" placeholder="vd: Mỗi phòng là 1 đội"></textarea>
+          <small class="hint">Hiện dưới tên sự kiện. Có thể dùng &lt;b&gt; in đậm, &lt;i&gt; in nghiêng, &lt;br&gt; xuống dòng.</small></label>
+        <label class="field field-narrow"><span>Số người mỗi đội</span><input type="number" id="fCapacity" min="1" max="9999" value="10" />
+          <small class="hint">Áp dụng cho mọi đội. Đội nào khác số này thì sửa ở mục <b>Đội</b>.</small></label>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Thời gian (giờ Việt Nam)</legend>
+        <div class="form-grid two">
+          <label class="field"><span>Mở lúc</span><input type="datetime-local" id="fOpenAt" /></label>
+          <label class="field"><span>Đóng lúc</span><input type="datetime-local" id="fCloseAt" /></label>
+        </div>
+        <small class="hint">Để trống nếu không giới hạn. Trước giờ mở, trang hiện <b>đếm ngược</b>. Sau giờ đóng, trang báo <b>đã kết thúc</b>.</small>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Chống trùng &amp; danh sách cho phép</legend>
+        <label class="field"><span>Ô kiểm tra trùng</span>
+          <select id="fDedupField"><option value="">Không kiểm tra trùng</option></select>
+          <small class="hint">Dùng ô này để nhận ra người đăng ký 2 lần (vd: mã nhân viên).</small></label>
+        <label class="switch"><input type="checkbox" id="fBlockDup" checked /><span class="switch-ui" aria-hidden="true"></span><span>Chặn đăng ký trùng</span></label>
+        <label class="switch"><input type="checkbox" id="fAllowlistMode" /><span class="switch-ui" aria-hidden="true"></span><span>Chỉ người trong danh sách được tham gia</span></label>
+        <small class="hint" id="fAllowlistHint">Cần chọn <b>ô kiểm tra trùng</b>. Tạo xong, nạp file ở trang <b>Danh sách cho phép</b>.</small>
+        <label class="switch"><input type="checkbox" id="fAllowlistNameCheck" /><span class="switch-ui" aria-hidden="true"></span><span>Kiểm tra <b>họ tên</b> khớp danh sách</span></label>
+        <small class="hint" id="fNameCheckHint">File cần có cột tên. Không phân biệt dấu và chữ hoa/thường.</small>
+        <label class="switch"><input type="checkbox" id="fAllowlistGenderCheck" /><span class="switch-ui" aria-hidden="true"></span><span>Chia phòng theo <b>giới tính</b></span></label>
+        <small class="hint" id="fGenderCheckHint">Giới tính lấy từ cột <b>Giới tính</b> trong file. Chọn Nam/Nữ cho từng đội ở mục <b>Đội</b>; "Chung" nhận mọi người.</small>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Thông tin người đăng ký điền</legend>
+        <small class="hint">Mã: chữ a-z, không dấu (vd: name) · Nhãn: chữ hiện trên form · Gợi ý: không bắt buộc</small>
+        <div id="fieldsList" class="dyn-list"></div>
+        <button type="button" id="btnAddField" class="btn-ghost btn-sm">+ Thêm ô</button>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Đội</legend>
+        <small class="hint">Mỗi đội gồm icon, tên và màu. Icon là emoji hoặc số, không trùng; để trống thì tự đặt số thứ tự. Ô số là số người riêng của đội; để trống thì dùng số chung.</small>
+        <div id="iconsList" class="dyn-list"></div>
+        <button type="button" id="btnAddIcon" class="btn-ghost btn-sm">+ Thêm đội</button>
+      </fieldset>
+    </div>
+
+    <footer class="drawer-foot">
+      <p id="formErr" class="err" role="alert"></p>
+      <p id="formOk" class="ok-msg" role="status"></p>
+      <div class="btn-row end">
+        <button type="button" id="btnCancel" class="btn-ghost">Huỷ</button>
+        <button type="button" id="btnSave" class="btn-pri">Tạo sự kiện</button>
+      </div>
+    </footer>
+  </aside>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -577,7 +336,14 @@
         input.addEventListener("input", () => { confirmBtn.disabled = input.value.trim() !== requireText; });
       }
       document.body.appendChild(bg);
-      const close = val => { bg.remove(); document.removeEventListener("keydown", onKey); resolve(val); };
+      let closed = false;
+      const close = val => {
+        if (closed) return; closed = true;
+        document.removeEventListener("keydown", onKey);
+        resolve(val);                                   // trạng thái đúng ngay, không chờ animation
+        bg.classList.add("is-leaving");
+        setTimeout(() => bg.remove(), REDUCED ? 0 : 170);
+      };
       const onKey = e => {
         if (e.key === "Escape") close(false);
         if (e.key === "Enter" && !confirmBtn.disabled) close(true);
@@ -600,19 +366,122 @@
   // Icon cảnh báo (SVG → luôn hiển thị, không phụ thuộc font emoji).
   const dupIconSvg = () =>
     "<svg viewBox='0 0 24 24' width='20' height='20' aria-hidden='true' fill='none'>" +
-    "<path d='M12 3 1.7 21h20.6L12 3Z' fill='#FFF1F3' stroke='currentColor' stroke-width='1.8' stroke-linejoin='round'/>" +
+    "<path d='M12 3 1.7 21h20.6L12 3Z' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linejoin='round'/>" +
     "<path d='M12 9.5v4.5' stroke='currentColor' stroke-width='1.8' stroke-linecap='round'/>" +
     "<circle cx='12' cy='17.4' r='1.1' fill='currentColor'/></svg>";
 
   // Trạng thái rỗng / đang tải dùng chung (SVG, không emoji mới dễ lỗi).
   const emptySvg = () =>
     "<svg width='56' height='56' viewBox='0 0 48 48' fill='none' aria-hidden='true'>" +
-    "<rect x='8' y='11' width='32' height='28' rx='5' fill='#F1ECFE' stroke='#C9B4FF' stroke-width='2'/>" +
-    "<path d='M8 18h32' stroke='#C9B4FF' stroke-width='2'/>" +
-    "<circle cx='14' cy='14.5' r='1.4' fill='#A98CFF'/><circle cx='19' cy='14.5' r='1.4' fill='#A98CFF'/>" +
-    "<path d='M18 28h12M18 33h8' stroke='#C9B4FF' stroke-width='2.4' stroke-linecap='round'/></svg>";
+    "<rect x='8' y='11' width='32' height='28' rx='5' fill='rgba(99,112,255,.10)' stroke='#5560FF' stroke-opacity='.55' stroke-width='2'/>" +
+    "<path d='M8 18h32' stroke='#5560FF' stroke-opacity='.55' stroke-width='2'/>" +
+    "<circle cx='14' cy='14.5' r='1.4' fill='#8B97FF'/><circle cx='19' cy='14.5' r='1.4' fill='#8B97FF'/>" +
+    "<path d='M18 28h12M18 33h8' stroke='#8B97FF' stroke-width='2.4' stroke-linecap='round'/></svg>";
+  // Icon nút nhỏ dùng chung (thay emoji ✕ / ✎ — emoji phụ thuộc font, không theo màu chữ).
+  const ICON_X    = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 6l12 12M18 6 6 18'/></svg>";
+  const ICON_EDIT = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4'/></svg>";
   const emptyState   = txt => "<div class='empty-state'>" + emptySvg() + "<div>" + txt + "</div></div>";
   const loadingState = txt => "<div class='loading-row'><span class='spinner'></span>" + esc(txt) + "</div>";
+
+  // ── Motion helpers ───────────────────────────────────────────────────────
+  // Mọi hiệu ứng tắt khi người dùng bật "giảm chuyển động". Trạng thái cuối luôn đặt thẳng (không phụ thuộc animationend).
+  const REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const fmtNum  = n => Number(n || 0).toLocaleString("vi-VN");
+  // Gán --i (thứ tự) cho con để CSS so le thời điểm xuất hiện; chặn trần 14 để danh sách dài không chờ lâu.
+  function stagger(root, sel, cls = "anim-in") {
+    if (!root) return;
+    const items = sel ? root.querySelectorAll(sel) : root.children;
+    Array.from(items).forEach((el, i) => el.style.setProperty("--i", Math.min(i, 14)));
+    if (cls) {
+      root.classList.remove(cls); void root.offsetWidth; root.classList.add(cls);
+      // Panel ẩn→hiện sẽ chạy lại animation CSS ⇒ gỡ class khi đã chạy xong (trạng thái cuối = style thường).
+      clearTimeout(root._animT);
+      root._animT = setTimeout(() => root.classList.remove(cls), 1800);
+    }
+  }
+  // Đếm số từ 0 → giá trị thật cho [data-count] (data-suffix tuỳ chọn). Chữ ban đầu đã là giá trị cuối.
+  function countUp(root) {
+    if (REDUCED || !root) return;
+    root.querySelectorAll("[data-count]").forEach(el => countEl(el, 0));
+  }
+  // Đếm 1 phần tử [data-count] từ `from` → giá trị mới (lần đầu from=0; vẽ lại from=giá trị cũ, kể cả GIẢM).
+  function countEl(el, from) {
+    const to = Number(el.dataset.count), suf = el.dataset.suffix || "";
+    if (REDUCED || !isFinite(to) || !isFinite(from) || from === to || (from === 0 && to <= 0)) return;
+    const t0 = performance.now(), dur = from ? 600 : 750, token = (el._cu = {}), final = fmtNum(to) + suf;
+    const step = now => {
+      if (el._cu !== token) return;                         // có lượt mới đè lên → dừng lượt cũ
+      // timestamp của rAF có thể SỚM hơn t0 → chặn 0..1 (không thì ra số âm "-1")
+      const k = Math.max(0, Math.min(1, (now - t0) / dur)), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = k >= 1 ? final : fmtNum(Math.round(from + (to - from) * e)) + suf;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    el.textContent = fmtNum(from) + suf;
+    requestAnimationFrame(step);
+    // Chốt giá trị cuối dù rAF bị dừng (tab nền / không vẽ khung) — số đúng không phụ thuộc animation.
+    setTimeout(() => { if (el._cu === token) { el._cu = null; el.textContent = final; } }, dur + 120);
+  }
+
+  // ── FLIP khi VẼ LẠI (tải lại / Mở / Kết thúc…): nội dung thay bằng innerHTML nên phải chụp giá trị cũ TRƯỚC, vẽ xong
+  //    thì chuyển mượt cũ → mới. Phần tử cần data-k (khoá ổn định); số: [data-count]; thanh: data-flip="x"|"y"
+  //    (co giãn bằng transform scale — không animate width/height); vòng donut: stroke-dasharray.
+  function snapValues(root) {
+    const m = new Map();
+    if (!root || REDUCED) return m;
+    root.querySelectorAll("[data-k]").forEach(el => {
+      const r = el.getBoundingClientRect();
+      m.set(el.dataset.k, { n: el.dataset.count != null ? Number(el.dataset.count) : null, w: r.width, h: r.height,
+                            dash: el.getAttribute("stroke-dasharray") });
+    });
+    return m;
+  }
+  function morphValues(root, prev) {
+    if (!root || !prev || !prev.size || REDUCED) return;
+    root.querySelectorAll("[data-k]").forEach(el => {
+      const o = prev.get(el.dataset.k);
+      if (!o) return;                                       // phần tử mới (vd sự kiện mới) → không có gốc để chuyển
+      if (el.dataset.count != null && o.n != null) countEl(el, o.n);
+      const axis = el.dataset.flip;
+      if (axis) {
+        const r = el.getBoundingClientRect(), now = axis === "x" ? r.width : r.height, was = axis === "x" ? o.w : o.h;
+        if (!now || Math.abs(now - was) < 1) return;        // panel đang ẩn (0px) hoặc không đổi → bỏ qua
+        el.style.transformOrigin = axis === "x" ? "left center" : "center bottom";
+        el.style.transition = "none";
+        el.style.transform = (axis === "x" ? "scaleX(" : "scaleY(") + (was / now) + ")";
+        el.getBoundingClientRect();                          // chốt khung đầu trước khi bật transition
+        el.style.transition = "transform 600ms var(--ease-out)";
+        el.style.transform = "";
+        el.addEventListener("transitionend", () => { el.style.transition = el.style.transformOrigin = ""; }, { once: true });
+      }
+      const dash = el.getAttribute("stroke-dasharray");
+      if (o.dash && dash && o.dash !== dash) {
+        el.setAttribute("stroke-dasharray", o.dash);
+        el.getBoundingClientRect();
+        el.style.transition = "stroke-dasharray 700ms var(--ease-out)";
+        el.setAttribute("stroke-dasharray", dash);
+      }
+    });
+  }
+  const busy = (el, on) => { if (el) { if (on) el.setAttribute("aria-busy", "true"); else el.removeAttribute("aria-busy"); } };
+  function setBusy(btn, on) { if (btn) { btn.classList.toggle("is-loading", !!on); busy(btn, on); } }
+
+  // ── Skeleton (giữ khung bố cục khi đang tải → không nhảy layout) ─────────
+  const sk = (cls = "") => `<span class="skel ${cls}"></span>`;
+  const skelCard = (inner, cls = "") => `<div class="card sk-card ${cls}">${inner}</div>`;
+  const skelKpi = () => skelCard(sk("w40 h10") + sk("w30 h30") + sk("w50 h10"), "kpi");
+  const skelDash = () =>
+    skelCard(sk("w30 h10") + sk("w70 h26") + sk("w40 h16") + `<div class="sk-row">${sk("h44")}${sk("h44")}</div>` + sk("w50 h36"), "hero")
+    + skelCard(`<div class="sk-donut"></div>` + sk("w80 h10") + sk("w60 h10"))
+    + `<div class="kpi-stack">${skelKpi()}${skelKpi()}</div>`
+    + skelCard(sk("w30 h14") + `<div class="sk-bars">${[70, 55, 85, 40, 62, 48].map(h => `<span class="skel" style="height:${h}%"></span>`).join("")}</div>`, "span-2")
+    + skelCard(sk("w30 h22") + `<div style="flex:1"></div>` + sk("w90 h12") + sk("w70 h12"), "insight-sk")
+    + skelCard(sk("w40 h14") + sk("w90 h10") + sk("w70 h10") + sk("w80 h10"))
+    + skelCard(sk("w20 h14") + `<div class="sk-row">${sk("h52")}${sk("h52")}${sk("h52")}</div>`);
+  const skelEvCards = n => '<div class="ev-grid">' + Array.from({ length: n }, () =>
+    `<div class="ev-card sk-card">${sk("w60 h18")}${sk("w30 h14")}<div class="sk-row">${sk("h56")}${sk("h56")}${sk("h56")}</div>${sk("h6")}${sk("w50 h10")}<div class="sk-row">${sk("w30 h32")}${sk("w20 h32")}${sk("w20 h32")}</div></div>`
+  ).join("") + "</div>";
+  const skelRows = (n, cols = 5) => Array.from({ length: n }, () =>
+    "<tr class='sk-tr'>" + Array.from({ length: cols }, (_, c) => `<td>${sk(c === 0 ? "w40 h10" : "w70 h10")}</td>`).join("") + "</tr>").join("");
 
   function slugify(s) {
     const map = {
@@ -636,45 +505,176 @@
             .replace(/^-+|-+$/g, "");
   }
 
-  // ── Tabs ─────────────────────────────────────────────────────────────────
+  // ── Điều hướng (sidebar) ─────────────────────────────────────────────────
+  const NAV_ORDER = Array.from(document.querySelectorAll(".tab")).map(b => b.dataset.tab);
+  // Thanh highlight trượt theo mục đang chọn (dọc ở sidebar, ngang khi sidebar thành thanh trên).
+  function moveNavInd() {
+    const a = document.querySelector(".tab.active"), ind = document.querySelector(".nav-ind");
+    if (!a || !ind || !a.offsetWidth) return;
+    ind.style.cssText = `--x:${a.offsetLeft}px;--y:${a.offsetTop}px;--w:${a.offsetWidth}px;--h:${a.offsetHeight}px`;
+    requestAnimationFrame(() => ind.classList.add("ready"));      // lần đặt đầu không trượt từ góc
+  }
+  window.addEventListener("resize", moveNavInd);
+  const USE_VT = !!document.startViewTransition && !REDUCED;
+  if (!USE_VT) document.documentElement.classList.add("no-vt");   // không có View Transitions → panel dùng animation CSS panelIn
   document.querySelectorAll(".tab").forEach(btn => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      $(btn.dataset.tab).classList.add("active");
+      const cur = document.querySelector(".tab.active");
+      if (cur === btn) return;
+      const apply = () => {
+        document.querySelectorAll(".tab").forEach(b => { b.classList.remove("active"); b.removeAttribute("aria-current"); });
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        btn.setAttribute("aria-current", "page");
+        $(btn.dataset.tab).classList.add("active");
+        $("pageTitle").textContent = btn.dataset.title || btn.textContent.trim();
+        $("pageSub").textContent   = btn.dataset.sub || "";
+        moveNavInd();
+        // Trang mới luôn mở từ đầu (trước đây giữ vị trí cuộn của trang cũ → mobile mở giữa trang). Chạy trong callback
+        // của View Transition nên snapshot mới đã ở đầu trang, không thấy cú nhảy cuộn.
+        if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "instant" });
+      };
+      // View Transitions (Chromium): nội dung trượt + mờ theo chiều điều hướng; trình duyệt khác → animation CSS thường.
+      if (USE_VT) {
+        const root = document.documentElement;
+        root.dataset.navDir = NAV_ORDER.indexOf(btn.dataset.tab) >= NAV_ORDER.indexOf(cur && cur.dataset.tab) ? "fwd" : "back";
+        // Đổi trang KHÔNG phụ thuộc hiệu ứng: nếu trình duyệt không vẽ khung (tab nền/headless) hoặc transition bị huỷ
+        // vì bấm nhanh, sau 150ms vẫn tự áp trạng thái (apply chạy đúng 1 lần).
+        let done = false;
+        const run = () => { if (!done) { done = true; apply(); } };
+        const vt = document.startViewTransition(run);
+        const fallback = setTimeout(run, 150);
+        vt.updateCallbackDone.then(() => clearTimeout(fallback), () => {});
+        vt.ready.catch(() => {});
+        vt.finished.catch(() => {});
+      } else apply();
       if (btn.dataset.tab === "tab-allowlist" && allowlistOnTabOpen) allowlistOnTabOpen();
     });
+  });
+  // Nút trong nội dung chuyển trang: data-goto="<id panel>" (+ data-event để chọn sẵn sự kiện ở trang Đăng ký).
+  function gotoTab(id) { const b = document.querySelector(`.tab[data-tab="${id}"]`); if (b) b.click(); }
+  document.addEventListener("click", e => {
+    const g = e.target.closest("[data-goto]");
+    if (!g) return;
+    gotoTab(g.dataset.goto);
+    if (g.dataset.goto === "tabSignups" && g.dataset.event) {
+      $("sigSelect").value = g.dataset.event;
+      loadSignups(g.dataset.event);
+    }
+  });
+  $("helloDate").textContent = new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" });
+
+  // ── Toast (thông báo ngắn, tự ẩn) ────────────────────────────────────────
+  let _toastT = 0, _toastT2 = 0;
+  function toast(msg, kind = "ok") {
+    const t = $("toast");
+    clearTimeout(_toastT); clearTimeout(_toastT2);
+    // Icon ✓ / ✕ tự vẽ nét (pathLength=1 ⇒ dash chuẩn hoá); chữ qua textContent (không chèn HTML từ msg).
+    const mark = kind === "err" ? '<path d="M9 9l6 6M15 9l-6 6" pathLength="1"/>' : '<path d="m8 12.5 2.8 2.8L16.5 9.5" pathLength="1"/>';
+    t.innerHTML = `<svg class="toast-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" pathLength="1"/>${mark}</svg><span class="toast-msg"></span>`;
+    t.querySelector(".toast-msg").textContent = msg;
+    t.className = "toast " + kind;
+    t.hidden = false;
+    void t.offsetWidth; t.classList.add("run");                    // khởi động lại vạch đếm thời gian
+    _toastT = setTimeout(() => {
+      t.classList.add("is-leaving");
+      _toastT2 = setTimeout(() => { t.hidden = true; t.classList.remove("is-leaving"); }, REDUCED ? 0 : 200);
+    }, 4500);
+  }
+
+  // ── Drawer form sự kiện (tạo / sửa / nhân bản) ───────────────────────────
+  let _drawerReturn = null, _drawerT = 0;
+  function openDrawer() {
+    clearTimeout(_drawerT);
+    $("createCard").classList.remove("is-closing"); $("drawerBg").classList.remove("is-closing");
+    _drawerReturn = document.activeElement;
+    $("drawerBg").hidden = false;
+    $("createCard").hidden = false;
+    document.body.classList.add("no-scroll");
+    $("createCard").querySelector(".drawer-body").scrollTop = 0;
+    setTimeout(() => $("fTitle").focus({ preventScroll: true }), 60);
+  }
+  function closeDrawer() {
+    clearTimeout(_drawerT);
+    $("createCard").classList.add("is-closing"); $("drawerBg").classList.add("is-closing");
+    _drawerT = setTimeout(() => {
+      $("drawerBg").hidden = true; $("createCard").hidden = true;
+      $("createCard").classList.remove("is-closing"); $("drawerBg").classList.remove("is-closing");
+    }, REDUCED ? 0 : 220);
+    document.body.classList.remove("no-scroll");
+    if (_drawerReturn && _drawerReturn.focus) _drawerReturn.focus({ preventScroll: true });
+  }
+  const cancelDrawer = () => { resetForm(); closeDrawer(); };
+  $("btnNew").addEventListener("click", () => { resetForm(); openDrawer(); });
+  $("drawerClose").addEventListener("click", cancelDrawer);
+  $("drawerBg").addEventListener("click", cancelDrawer);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$("createCard").hidden && !document.querySelector(".cm-bg")) cancelDrawer();
   });
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   let activeEventId = "";
   let cachedEvents  = [];   // { id, exists, cfg, metrics }
+  let evRendered    = false; // đã vẽ dữ liệu sự kiện lần đầu chưa (false → loadEventList hiện skeleton)
   let editingId     = "";   // "" = đang TẠO mới; có giá trị = đang SỬA sự kiện này
   let editOriginal  = null; // cfg gốc của sự kiện đang sửa (để so sánh dedup/field)
   let allowlistOnTabOpen = null; // gán bởi IIFE allowlist; gọi khi mở tab "Danh sách cho phép"
 
+  // Màn chờ: giữ tới khi BIẾT trạng thái đăng nhập; nếu đã đăng nhập thì giữ tiếp tới khi dữ liệu sự kiện đầu tiên về
+  // (sau Login hoặc mở lại trang). Hiện lại = display none→grid ⇒ animation (trễ 300ms) chạy lại từ đầu.
+  let _bootT = 0, _bootAt = performance.now();                      // lúc màn chờ bắt đầu hiện (trang vừa mở)
+  const BOOT_DELAY = 300;                                            // khớp animation-delay của .boot trong admin.css
+  function showBoot(text) {
+    const b = $("bootView");
+    clearTimeout(_bootT);
+    b.querySelector(".boot-txt").textContent = text;
+    b.classList.remove("is-leaving");
+    if (b.hidden) { b.hidden = false; _bootAt = performance.now(); }  // đang hiện sẵn (mở trang) → giữ mốc cũ
+  }
+  function hideBoot() {
+    const b = $("bootView");
+    if (b.hidden) return;
+    // Chưa qua 300ms = màn chờ còn trong suốt → ẩn ngay. Đừng chạy fadeOut: nó thay animation trễ ⇒ opacity nhảy về 1 (chớp).
+    if (REDUCED || performance.now() - _bootAt < BOOT_DELAY) { b.hidden = true; return; }
+    b.classList.add("is-leaving");                                   // mờ dần (state đặt ngay, DOM ẩn sau)
+    _bootT = setTimeout(() => { b.hidden = true; b.classList.remove("is-leaving"); }, 220);
+    // Animation xuất hiện đã chạy SAU màn chờ → chạy lại cho tổng quan để thấy nội dung "vào" khi màn chờ mờ đi.
+    stagger($("dashGrid")); countUp($("dashGrid"));
+  }
+
   auth.onAuthStateChanged(user => {
     if (user) {
+      showBoot("Đang tải dữ liệu…");
       $("loginView").hidden = true;
       $("adminView").hidden = false;
       $("who").textContent = "Đăng nhập: " + (user.email || user.uid);
-      loadEventList();
+      requestAnimationFrame(moveNavInd);
+      loadEventList().finally(hideBoot);   // lỗi tải cũng bỏ màn chờ (thông báo lỗi nằm trong trang)
     } else {
+      hideBoot();
       $("adminView").hidden = true;
       $("loginView").hidden = false;
       $("password").value = "";
       activeEventId = "";
       cachedEvents  = [];
+      evRendered    = false;
     }
   });
 
   $("loginForm").addEventListener("submit", async e => {
     e.preventDefault();
+    const btn = $("btnLogin");
+    if (btn.disabled) return;                       // đang xử lý → bỏ qua bấm/Enter lặp
     $("loginErr").textContent = "";
+    btn.disabled = true; setBusy(btn, true); btn.querySelector(".btn-txt").textContent = "Đang đăng nhập…";
     try {
       await auth.signInWithEmailAndPassword($("email").value.trim(), $("password").value);
-    } catch (err) { $("loginErr").textContent = authMsg(err); }
+    } catch (err) {
+      $("loginErr").textContent = authMsg(err);
+      $("password").select();                       // lỗi → chọn sẵn mật khẩu để gõ lại
+    } finally {
+      btn.disabled = false; setBusy(btn, false); btn.querySelector(".btn-txt").textContent = "Đăng nhập";
+    }
   });
 
   $("btnLogout").addEventListener("click", () => auth.signOut());
@@ -693,8 +693,16 @@
   // ── Danh sách sự kiện ────────────────────────────────────────────────────
   $("btnRefresh").addEventListener("click", loadEventList);
 
+  // Skeleton CHỈ ở lần tải đầu. Tải lại (nút Làm mới, sau Mở/Kết thúc/Xóa/Lưu) giữ nguyên nội dung cũ rồi thay
+  // tại chỗ, không replay animation — tránh "chớp" nội dung → skeleton → nội dung (stale-while-revalidate).
   async function loadEventList() {
-    $("evListWrap").innerHTML = loadingState("Đang tải danh sách sự kiện…");
+    const first = !evRendered;
+    if (first) {
+      $("evListWrap").innerHTML = skelEvCards(3);
+      $("dashGrid").innerHTML   = skelDash();
+    }
+    busy($("evListWrap"), true); busy($("dashGrid"), true);
+    $("btnRefresh").classList.add("is-spinning");
     try {
       const [listSnap, activeSnap] = await Promise.all([
         db.collection("config").doc("eventList").get(),
@@ -704,8 +712,10 @@
       const ids = listSnap.exists && Array.isArray(listSnap.data().ids) ? listSnap.data().ids : [];
 
       if (!ids.length) {
-        $("evListWrap").innerHTML = emptyState("Chưa có sự kiện nào.<br>Tạo sự kiện đầu tiên trong thẻ bên dưới.");
+        cachedEvents = [];
+        renderEvList([], first);
         syncSigSelect([]);
+        evRendered = true;
         return;
       }
 
@@ -727,8 +737,11 @@
         const icons  = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons : [];
         const capForIcon = em => { const c = caps[em]; return (typeof c === "number" && c > 0) ? c : gcap; };
         let registrations = 0, teamsFull = 0;
+        ev.teamCounts = {};   // icon → số người (dashboard vẽ biểu đồ theo đội)
+        ev.capForIcon = capForIcon;
         if (teamSnaps[i]) teamSnaps[i].docs.forEach(t => {
           const c = (t.data().count) || 0;
+          ev.teamCounts[t.id] = c;
           registrations += c;
           const tc = capForIcon(t.id);                 // sĩ số riêng đội (doc id = emoji) nếu có, ngược lại chung
           if (tc && c >= tc) teamsFull++;
@@ -742,85 +755,34 @@
         (((b.cfg && b.cfg.createdAt && b.cfg.createdAt.seconds) || 0) -
          ((a.cfg && a.cfg.createdAt && a.cfg.createdAt.seconds) || 0)));
 
-      renderEvList(cachedEvents);
+      renderEvList(cachedEvents, first);
       syncSigSelect(cachedEvents);
+      evRendered = true;
     } catch (err) {
-      $("evListWrap").innerHTML =
-        "<p class='err' style='font-size:14px;'>Lỗi tải danh sách: " + esc(err.message || String(err)) + "</p>";
+      const text = "Lỗi tải danh sách: " + (err.message || String(err));
+      if (first) {
+        const msg = "<p class='err' style='font-size:14px;'>" + esc(text) + "</p>";
+        $("evListWrap").innerHTML = msg;
+        $("dashGrid").innerHTML   = msg;
+      } else toast(text, "err");          // đã có dữ liệu → giữ bản cũ, báo lỗi bằng toast
+    } finally {
+      busy($("evListWrap"), false); busy($("dashGrid"), false);
+      $("btnRefresh").classList.remove("is-spinning");
     }
   }
 
-  // Thanh lấp đầy — trang trí (số % đã có ở dòng stats) nên aria-hidden. CSS chỉ hiện ở theme midnight.
-  function fillBar(pct) {
-    const p = Math.max(0, Math.min(100, Number(pct) || 0));
-    return `<div class="ev-fill" aria-hidden="true"><span style="--p:${p}%"></span></div>`;
-  }
+  // ── Render: helpers dùng chung ───────────────────────────────────────────
+  const clampPct = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+  const evTitle  = ev => (ev.cfg && ev.cfg.title) ? ev.cfg.title : ev.id;
+  const evIcons  = ev => (ev.cfg && Array.isArray(ev.cfg.icons)) ? ev.cfg.icons : [];
+  const bar      = (pct, k) => `<div class="bar" aria-hidden="true"><span style="width:${clampPct(pct)}%"${k ? ` data-k="${esc(k)}" data-flip="x"` : ""}></span></div>`;
+  const statusPill = live => live
+    ? `<span class="pill pill-live"><span class="dot"></span>Đang chạy</span>`
+    : `<span class="pill">Đã kết thúc</span>`;
 
-  // Hàng KPI tổng quan trên danh sách sự kiện (theme midnight). Số liệu lấy từ ev.metrics sẵn có.
-  function renderEvKpis(events) {
-    const live = events.find(ev => ev.id === activeEventId && ev.exists);
-    const m    = live && live.metrics || null;
-    const nTeam = live && live.cfg && Array.isArray(live.cfg.icons) ? live.cfg.icons.length : 0;
-    const kpi = (k, v, sub, extra = "", cls = "") =>
-      `<div class="kpi${cls}"><div class="kpi-k">${k}</div><div class="kpi-v">${v}</div>`
-      + (sub ? `<div class="kpi-sub">${sub}</div>` : "") + extra + `</div>`;
-    return '<div class="ev-kpis">'
-      + kpi("Đang chạy", live ? esc(live.cfg.title || live.id) : "Không có",
-            live ? `ID: ${esc(live.id)}` : `${events.length} sự kiện trong danh sách`, "", " is-hero")
-      + kpi("Lượt đăng ký", m ? m.registrations : "—", m ? `trên ${m.totalCap} chỗ` : "Chưa mở sự kiện nào")
-      + kpi("Đội đã đầy", m ? `${m.teamsFull}<span style="color:var(--mut);font-size:.6em"> / ${nTeam}</span>` : "—", m ? "đội đạt sĩ số" : "")
-      + kpi("Lấp đầy", m ? `${m.fillRate}%` : "—", "", m ? fillBar(m.fillRate) : "")
-      + '</div>';
-  }
-
-  function renderEvList(events) {
-    if (!events.length) {
-      $("evListWrap").innerHTML = emptyState("Chưa có sự kiện nào.");
-      return;
-    }
-    $("evListWrap").innerHTML = renderEvKpis(events) + '<div class="ev-list">'
-      + events.map(ev => {
-          const isActive = ev.id === activeEventId;
-          const title    = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
-          const cap      = ev.cfg && ev.cfg.capacity != null ? ev.cfg.capacity : "?";
-          const nTeam    = ev.cfg && Array.isArray(ev.cfg.icons) ? ev.cfg.icons.length : "?";
-          const hasCaps  = ev.cfg && ev.cfg.caps && Object.keys(ev.cfg.caps).length > 0;   // có đội đặt sĩ số riêng
-          const m        = ev.metrics || { registrations: 0, teamsFull: 0, totalCap: 0, fillRate: 0 };
-          const created  = ev.cfg && ev.cfg.createdAt ? fmtTime(ev.cfg.createdAt) : "—";
-          const badge    = isActive
-            ? `<span class="ev-live"><span class="dot"></span>Đang chạy</span>`
-            : `<span class="ev-status">Đã kết thúc</span>`;
-          // Nút "Xóa sự kiện" chỉ bật khi KHÔNG đang chạy và đã sạch dữ liệu.
-          const canDelete = !isActive && m.registrations === 0;
-          const delTitle  = isActive ? "Đang chạy — kết thúc trước"
-                          : (m.registrations > 0 ? "Còn dữ liệu — xóa dữ liệu trước" : "Xóa hẳn sự kiện");
-          const openCtl   = isActive
-            ? `<button class="ev-end btn-sm" data-action="end" data-id="${esc(ev.id)}" data-name="${esc(title)}">Kết thúc</button>`
-            : `<button class="btn-ok btn-sm" data-action="open" data-id="${esc(ev.id)}" data-name="${esc(title)}">Mở</button>`;
-          const controls = ev.exists
-            ? `${openCtl}
-               <button class="btn-ghost btn-sm" data-action="edit"   data-id="${esc(ev.id)}">Sửa</button>
-               <button class="btn-ghost btn-sm" data-action="clone"  data-id="${esc(ev.id)}">Nhân bản</button>
-               <button class="btn-del   btn-sm" data-action="clear"  data-id="${esc(ev.id)}" data-name="${esc(title)}">Xóa dữ liệu</button>
-               <button class="btn-del   btn-sm" data-action="delete" data-id="${esc(ev.id)}" data-name="${esc(title)}"${canDelete ? "" : " disabled"} title="${esc(delTitle)}">Xóa sự kiện</button>`
-            : `<button class="btn-del btn-sm" data-action="delete" data-id="${esc(ev.id)}" data-name="${esc(title)}" title="Gỡ mục hỏng khỏi danh sách">Gỡ khỏi danh sách</button>`;
-          const stats = ev.exists
-            ? `<b>${m.registrations}</b> người &nbsp;·&nbsp; ${hasCaps ? `${nTeam} đội · ${m.totalCap} chỗ` : `${nTeam} đội × ${cap}`} &nbsp;·&nbsp; `
-              + `${m.teamsFull} đội đầy &nbsp;·&nbsp; lấp đầy ${m.fillRate}% &nbsp;·&nbsp; tạo ${esc(created)}`
-            : `<span style="color:var(--danger)">Thiếu cấu hình (mục hỏng)</span>`;
-          return `<div class="ev-row${isActive ? " is-active" : ""}">
-            <div class="ev-info">
-              <div class="ev-title">${esc(title)} ${badge}</div>
-              <div class="ev-meta">ID: <code>${esc(ev.id)}</code></div>
-              <div class="ev-meta ev-stats">${stats}</div>
-              ${ev.exists ? fillBar(m.fillRate) : ""}
-            </div>
-            <div class="ev-actions">${controls}</div>
-          </div>`;
-        }).join("")
-      + "</div>";
-
-    $("evListWrap").querySelectorAll("button[data-action]").forEach(btn => {
+  // Gắn handler cho mọi button[data-action] trong 1 vùng (lưới sự kiện + dashboard dùng chung).
+  function bindEvActions(root) {
+    root.querySelectorAll("button[data-action]").forEach(btn => {
       btn.addEventListener("click", () => {
         const id   = btn.dataset.id;
         const name = btn.dataset.name || id;
@@ -834,6 +796,235 @@
         }
       });
     });
+  }
+
+  // ── Trang Sự kiện: lưới card ─────────────────────────────────────────────
+  // animate = true chỉ khi vẽ lần đầu (thay skeleton); các lần vẽ lại thay số tại chỗ, không stagger/đếm lại từ 0.
+  function renderEvList(events, animate = false) {
+    $("evCount").textContent = events.length;
+    const prevEv = animate ? null : snapValues($("evListWrap"));
+    if (!events.length) {
+      $("evListWrap").innerHTML = emptyState("Chưa có sự kiện nào.<br>Bấm <b>Tạo sự kiện</b> để bắt đầu.");
+      renderDashboard(events, animate);
+      return;
+    }
+    $("evListWrap").innerHTML = '<div class="ev-grid">' + events.map(ev => {
+      const isActive = ev.id === activeEventId;
+      const title    = evTitle(ev);
+      const idA      = `data-id="${esc(ev.id)}" data-name="${esc(title)}"`;
+      if (!ev.exists) {
+        return `<article class="ev-card is-broken">
+          <header class="ev-card-head"><h3>${esc(ev.id)}</h3><span class="pill pill-bad">Mục hỏng</span></header>
+          <p class="hint">Có trong danh sách nhưng thiếu cấu hình (meta/config).</p>
+          <footer class="ev-card-foot"><span></span>
+            <button class="btn-del btn-sm" data-action="delete" ${idA} title="Gỡ mục hỏng khỏi danh sách">Gỡ khỏi danh sách</button></footer>
+        </article>`;
+      }
+      const cap     = ev.cfg.capacity != null ? ev.cfg.capacity : "?";
+      const nTeam   = evIcons(ev).length;
+      const hasCaps = ev.cfg.caps && Object.keys(ev.cfg.caps).length > 0;   // có đội đặt sĩ số riêng
+      const m       = ev.metrics || { registrations: 0, teamsFull: 0, totalCap: 0, fillRate: 0 };
+      const created = ev.cfg.createdAt ? fmtTime(ev.cfg.createdAt) : "—";
+      // "Xóa sự kiện" chỉ bật khi KHÔNG đang chạy và đã sạch dữ liệu.
+      const canDelete = !isActive && m.registrations === 0;
+      const delTitle  = isActive ? "Đang chạy — kết thúc trước"
+                      : (m.registrations > 0 ? "Còn dữ liệu — xóa dữ liệu trước" : "Xóa hẳn sự kiện");
+      const primary = isActive
+        ? `<button class="btn-danger btn-sm" data-action="end" ${idA}>Kết thúc</button>`
+        : `<button class="btn-ok btn-sm" data-action="open" ${idA}>Mở sự kiện</button>`;
+      return `<article class="ev-card${isActive ? " is-live" : ""}">
+        <header class="ev-card-head">
+          <div class="ev-card-title"><h3>${esc(title)}</h3>${statusPill(isActive)}</div>
+          <code class="ev-id">${esc(ev.id)}</code>
+        </header>
+        <div class="ev-card-stats">
+          <div><b><span data-k="ev:${esc(ev.id)}:reg" data-count="${m.registrations}">${fmtNum(m.registrations)}</span></b><span>người</span></div>
+          <div><b><span data-k="ev:${esc(ev.id)}:full" data-count="${m.teamsFull}">${m.teamsFull}</span><small>/${nTeam}</small></b><span>đội đầy</span></div>
+          <div><b><span data-k="ev:${esc(ev.id)}:fill" data-count="${m.fillRate}" data-suffix="%">${m.fillRate}%</span></b><span>lấp đầy</span></div>
+        </div>
+        ${bar(m.fillRate, "ev:" + ev.id + ":bar")}
+        <p class="ev-card-meta">${hasCaps ? `${nTeam} đội · ${m.totalCap} chỗ` : `${nTeam} đội × ${cap}`} · tạo ${esc(created)}</p>
+        <footer class="ev-card-foot">
+          <div class="btn-row">${primary}
+            <button class="btn-ghost btn-sm" data-action="edit" ${idA}>Sửa</button>
+            <button class="btn-ghost btn-sm" data-action="clone" ${idA}>Nhân bản</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn-del btn-sm" data-action="clear" ${idA}>Xóa dữ liệu</button>
+            <button class="btn-del btn-sm" data-action="delete" ${idA}${canDelete ? "" : " disabled"} title="${esc(delTitle)}">Xóa sự kiện</button>
+          </div>
+        </footer>
+      </article>`;
+    }).join("") + "</div>";
+    bindEvActions($("evListWrap"));
+    if (animate) {
+      stagger($("evListWrap").querySelector(".ev-grid"));
+      countUp($("evListWrap"));
+    } else morphValues($("evListWrap"), prevEv);          // vẽ lại: số đếm từ cũ → mới, thanh co giãn mượt
+    renderDashboard(events, animate);
+  }
+
+  // ── Trang Tổng quan (dashboard) ──────────────────────────────────────────
+  // Biểu đồ vẽ bằng HTML/SVG thuần (không thư viện). Số liệu: ev.metrics + ev.teamCounts (loadEventList)
+  // + 6 lượt đăng ký mới nhất của sự kiện đang chạy (1 query limit 6, admin-only).
+  function donut(pct) {
+    const p = clampPct(pct), r = 52, c = 2 * Math.PI * r;
+    return `<svg class="donut" viewBox="0 0 140 140" role="img" aria-label="Lấp đầy ${p}%">
+      <defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B97FF"/><stop offset="1" stop-color="#3B44E0"/></linearGradient></defs>
+      <circle cx="70" cy="70" r="${r}" class="donut-track"/>
+      <circle cx="70" cy="70" r="${r}" class="donut-val" data-k="donut:arc" stroke="url(#dg)" stroke-dasharray="${(c * p / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 70 70)"/>
+      <text x="70" y="68" class="donut-num" data-k="donut:n" data-count="${p}" data-suffix="%">${p}%</text><text x="70" y="88" class="donut-cap">lấp đầy</text></svg>`;
+  }
+
+  function renderDashboard(events, animate = false) {
+    const box  = $("dashGrid");
+    const live = events.find(ev => ev.id === activeEventId && ev.exists);
+    const prevDash = animate ? null : snapValues(box);          // chụp số/thanh cũ TRƯỚC khi innerHTML thay
+    const fx   = el => { if (animate) { stagger(el); countUp(el); } else morphValues(el, prevDash); };
+    // Vẽ lại cùng sự kiện đang chạy → giữ danh sách "Đăng ký mới nhất" cũ làm chỗ đứng, tải ngầm rồi thay (không skeleton).
+    const prevRecent = $("dashRecent");
+    const keepRecent = !animate && live && prevRecent && prevRecent.dataset.ev === live.id && !prevRecent.hasAttribute("aria-busy")
+      ? prevRecent.innerHTML : "";
+    const real = events.filter(ev => ev.exists);
+    const totalReg = real.reduce((s, ev) => s + ((ev.metrics && ev.metrics.registrations) || 0), 0);
+
+    // So sánh sự kiện (thanh ngang, giống "Travel Expenses" của template)
+    const maxReg = Math.max(1, ...real.map(ev => (ev.metrics && ev.metrics.registrations) || 0));
+    const compare = real.length
+      ? real.slice(0, 6).map(ev => {
+          const r = (ev.metrics && ev.metrics.registrations) || 0;
+          return `<li><div class="cmp-row"><span class="cmp-name">${esc(evTitle(ev))}${ev.id === activeEventId ? ' <span class="dot dot-live" title="Đang chạy"></span>' : ""}</span><b data-k="cmp:${esc(ev.id)}:n" data-count="${r}">${r}</b></div>${bar(r / maxReg * 100, "cmp:" + ev.id)}</li>`;
+        }).join("")
+      : `<li class="hint">Chưa có sự kiện.</li>`;
+
+    if (!live) {
+      box.innerHTML = `
+        <div class="card hero hero-empty">
+          <span class="eyebrow">Sự kiện đang chạy</span>
+          <h2>Chưa mở sự kiện nào</h2>
+          <p class="hint">Trang công khai đang không nhận đăng ký. Mở một sự kiện ở trang Sự kiện.</p>
+          <div class="btn-row"><button class="btn-pri" data-goto="tabEvents">Đến trang Sự kiện</button></div>
+        </div>
+        <div class="card kpi"><span class="kpi-k">Tổng sự kiện</span><b class="kpi-v" data-k="kpi:events" data-count="${events.length}">${events.length}</b><span class="kpi-sub">${real.length} có cấu hình</span></div>
+        <div class="card kpi"><span class="kpi-k">Tổng lượt đăng ký</span><b class="kpi-v" data-k="kpi:total" data-count="${totalReg}">${fmtNum(totalReg)}</b><span class="kpi-sub">cộng mọi sự kiện</span></div>
+        <div class="card span-2"><div class="card-head"><h3>So sánh sự kiện</h3><span class="hint">theo lượt đăng ký</span></div><ul class="cmp">${compare}</ul></div>`;
+      bindEvActions(box); fx(box);
+      return;
+    }
+
+    const m      = live.metrics || { registrations: 0, teamsFull: 0, totalCap: 0, fillRate: 0 };
+    const icons  = evIcons(live);
+    const counts = live.teamCounts || {};
+    const capOf  = ic => (live.capForIcon ? live.capForIcon(ic) : live.cfg.capacity) || 0;
+    const teams  = icons.map(ic => {
+      const c = counts[ic.icon] || 0, cap = capOf(ic.icon);
+      return { key: live.id + ":" + ic.icon, label: ic.name || ic.icon, c, cap, pct: cap ? c / cap * 100 : 0, full: cap && c >= cap };
+    });
+    const free   = Math.max(0, m.totalCap - m.registrations);
+    const maxCap = Math.max(1, ...teams.map(t => t.cap || t.c));
+    const fmtWhen = ts => (ts && typeof ts.toMillis === "function") ? fmtTime(ts) : "Không giới hạn";
+
+    // Insight: câu tóm tắt rút ra từ số liệu (không phải AI) — đội đông/vắng nhất + số chỗ trống.
+    const open   = teams.filter(t => !t.full);
+    const most   = teams.slice().sort((a, b) => b.pct - a.pct)[0];
+    const least  = open.slice().sort((a, b) => a.pct - b.pct)[0];
+    const insight = !teams.length ? "Sự kiện chưa có đội nào."
+      : free === 0 ? `Tất cả ${teams.length} đội đã đủ người — sự kiện kín chỗ.`
+      : `Còn <b>${free}</b> chỗ trống. ${most ? `<b>${esc(most.label)}</b> đông nhất (${most.c}/${most.cap}).` : ""} `
+        + (least && least !== most ? `<b>${esc(least.label)}</b> còn trống nhiều nhất (${least.c}/${least.cap}).` : "");
+
+    const teamBars = teams.length ? teams.map(t => `
+        <div class="tb${t.full ? " is-full" : ""}" title="${esc(t.label)}: ${t.c}/${t.cap}">
+          <span class="tb-val" data-k="tb:${esc(t.key)}:n" data-count="${t.c}">${t.c}</span>
+          <div class="tb-track" style="height:calc((100% - 52px) * ${Math.max(0.18, (t.cap || t.c) / maxCap).toFixed(3)})"><div class="tb-fill" data-k="tb:${esc(t.key)}" data-flip="y" style="height:${clampPct(t.pct)}%"></div></div>
+          <span class="tb-label">${esc(t.label)}</span>
+        </div>`).join("")
+      : `<p class="hint">Sự kiện chưa có đội.</p>`;
+
+    box.innerHTML = `
+      <div class="card hero">
+        <span class="eyebrow">Sự kiện đang chạy</span>
+        <h2>${esc(evTitle(live))}</h2>
+        <div class="hero-meta">${statusPill(true)}<code class="ev-id">${esc(live.id)}</code></div>
+        <dl class="hero-dl">
+          <div><dt>Mở lúc</dt><dd>${esc(fmtWhen(live.cfg.openAt))}</dd></div>
+          <div><dt>Đóng lúc</dt><dd>${esc(fmtWhen(live.cfg.closeAt))}</dd></div>
+        </dl>
+        <div class="btn-row">
+          <button class="btn-pri" data-goto="tabSignups" data-event="${esc(live.id)}">Xem đăng ký</button>
+          <button class="btn-ghost" data-action="edit" data-id="${esc(live.id)}">Sửa</button>
+          <button class="btn-danger" data-action="end" data-id="${esc(live.id)}" data-name="${esc(evTitle(live))}">Kết thúc</button>
+        </div>
+      </div>
+
+      <div class="card donut-card">
+        <div class="card-head"><h3>Lấp đầy</h3></div>
+        ${donut(m.fillRate)}
+        <ul class="legend">
+          <li><span class="sw sw-a"></span>Đã đăng ký <b data-k="lg:reg" data-count="${m.registrations}">${fmtNum(m.registrations)}</b></li>
+          <li><span class="sw sw-b"></span>Còn trống <b data-k="lg:free" data-count="${free}">${fmtNum(free)}</b></li>
+        </ul>
+      </div>
+
+      <div class="kpi-stack">
+        <div class="card kpi"><span class="kpi-k">Lượt đăng ký</span><b class="kpi-v" data-k="kpi:reg" data-count="${m.registrations}">${fmtNum(m.registrations)}</b><span class="kpi-sub">trên ${fmtNum(m.totalCap)} chỗ</span></div>
+        <div class="card kpi"><span class="kpi-k">Đội đã đầy</span><b class="kpi-v"><span data-k="kpi:full" data-count="${m.teamsFull}">${m.teamsFull}</span><small>/${teams.length}</small></b><span class="kpi-sub">đội đạt sĩ số</span></div>
+      </div>
+
+      <div class="card span-2 teams-card">
+        <div class="card-head"><h3>Người theo đội</h3><span class="hint">cột đậm = đã đăng ký · khung = sĩ số</span></div>
+        <div class="tbars" role="img" aria-label="${esc(teams.map(t => `${t.label} ${t.c}/${t.cap}`).join(", "))}">${teamBars}</div>
+      </div>
+
+      <div class="card insight">
+        <span class="chip-tag">Nhận xét</span>
+        <p class="insight-text">${insight}</p>
+        <button class="icon-btn insight-go" data-goto="tabSignups" data-event="${esc(live.id)}" aria-label="Xem đăng ký">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>So sánh sự kiện</h3></div>
+        <ul class="cmp">${compare}</ul>
+      </div>
+
+      <div class="card span-2">
+        <div class="card-head"><h3>Đăng ký mới nhất</h3><button class="btn-ghost btn-sm" data-goto="tabSignups" data-event="${esc(live.id)}">Xem tất cả</button></div>
+        <ul class="recent" id="dashRecent" data-ev="${esc(live.id)}">${keepRecent}</ul>
+      </div>`;
+    bindEvActions(box);
+    if (animate) stagger(box.querySelector(".tbars"), ".tb", "");
+    fx(box);
+    loadRecent(live, !!keepRecent);
+  }
+
+  // 6 lượt đăng ký mới nhất (orderBy at desc). Lỗi (vd thiếu quyền) → hiện thông báo trong ô, không vỡ trang.
+  // quiet = đang giữ danh sách cũ → không skeleton, không stagger khi thay.
+  async function loadRecent(live, quiet = false) {
+    const ul = $("dashRecent");
+    if (!ul) return;
+    if (!quiet) {
+      ul.innerHTML = Array.from({ length: 4 }, () => `<li class="sk-li">${sk("sk-av")}<div class="recent-main">${sk("w60 h12")}${sk("w40 h10")}</div></li>`).join("");
+      busy(ul, true);
+    }
+    try {
+      const snap = await db.collection("events").doc(live.id).collection("signups").orderBy("at", "desc").limit(6).get();
+      if ($("dashRecent") !== ul) return;              // dashboard đã vẽ lại trong lúc chờ → bỏ kết quả cũ
+      const icons = {}; evIcons(live).forEach(g => { icons[g.icon] = g.name || g.icon; });
+      const rows = snap.docs.map(d => d.data()).sort((a, b) => ((b.at && b.at.seconds) || 0) - ((a.at && a.at.seconds) || 0));
+      ul.innerHTML = rows.length ? rows.map(r => {
+        const nm = String(r.name || "—");
+        const ini = nm.trim().split(/\s+/).pop().charAt(0).toUpperCase() || "?";
+        return `<li><span class="avatar" aria-hidden="true">${esc(ini)}</span>
+          <div class="recent-main"><b>${esc(nm)}</b><span>${esc(icons[r.icon] || r.icon || "—")} · <time>${esc(fmtTime(r.at))}</time></span></div></li>`;
+      }).join("") : `<li class="hint">Chưa có ai đăng ký.</li>`;
+      busy(ul, false);
+      if (!quiet) stagger(ul);
+    } catch (err) {
+      if ($("dashRecent") !== ul) return;
+      busy(ul, false);
+      if (!quiet) ul.innerHTML = `<li class="hint">Không tải được: ${esc(err.message || String(err))}</li>`;
+    }
   }
 
   async function openEvent(eid, name) {
@@ -873,15 +1064,14 @@
 
   async function cloneEvent(eid) {
     const ev = cachedEvents.find(e => e.id === eid);
-    if (!ev || !ev.cfg) { alert("Không tìm thấy cấu hình sự kiện."); return; }
+    if (!ev || !ev.cfg) { confirmModal({ title: "Không nhân bản được", message: "Không tìm thấy cấu hình sự kiện.", confirmText: "Đóng", cancelText: "" }); return; }
     populateForm(ev.cfg, "");
     $("formHeading").textContent = `Nhân bản từ "${ev.cfg.title || eid}"`;
     $("btnSave").textContent = "Tạo bản sao";
-    $("btnCancel").hidden = false;
     const banner = $("formModeBanner");
     banner.hidden = false;
     banner.className = "form-mode dup";
-    banner.textContent = `⧉ Nhân bản từ: ${ev.cfg.title || eid}`;
+    banner.textContent = "Đặt ID mới trước khi lưu.";
     flashForm();
   }
 
@@ -996,11 +1186,10 @@
     $("fId").readOnly = true;
     $("formHeading").textContent = `Sửa "${ev.cfg.title || eid}"` + (eid === activeEventId ? " (đang chạy)" : "");
     $("btnSave").textContent = "Lưu thay đổi";
-    $("btnCancel").hidden = false;
     const banner = $("formModeBanner");
     banner.hidden = false;
     banner.className = "form-mode edit";
-    banner.textContent = `✏️ Đang sửa sự kiện: ${ev.cfg.title || eid}` + (eid === activeEventId ? " (đang chạy)" : "");
+    banner.textContent = (eid === activeEventId ? "Sự kiện đang chạy: ai đang mở trang cần tải lại mới thấy thay đổi." : "Không đổi được ID khi sửa.");
     flashForm();
   }
 
@@ -1017,16 +1206,16 @@
     const row = document.createElement("div");
     row.className = "dyn-row";
     row.innerHTML =
-      `<input class="inp-key" type="text" placeholder="key (vd: name)" value="${esc(f.key)}" title="Tên biến (a-z, không dấu, không khoảng trắng)" />` +
-      `<input type="text" placeholder="Nhãn hiển thị" value="${esc(f.label)}" style="flex:2;" />` +
-      `<select title="Kiểu nhập" style="width:80px;">` +
+      `<input class="inp-key" type="text" placeholder="Mã (vd: name)" value="${esc(f.key)}" title="Mã: chữ a-z, không dấu, không khoảng trắng" />` +
+      `<input class="inp-label" type="text" placeholder="Nhãn" value="${esc(f.label)}" />` +
+      `<select class="inp-type" title="Kiểu nhập">` +
         `<option value="text"${f.type==="text"?" selected":""}>text</option>` +
         `<option value="email"${f.type==="email"?" selected":""}>email</option>` +
         `<option value="tel"${f.type==="tel"?" selected":""}>tel</option>` +
       `</select>` +
       `<label class="cb-wrap" title="Bắt buộc nhập"><input type="checkbox"${f.required?" checked":""} /> Bắt buộc</label>` +
-      `<input type="text" placeholder="Placeholder (tuỳ chọn)" value="${esc(f.placeholder||"")}" style="flex:2;" />` +
-      `<button type="button" class="btn-del" title="Xoá ô này">✕</button>`;
+      `<input class="inp-ph" type="text" placeholder="Gợi ý (không bắt buộc)" value="${esc(f.placeholder||"")}" />` +
+      `<button type="button" class="btn-del icon-del" title="Xoá ô này" aria-label="Xoá ô này">${ICON_X}</button>`;
     row.querySelector(".btn-del").addEventListener("click", () => { row.remove(); syncDedupSelect(); });
     row.querySelector(".inp-key").addEventListener("input", syncDedupSelect);
     $("fieldsList").appendChild(row);
@@ -1041,15 +1230,15 @@
     const row = document.createElement("div");
     row.className = "dyn-row";
     row.innerHTML =
-      `<input class="inp-emoji" type="text" placeholder="🦊" value="${esc(ic.icon)}" maxlength="4" title="Emoji đội (phải duy nhất)" />` +
-      `<input type="text" placeholder="Tên đội" value="${esc(ic.name)}" style="flex:2;" />` +
+      `<input class="inp-emoji" type="text" placeholder="Tự đặt" value="${esc(ic.icon)}" maxlength="4" title="Emoji hoặc số của đội (không trùng). Để trống = tự đặt số thứ tự" aria-label="Icon đội" />` +
+      `<input class="inp-label" type="text" placeholder="Tên đội" value="${esc(ic.name)}" />` +
       `<input class="inp-color" type="color" value="${esc(ic.color||"#4f8cff")}" title="Màu thẻ đội" />` +
-      `<input class="inp-cap" type="number" min="1" max="9999" placeholder="chung" value="${(cap != null && cap !== "") ? esc(String(cap)) : ""}" title="Sĩ số RIÊNG đội này (để trống = dùng sĩ số chung)" style="width:78px;" />` +
-      `<select class="inp-gender" title="Giới tính của phòng — chỉ có tác dụng khi bật 'Check giới tính'" style="width:96px;">` +
+      `<input class="inp-cap" type="number" min="1" max="9999" placeholder="chung" value="${(cap != null && cap !== "") ? esc(String(cap)) : ""}" title="Số người riêng của đội này (để trống = dùng số chung)" />` +
+      `<select class="inp-gender" title="Giới tính của phòng — chỉ áp dụng khi bật 'Chia phòng theo giới tính'">` +
         `<option value="">Chung</option>` +
         GENDER_OPTIONS.map(g => `<option value="${esc(g)}"${gender === g ? " selected" : ""}>${esc(g)}</option>`).join("") +
       `</select>` +
-      `<button type="button" class="btn-del" title="Xoá đội này">✕</button>`;
+      `<button type="button" class="btn-del icon-del" title="Xoá đội này" aria-label="Xoá đội này">${ICON_X}</button>`;
     row.querySelector(".btn-del").addEventListener("click", () => row.remove());
     $("iconsList").appendChild(row);
   }
@@ -1076,7 +1265,7 @@
     const keys = Array.from($("fieldsList").querySelectorAll(".inp-key"))
                       .map(i => i.value.trim()).filter(Boolean);
     $("fDedupField").innerHTML =
-      '<option value="">Không chống trùng</option>' +
+      '<option value="">Không kiểm tra trùng</option>' +
       keys.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join("");
     autoPickDedup();        // tạo mới: tự chọn field mã NV nếu có
     syncDedupControls();    // giữ checkbox "Chặn" đồng bộ với dropdown
@@ -1150,22 +1339,34 @@
     // Mỗi dòng đội: emoji/name (input[type=text]) + color + cap riêng (input.inp-cap, type=number).
     const caps = {};                 // emoji → sĩ số riêng (CHỈ đội có nhập cap hợp lệ); lưu vào meta/config.caps
     let capsInvalid = false;         // có ô cap nhập NHƯNG không phải số nguyên ≥ 1
-    const icons = Array.from($("iconsList").querySelectorAll(".dyn-row")).map(row => {
+    const rows = Array.from($("iconsList").querySelectorAll(".dyn-row")).map(row => {
       const texts  = row.querySelectorAll("input[type=text]");
       const icon   = texts[0].value.trim();
       const capEl  = row.querySelector(".inp-cap");
       const capRaw = capEl ? capEl.value.trim() : "";
+      let capNum = null;
       if (capRaw !== "") {
-        const capNum = parseInt(capRaw, 10);
-        if (isNaN(capNum) || capNum < 1) capsInvalid = true;
-        else if (icon) caps[icon] = capNum;
+        capNum = parseInt(capRaw, 10);
+        if (isNaN(capNum) || capNum < 1) { capsInvalid = true; capNum = null; }
       }
       const genderEl = row.querySelector(".inp-gender");
       const gender   = normGender(genderEl ? genderEl.value : "");
       const ic = { icon, name: texts[1].value.trim(), color: row.querySelector("input[type=color]").value };
       if (gender) ic.gender = gender;   // chỉ ghi khi có (Firestore từ chối undefined; phòng chung = không có key)
-      return ic;
+      return { ic, capNum, iconEl: texts[0] };
     });
+    // Icon để trống ⇒ tự gán số thứ tự CHƯA dùng ("1","2",…) — icon là khoá định danh đội (doc id teams/{icon}),
+    // không được rỗng. Ghi ngược vào ô để admin thấy và lần lưu sau giữ nguyên khoá (không đổi khoá đội).
+    const usedIcons = new Set(rows.map(r => r.ic.icon).filter(Boolean));
+    let nextNo = 1;
+    rows.forEach(r => {
+      if (!r.ic.icon) {
+        while (usedIcons.has(String(nextNo))) nextNo++;
+        r.ic.icon = String(nextNo); usedIcons.add(r.ic.icon); r.iconEl.value = r.ic.icon;
+      }
+      if (r.capNum != null) caps[r.ic.icon] = r.capNum;
+    });
+    const icons = rows.map(r => r.ic);
     // Lịch theo giờ: datetime-local hiểu là GIỜ VN (UTC+7) → ms epoch; trống = null (không giới hạn).
     const openAt   = vnInputToMs($("fOpenAt").value);
     const closeAt  = vnInputToMs($("fCloseAt").value);
@@ -1217,23 +1418,23 @@
       if (!ic.name) return "Có đội chưa điền tên.";
     }
     const emojis = d.icons.map(ic => ic.icon);
-    if (new Set(emojis).size !== emojis.length) return "Có emoji đội bị trùng — mỗi đội cần một emoji duy nhất.";
+    if (new Set(emojis).size !== emojis.length) return "Có 2 đội trùng icon. Mỗi đội cần một icon riêng.";
     // Không cho lưu cấu hình vô hiệu: chặn trùng bật nhưng chưa chọn field nào.
     if (d.blockDup && !d.dedupField)
-      return "Hãy chọn field để chống trùng (vd: Mã nhân viên), hoặc đặt 'Không chống trùng' rồi bỏ tích chặn.";
+      return "Chọn ô kiểm tra trùng (vd: mã nhân viên), hoặc chọn 'Không kiểm tra trùng' rồi tắt 'Chặn đăng ký trùng'.";
     if (d.dedupField && !d.fields.some(f => f.key === d.dedupField))
-      return `Field chống trùng "${d.dedupField}" không nằm trong danh sách ô nhập.`;
+      return `Ô kiểm tra trùng "${d.dedupField}" không còn trong mục Thông tin người đăng ký điền.`;
     // Danh sách cho phép đối chiếu theo field chống trùng → bật mà chưa chọn field thì cấu hình vô nghĩa.
     if (d.allowlistMode && !d.dedupField)
-      return "Bật 'Danh sách cho phép' thì phải chọn field chống trùng — danh sách đối chiếu theo field này.";
+      return "Muốn bật 'Chỉ người trong danh sách được tham gia', hãy chọn ô kiểm tra trùng.";
     // "Đối chiếu họ tên" là tính năng con của allowlist → bật namecheck mà tắt allowlist là vô nghĩa.
     if (d.allowlistNameCheck && !d.allowlistMode)
-      return "Bật 'Đối chiếu họ tên' thì phải bật 'Danh sách cho phép' — khớp tên dựa trên danh sách.";
+      return "Muốn kiểm tra họ tên, hãy bật 'Chỉ người trong danh sách được tham gia'.";
     // "Check giới tính" cũng là tính năng con của allowlist (giới tính lấy từ cột Giới tính của danh sách).
     if (d.allowlistGenderCheck && !d.allowlistMode)
-      return "Bật 'Check giới tính' thì phải bật 'Danh sách cho phép' — giới tính lấy từ danh sách.";
+      return "Muốn chia phòng theo giới tính, hãy bật 'Chỉ người trong danh sách được tham gia'.";
     if (d.allowlistGenderCheck && !d.icons.some(ic => ic.gender))
-      return "Bật 'Check giới tính' nhưng chưa gắn Nam/Nữ cho đội/phòng nào — chọn giới tính ở cột cuối mỗi dòng đội.";
+      return "Đã bật chia phòng theo giới tính nhưng chưa đội nào chọn Nam/Nữ. Chọn ở ô cuối mỗi dòng trong mục Đội.";
     return null;
   }
 
@@ -1257,6 +1458,7 @@
 
     $("btnSave").disabled    = true;
     $("btnSave").textContent = "Đang lưu…";
+    setBusy($("btnSave"), true);
     try {
       await db.collection("events").doc(d.eventId).collection("meta").doc("config").set({
         title:      d.title,
@@ -1276,13 +1478,15 @@
       });
       await db.collection("config").doc("eventList")
               .set({ ids: FV.arrayUnion(d.eventId) }, { merge: true });
-      $("formOk").textContent = `Đã tạo sự kiện "${d.eventId}" thành công!`;
       resetForm();
+      closeDrawer();
+      toast(`Đã tạo sự kiện "${d.eventId}".`);
       await loadEventList();
     } catch (err) {
       $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
     } finally {
       $("btnSave").disabled    = false;
+      setBusy($("btnSave"), false);
       $("btnSave").textContent = "Tạo sự kiện";
     }
   });
@@ -1294,7 +1498,7 @@
     try {
       tSnap = await db.collection("events").doc(editingId).collection("teams").get();
     } catch (e) {
-      $("formErr").textContent = "Không đọc được sĩ số đội để kiểm tra an toàn — hủy lưu. " + (e.message || e);
+      $("formErr").textContent = "Không đọc được số người hiện có của các đội nên chưa lưu. " + (e.message || e);
       return;
     }
 
@@ -1339,6 +1543,7 @@
 
     $("btnSave").disabled    = true;
     $("btnSave").textContent = "Đang lưu…";
+    setBusy($("btnSave"), true);
     try {
       // merge:true + KHÔNG ghi createdAt ⇒ giữ createdAt gốc và mọi key chưa biết. Ghi đè vào ID GỐC (editingId).
       await db.collection("events").doc(editingId).collection("meta").doc("config").set({
@@ -1361,18 +1566,19 @@
       await db.collection("events").doc(editingId).collection("meta").doc("config").update({ caps: d.caps });
       const wasActive = editingId === activeEventId;
       const savedId   = editingId;
-      resetForm();                 // xóa editingId, mở khóa fId, đổi nhãn nút về "Tạo sự kiện" (cũng xóa formOk)
-      $("formOk").textContent = `Đã lưu thay đổi cho "${savedId}".` +
-        (wasActive ? " Người đang mở trang công khai cần TẢI LẠI trang để thấy thay đổi." : "");
+      resetForm();                 // xóa editingId, mở khóa fId, đổi nhãn nút về "Tạo sự kiện"
+      closeDrawer();
+      toast(`Đã lưu "${savedId}".` + (wasActive ? " Người đang mở trang công khai cần tải lại trang." : ""));
       await loadEventList();
     } catch (err) {
       $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
       $("btnSave").disabled    = false;
+      setBusy($("btnSave"), false);
       $("btnSave").textContent = "Lưu thay đổi";
     }
   }
 
-  $("btnCancel").addEventListener("click", () => { resetForm(); });
+  $("btnCancel").addEventListener("click", cancelDrawer);
 
   function resetForm(seed = true) {
     editingId    = "";
@@ -1393,7 +1599,7 @@
     $("fAllowlistGenderCheck").checked = false;
     $("fieldsList").innerHTML = "";
     $("iconsList").innerHTML  = "";
-    $("fDedupField").innerHTML = '<option value="">Không chống trùng</option>';
+    $("fDedupField").innerHTML = '<option value="">Không kiểm tra trùng</option>';
     $("fDedupField").dataset.manual = "";
     // Tạo mới: seed sẵn field mặc định (gồm ô họ tên key "name") để admin khỏi gõ tay sai key.
     // populateForm (Sửa/Nhân bản) gọi resetForm(false) vì sẽ tự thêm field của sự kiện bên dưới.
@@ -1402,21 +1608,16 @@
     syncDedupControls();
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
-    $("btnCancel").hidden    = true;
     $("btnSave").disabled    = false;
+    setBusy($("btnSave"), false);
     $("btnSave").textContent = "Tạo sự kiện";
     $("formHeading").textContent = "Tạo sự kiện mới";
     const banner = $("formModeBanner");
     if (banner) { banner.hidden = true; banner.className = "form-mode"; banner.textContent = ""; }
   }
 
-  // Cuộn tới form + nháy viền để admin nhận ra form vừa đổi chế độ (sửa / nhân bản).
-  function flashForm() {
-    const card = $("createCard");
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
-    card.classList.remove("flash"); void card.offsetWidth;   // ép restart animation
-    card.classList.add("flash");
-  }
+  // Sửa / nhân bản: form đã điền sẵn → mở drawer.
+  function flashForm() { openDrawer(); }
 
   // Firestore Timestamp → chuỗi cho input datetime-local (giờ ĐỊA PHƯƠNG). "" nếu không có.
   // Đổ Timestamp về ô datetime-local theo GIỜ VN (UTC+7): dời instant +7h rồi đọc bằng getUTC* (round-trip với vnInputToMs).
@@ -1509,7 +1710,7 @@
     $("btnUnblock").disabled = true;
     try {
       await db.collection("events").doc(eid).collection("reg_keys").doc(key).delete();   // chỉ xóa hold giữ chỗ; GIỮ dedup_keys (đã join thì vẫn chặn chọn lại)
-      msg.style.color = "#16A34A";
+      msg.style.color = "var(--ok)";
       msg.textContent = `Đã mở khóa cổng cho "${raw}" (key: ${key}). Chưa chọn đội → tải lại vào được; đã ở đội → vẫn chặn chọn lại.`;
       $("unblockCode").value = "";
     } catch (err) {
@@ -1520,8 +1721,13 @@
     }
   });
 
+  // Tải lại đúng sự kiện đang xem (nút Tải dữ liệu, sau Bỏ chặn) → giữ bảng cũ, thay tại chỗ; đổi sự kiện → skeleton.
+  let sigShownEid = "";
   async function loadSignups(eid) {
     $("loadErr").textContent = "";
+    const reload = sigShownEid === eid;
+    if (!reload) $("tbody").innerHTML = skelRows(6, Math.max(4, $("thead").querySelectorAll("th").length || 5));
+    busy($("tbody"), true);
     try {
       const [sigSnap, cfgSnap] = await Promise.all([
         db.collection("events").doc(eid).collection("signups").get(),
@@ -1547,8 +1753,10 @@
         if (tn) return tn;
         return (a.at && a.at.seconds || 0) - (b.at && b.at.seconds || 0);
       });
-      renderSigTable(eid, teamLabel);
+      renderSigTable(eid, teamLabel, !reload);
+      sigShownEid = eid;
     } catch (err) {
+      sigShownEid = "";
       sigRows = []; sigFields = []; sigDedupField = "";
       $("thead").innerHTML = "";
       $("tbody").innerHTML = "";
@@ -1559,10 +1767,12 @@
       $("loadErr").textContent = /permission|insufficient/i.test(msg)
         ? "Tài khoản này chưa có quyền xem. Dán UID vào mảng admin trong firestore.rules rồi Publish lại."
         : "Lỗi tải dữ liệu: " + msg;
+    } finally {
+      busy($("tbody"), false);
     }
   }
 
-  function renderSigTable(eid, teamLabel) {
+  function renderSigTable(eid, teamLabel, animate = true) {
     if (!sigRows.length) {
       $("thead").innerHTML = "";
       $("tbody").innerHTML = "<tr class='empty-tr'><td colspan='99'>" +
@@ -1607,6 +1817,8 @@
       .join("");
 
     renderDupWarn(dupGroups, dupKeys, teamLabel);
+    busy($("tbody"), false);
+    if (animate) stagger($("tbody"), null, "anim-rows");
   }
 
   // Hộp cảnh báo: liệt kê các giá trị (vd MSNV) bị trùng để admin xử lý thủ công.
@@ -1798,8 +2010,8 @@
       el.empty.hidden = cur.rows.length !== 0;
       el.body.innerHTML = rows.map((r,i)=>
         `<tr><td class="num">${i+1}</td><td>${esc(r.key)}</td><td>${esc(r.name||'')}</td><td>${esc(r.gender||'')}</td>`+
-        `<td><button class="al-edit btn-ghost btn-sm" data-key="${esc(r.key)}" data-name="${esc(r.name||'')}" data-gender="${esc(r.gender||'')}" title="Sửa">✎</button> `+
-        `<button class="btn-del" data-key="${esc(r.key)}" title="Xoá">✕</button></td></tr>`).join('');
+        `<td class="td-act"><button class="al-edit icon-btn" data-key="${esc(r.key)}" data-name="${esc(r.name||'')}" data-gender="${esc(r.gender||'')}" title="Sửa" aria-label="Sửa ${esc(r.key)}">${ICON_EDIT}</button>`+
+        `<button class="btn-del icon-del" data-key="${esc(r.key)}" title="Xoá" aria-label="Xoá ${esc(r.key)}">${ICON_X}</button></td></tr>`).join('');
       el.count.textContent = cur.rows.length;
       setWarnings();
     }
@@ -1916,7 +2128,7 @@
               (nEmpty ? ` · ${nEmpty} trống` : '') +
               (nBad ? ` · ⚠ ${nBad} ô không hiểu (chỉ nhận Nam/Nữ/Male/Female/M/F)` : '') + '.';
           } else if (cur.genderCheck){
-            msg += ' ⚠ Sự kiện đang bật Check giới tính nhưng file KHÔNG có cột “Giới tính”.';
+            msg += ' ⚠ Sự kiện đang bật Chia phòng theo giới tính nhưng file KHÔNG có cột “Giới tính”.';
           }
           msg += hasSeed
             ? ' Tích “Chia đội” rồi bấm “Xoá cũ & nạp mới” để làm mới + chia đội; hoặc bỏ tích để chỉ nạp danh sách.'
@@ -2060,7 +2272,7 @@
         }
         cancelEditOne();
         cur.rows = await data.list(cur.eid); renderList();
-        el.oneMsg.style.color = '#16A34A'; el.oneMsg.textContent = note;
+        el.oneMsg.style.color = 'var(--ok)'; el.oneMsg.textContent = note;
       } catch (err){
         el.oneMsg.style.color = 'var(--err)'; el.oneMsg.textContent = 'Lỗi: ' + (err.message || err);
       } finally { el.addOne.disabled = false; }
