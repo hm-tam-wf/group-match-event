@@ -2,8 +2,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAdmin() {
+    // Admin GỐC: UID hardcode — không thêm/gỡ được bằng dữ liệu (trang admin chỉ hiển thị; giữ khớp ROOT_ADMIN_UIDS trong fe/admin.html).
+    function isRootAdmin() {
       return request.auth != null && request.auth.uid in ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2", "tHN0gED97nS6KEmDBKO0SgJOiWJ3"];
+    }
+    // Admin = gốc HOẶC có doc admins/{uid} (thêm/gỡ ở trang admin, tab Quản trị). Kiểm request.auth != null TRƯỚC ⇒ client
+    // vô danh (trang sự kiện) dừng ngay, không tốn document access cho exists().
+    function isAdmin() {
+      return isRootAdmin() || (request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // Danh sách admin theo dữ liệu: chỉ admin đọc / thêm / gỡ. KHÔNG ai tự thêm chính mình (uid != người ghi); doc chỉ gồm
+    // ghi chú ≤200 ký tự + addedBy = người thêm + at = giờ máy chủ. Không sửa tại chỗ (muốn đổi ghi chú: gỡ rồi thêm lại).
+    match /admins/{uid} {
+      allow read:   if isAdmin();
+      allow create: if isAdmin()
+                    && uid != request.auth.uid
+                    && request.resource.data.keys().hasOnly(['note', 'addedBy', 'at'])
+                    && request.resource.data.addedBy == request.auth.uid
+                    && request.resource.data.at == request.time
+                    && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 200));
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     match /config/{doc} {
@@ -60,7 +80,8 @@ service cloud.firestore {
                           && request.resource.data.count <= capFor(icon)
                           && request.resource.data.names is list
                           && request.resource.data.names.size() == request.resource.data.count
-                          && request.resource.data.names[0:resource.data.names.size()] == resource.data.names
+                          // đội đang rỗng (admin reset/gỡ người về 0) ⇒ không so tiền tố: names[0:0] làm rules báo lỗi index ⇒ chặn nhầm
+                          && (resource.data.names.size() == 0 || request.resource.data.names[0:resource.data.names.size()] == resource.data.names)
                           && okName(request.resource.data.names[request.resource.data.names.size() - 1])
                           && inWindow());
         allow delete: if isAdmin();       // <-- cần để clear / xoá
@@ -70,7 +91,7 @@ service cloud.firestore {
         allow get:    if true;
         allow list:   if isAdmin();       // <-- cần để admin liệt kê khi clear
         allow create: if request.resource.data.keys().hasOnly(['icon', 'at']);
-        allow update: if false;
+        allow update: if isAdmin();       // client KHÔNG sửa (1 người 1 đội); admin "Chuyển phòng" đổi icon trong transaction
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
@@ -89,7 +110,7 @@ service cloud.firestore {
                              == (exists(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon))
                                   ? get(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon)).data.count
                                   : 0) + 1);
-        allow update: if false;
+        allow update: if isAdmin();       // client KHÔNG ghi đè khoá; admin "Chuyển phòng" cập nhật icon (k1 / m~)
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 

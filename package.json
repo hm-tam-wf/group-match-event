@@ -17,6 +17,7 @@
     "test:rules": "node tests/rules/run.js",
     "test:scripts": "node tests/scripts/run.js",
     "test:admin": "node tests/admin/run.js",
+    "test:admin-e2e": "node tests/admin-e2e/run.js",
     "test:e2e": "node tests/e2e/run.js",
     "smoke:live": "node tests/smoke/live-travel.js && node tests/smoke/live-bfcache.js"
   },

@@ -59,6 +59,8 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4-6"/></svg><span class="tab-txt">Đăng ký</span></button>
       <button class="tab" data-tab="tab-allowlist" data-title="Danh sách cho phép" data-sub="Chỉ người có tên trong danh sách mới được tham gia">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span class="tab-txt tab-long">Danh sách cho phép</span><span class="tab-short" aria-hidden="true">Cho phép</span></button>
+      <button class="tab" data-tab="tabAdmins" data-title="Quản trị viên" data-sub="Ai được vào trang quản trị — thêm hoặc gỡ theo UID">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 11-4.7"/><path d="M18 13.5v7M14.5 17h7"/></svg><span class="tab-txt">Quản trị</span></button>
     </nav>
 
     <div class="side-foot">
@@ -138,6 +140,33 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Tải lại</button>
       </div>
 
+      <!-- Nạp MỘT file mẫu: sheet "Nhân sự" → danh sách cho phép · sheet "Phòng" → danh sách đội (tên, số giường, giới tính) -->
+      <div class="panel tpl" id="tplPanel">
+        <div class="panel-head">
+          <h2>Nạp Nhân sự + Phòng từ file mẫu</h2>
+          <button id="tplDownload" class="btn-ghost btn-sm" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Tải file mẫu</button>
+        </div>
+        <div class="tpl-grid">
+          <div class="tpl-side">
+            <p class="hint">Một file .xlsx: sheet <b>Nhân sự</b> vào danh sách cho phép, sheet <b>Phòng</b> thay danh sách đội (tên, số giường, giới tính). File mẫu điền sẵn các phòng hiện có. Sửa hết lỗi mới nạp được.</p>
+            <label class="drop">
+              <input type="file" id="tplFile" accept=".xlsx,.xls" />
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+              <span>Chọn file mẫu đã điền</span>
+            </label>
+            <label class="switch" id="tplSeedWrap" hidden><input type="checkbox" id="tplSeed" /><span class="switch-ui" aria-hidden="true"></span>
+              <span>Xếp sẵn người có cột “Phòng” (<b>xoá toàn bộ đăng ký hiện có</b> rồi xếp)</span></label>
+            <div class="btn-row">
+              <button id="tplAdd" class="btn-pri" type="button" disabled>Nạp thêm</button>
+              <button id="tplReplace" class="btn-ghost" type="button" disabled>Xoá cũ &amp; nạp mới</button>
+            </div>
+            <div class="al-result" id="tplResult" role="status" hidden></div>
+          </div>
+          <div class="tpl-prev" id="tplPreview" aria-live="polite"><p class="hint">Chọn file để xem trước phòng, số người và lỗi từng dòng.</p></div>
+        </div>
+      </div>
+
       <div class="split split-left">
         <div class="stack">
           <div class="panel">
@@ -209,6 +238,41 @@
         </div>
       </div>
     </section>
+
+    <!-- ── TRANG: Quản trị viên — admins/{uid}; UID gốc khai trong firestore.rules (isRootAdmin) ── -->
+    <section id="tabAdmins" class="tab-panel" aria-label="Quản trị viên">
+      <div class="split split-left">
+        <div class="stack">
+          <div class="panel">
+            <div class="panel-head"><h2>Tài khoản của bạn</h2><span class="pill" id="admRole">—</span></div>
+            <div class="stat"><span class="stat-k">UID</span><span class="stat-v mono" id="admMyUid">—</span></div>
+            <div class="btn-row"><button id="admCopy" class="btn-ghost btn-sm" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Sao chép UID</button></div>
+            <p class="hint">Người mới cần có tài khoản đăng nhập (email/mật khẩu, tạo ở Firebase Console → Authentication). Họ đăng nhập trang này, thấy UID ở đây, gửi cho một quản trị viên thêm vào.</p>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Thêm quản trị viên</h2></div>
+            <label class="field"><span>UID</span><input type="text" id="admUid" placeholder="vd 3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2" spellcheck="false" autocomplete="off" /></label>
+            <label class="field"><span>Ghi chú (tuỳ chọn)</span><input type="text" id="admNote" placeholder="vd Lan — BTC Mini Outing" autocomplete="off" /></label>
+            <button id="admAdd" class="btn-pri" type="button">Thêm quản trị viên</button>
+            <p id="admMsg" class="hint" role="status"></p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Danh sách quản trị viên</h2>
+            <button id="admReload" class="btn-ghost btn-sm" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Tải lại</button></div>
+          <p id="admErr" class="err" role="alert"></p>
+          <div class="table-wrap">
+            <table class="reg-table adm-table">
+              <thead><tr><th>UID</th><th>Ghi chú</th><th>Thêm bởi</th><th>Lúc</th><th class="td-act"><span class="sr-only">Thao tác</span></th></tr></thead>
+              <tbody id="admBody"></tbody>
+            </table>
+          </div>
+          <p class="hint">UID gốc khai trong <code>backend/firestore.rules</code> (hàm isRootAdmin) luôn là quản trị viên — không gỡ được ở đây. Người bị gỡ mất quyền ngay ở lần đọc / ghi kế tiếp.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ═════════ Modal giữa màn hình: tạo / sửa / nhân bản sự kiện (class .drawer giữ tên cũ; mobile = toàn màn hình) ═════════ -->
@@ -222,8 +286,23 @@
       <button type="button" class="icon-btn" id="drawerClose" aria-label="Đóng">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </header>
+    <!-- 2 phần của form: Thiết lập (cấu hình đăng ký) · Nhận diện (meta/config.profile — giao diện, logo, chữ) -->
+    <div class="drawer-tabs" role="tablist" aria-label="Phần của form">
+      <button type="button" class="dtab" role="tab" id="dtabCfg" aria-controls="dpCfg" aria-selected="true">Thiết lập</button>
+      <button type="button" class="dtab" role="tab" id="dtabId" aria-controls="dpId" aria-selected="false" tabindex="-1">Nhận diện</button>
+    </div>
 
     <div class="drawer-body">
+     <div class="dpane" id="dpCfg" role="tabpanel" aria-labelledby="dtabCfg">
+      <!-- Chỉ hiện khi Nhân bản: chép kèm dữ liệu cấu hình phụ (KHÔNG chép dữ liệu đăng ký) -->
+      <fieldset class="fs" id="fsClone" hidden>
+        <legend>Nhân bản</legend>
+        <label class="switch"><input type="checkbox" id="fCloneAllow" checked /><span class="switch-ui" aria-hidden="true"></span>
+          <span>Chép kèm Danh sách cho phép <b id="fCloneAllowN"></b></span></label>
+        <label class="switch" id="fCloneHomeWrap" hidden><input type="checkbox" id="fCloneHome" checked /><span class="switch-ui" aria-hidden="true"></span>
+          <span>Chép kèm nội dung trang home</span></label>
+        <small class="hint">Bản sao giữ mọi cấu hình và hồ sơ (tab Nhận diện) của sự kiện gốc nhưng bắt đầu từ 0 người: không chép đăng ký, đội đã chọn, khoá chống trùng.</small>
+      </fieldset>
       <fieldset class="fs">
         <legend>Thông tin chung</legend>
         <label class="field"><span>Tên sự kiện</span><input type="text" id="fTitle" placeholder="vd: Team Building Q2" /></label>
@@ -252,6 +331,7 @@
         <label class="switch"><input type="checkbox" id="fBlockDup" checked /><span class="switch-ui" aria-hidden="true"></span><span>Chặn đăng ký trùng</span></label>
         <label class="switch"><input type="checkbox" id="fAllowlistMode" /><span class="switch-ui" aria-hidden="true"></span><span>Chỉ người trong danh sách được tham gia</span></label>
         <small class="hint" id="fAllowlistHint">Cần chọn <b>ô kiểm tra trùng</b>. Tạo xong, nạp file ở trang <b>Danh sách cho phép</b>.</small>
+        <div class="alert" id="fAllowWarn" role="status" hidden></div>
         <label class="switch"><input type="checkbox" id="fAllowlistNameCheck" /><span class="switch-ui" aria-hidden="true"></span><span>Kiểm tra <b>họ tên</b> khớp danh sách</span></label>
         <small class="hint" id="fNameCheckHint">File cần có cột tên. Không phân biệt dấu và chữ hoa/thường.</small>
         <label class="switch"><input type="checkbox" id="fAllowlistGenderCheck" /><span class="switch-ui" aria-hidden="true"></span><span>Chia phòng theo <b>giới tính</b></span></label>
@@ -271,6 +351,75 @@
         <div id="iconsList" class="dyn-list"></div>
         <button type="button" id="btnAddIcon" class="btn-ghost btn-sm">+ Thêm đội</button>
       </fieldset>
+     </div>
+
+     <!-- ── Nhận diện: soạn meta/config.profile (hợp đồng bước 2). Key không ghi = trang công khai giữ hành vi hiện tại. ── -->
+     <div class="dpane" id="dpId" role="tabpanel" aria-labelledby="dtabId" hidden>
+      <fieldset class="fs">
+        <legend>Giao diện &amp; ngôn ngữ</legend>
+        <div class="form-grid two">
+          <label class="field"><span>Giao diện</span><select id="pVariant"></select></label>
+          <label class="field"><span>Ngôn ngữ trang</span><select id="pLang"></select></label>
+        </div>
+        <small class="hint">Link có <code>?lang=vi</code> hoặc <code>?lang=en</code> vẫn thắng ngôn ngữ đặt ở đây.</small>
+        <label class="field field-narrow"><span>Giữ màn chào (ms)</span>
+          <input type="number" id="pIntro" step="100" placeholder="Theo giao diện" inputmode="numeric" />
+          <small class="hint" id="pIntroHint">Thời gian màn “terminal” trước khi mở form. Để trống = theo giao diện.</small></label>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Logo</legend>
+        <label class="field"><span>Khối logo</span>
+          <select id="pBrandMode">
+            <option value="skin">Dùng logo mặc định của giao diện</option>
+            <option value="custom">Logo riêng</option>
+            <option value="none">Ẩn khối logo</option>
+          </select></label>
+        <div class="form-grid" id="pBrandBox" hidden>
+          <label class="field"><span>Tên hiển thị</span><input type="text" id="pBrandName" placeholder="vd FARADAY" autocomplete="off" /></label>
+          <label class="field"><span>Ảnh logo</span><input type="text" id="pLogoUrl" placeholder="themes/…/logo.png hoặc https://…" spellcheck="false" autocomplete="off" /></label>
+          <label class="field"><span>Mô tả ảnh (alt)</span><input type="text" id="pLogoAlt" placeholder="vd Logo công ty" autocomplete="off" /></label>
+        </div>
+        <div class="logo-prev" id="pLogoPrev" hidden><img id="pLogoImg" alt="" /><span id="pLogoCap"></span></div>
+        <small class="hint" id="pBrandHint"></small>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Nút Huỷ / Quay lại</legend>
+        <label class="field"><span>Khi người chơi bấm Huỷ</span>
+          <select id="pHomeMode">
+            <option value="legacy">Như cũ (về trang trước / travel.html)</option>
+            <option value="none">Không có trang home (Huỷ chỉ đóng popup)</option>
+            <option value="home">Về trang home của sự kiện</option>
+            <option value="custom">Về đường dẫn khác…</option>
+          </select></label>
+        <label class="field" id="pHomeUrlWrap" hidden><span>Đường dẫn</span>
+          <input type="text" id="pHomeUrl" placeholder="vd travel.html hoặc https://…" spellcheck="false" autocomplete="off" /></label>
+        <small class="hint" id="pHomeHint"></small>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Chữ trên trang</legend>
+        <small class="hint">Chỉ ô đã điền mới được lưu; để trống = giữ chữ gốc (chữ mờ). <code>{0}</code>, <code>{1}</code> là chỗ chèn tham số (tên đội, số người…). Dùng được HTML đơn giản như &lt;b&gt;. Chữ mờ là chữ đang hiển thị: của giao diện biến thể (nhãn tím) nếu có, không thì chữ gốc.</small>
+        <div class="cp-bar">
+          <div class="seg-tabs" role="tablist" aria-label="Ngôn ngữ của chữ">
+            <button type="button" class="seg-btn" role="tab" data-lang="vi" aria-selected="true">Tiếng Việt <b id="cpCount-vi">0</b></button>
+            <button type="button" class="seg-btn" role="tab" data-lang="en" aria-selected="false" tabindex="-1">English <b id="cpCount-en">0</b></button>
+          </div>
+          <label class="search grow">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="text" id="cpSearch" placeholder="Tìm theo chữ hoặc mã (vd banner)…" aria-label="Tìm chữ" autocomplete="off" />
+          </label>
+        </div>
+        <div id="cpList" class="cp-list"></div>
+        <details class="cp-json" id="cpJsonBox">
+          <summary>Nâng cao: sửa bằng JSON</summary>
+          <textarea id="cpJson" rows="8" spellcheck="false" aria-label="JSON chữ ghi đè"></textarea>
+          <div class="btn-row"><button type="button" class="btn-ghost btn-sm" id="cpJsonApply">Áp dụng JSON</button>
+            <span id="cpJsonMsg" class="hint" role="status"></span></div>
+        </details>
+      </fieldset>
+     </div>
     </div>
 
     <footer class="drawer-foot">
@@ -278,6 +427,8 @@
       <p id="formOk" class="ok-msg" role="status"></p>
       <div class="btn-row end">
         <button type="button" id="btnCancel" class="btn-ghost">Huỷ</button>
+        <button type="button" id="btnPreview" class="btn-ghost" title="Lưu rồi mở trang sự kiện ở tab mới">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Lưu &amp; xem trước</button>
         <button type="button" id="btnSave" class="btn-pri">Tạo sự kiện</button>
       </div>
     </footer>
@@ -291,6 +442,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="js/config/config.js"></script>
+<!-- Chuỗi riêng theme tech (tech.terminalLine…): chỉ để tab Nhận diện liệt kê được key ghi đè. Không đổi giao diện admin. -->
+<script src="themes/tech/strings.js"></script>
+<!-- Chữ của biến thể (registerVariantCopy → VARIANT_COPY): chỉ để ô gợi ý ở tab Nhận diện hiện đúng chữ đang dùng. Thêm biến thể ⇒ thêm thẻ ở đây. -->
+<script src="themes/tech/variants/tnt/strings.js"></script>
 <script src="js/config/firebase-config.js"></script>
 
 <script>
@@ -309,14 +464,19 @@
   const FV   = firebase.firestore.FieldValue;
 
   // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
-  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "" }) {
+  // list: [{ kind: "err"|"warn"|"ok"|"", text }] — danh sách hậu quả / kết quả kiểm tra hiện dưới message (chữ qua textContent).
+  // select: { label, options: [{ value, label, disabled }], value, onChange(value) → list mới } — Xác nhận trả về GIÁ TRỊ đang chọn.
+  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "", list = null, select = null }) {
     return new Promise(resolve => {
       const bg = document.createElement("div");
       bg.className = "cm-bg";
+      const hasList = !!(list && list.length) || !!(select && select.onChange);
       bg.innerHTML = `
-        <div class="cm-box" role="dialog" aria-modal="true">
+        <div class="cm-box${hasList ? " wide" : ""}" role="dialog" aria-modal="true">
           <h3 class="cm-title"></h3>
           <p class="cm-msg"></p>
+          ${select ? `<label class="field cm-select"><span></span><select class="cm-sel"></select></label>` : ""}
+          ${hasList ? `<ul class="cm-list"></ul>` : ""}
           ${requireText ? `<input class="cm-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />` : ""}
           <div class="cm-row">
             <button class="cm-cancel"></button>
@@ -327,9 +487,27 @@
       bg.querySelector(".cm-msg").textContent     = message || "";
       bg.querySelector(".cm-cancel").textContent  = cancelText;
       bg.querySelector(".cm-confirm").textContent = confirmText;
+      if (!message) bg.querySelector(".cm-msg").hidden = true;
+      const fillList = items => {
+        const ul = bg.querySelector(".cm-list");
+        if (!ul) return;
+        ul.textContent = "";
+        (items || []).forEach(it => { const li = document.createElement("li"); if (it.kind) li.className = it.kind; li.textContent = it.text; ul.appendChild(li); });
+        ul.hidden = !ul.children.length;
+      };
+      fillList(list);
       if (!cancelText) bg.querySelector(".cm-cancel").hidden = true;
       const confirmBtn = bg.querySelector(".cm-confirm");
       const input      = bg.querySelector(".cm-input");
+      const sel        = bg.querySelector(".cm-sel");
+      if (sel) {
+        bg.querySelector(".cm-select > span").textContent = select.label || "";
+        (select.options || []).forEach(o => { const op = document.createElement("option"); op.value = o.value; op.textContent = o.label; op.disabled = !!o.disabled; sel.appendChild(op); });
+        sel.value = select.value != null ? select.value : "";
+        const sync = () => { confirmBtn.disabled = !sel.value; if (select.onChange) fillList(select.onChange(sel.value)); };
+        sel.addEventListener("change", sync);
+        sync();
+      }
       if (input) {
         input.placeholder = "Gõ lại: " + requireText;
         confirmBtn.disabled = true;
@@ -344,15 +522,51 @@
         bg.classList.add("is-leaving");
         setTimeout(() => bg.remove(), REDUCED ? 0 : 170);
       };
+      const okVal = () => sel ? sel.value : true;
       const onKey = e => {
         if (e.key === "Escape") close(false);
-        if (e.key === "Enter" && !confirmBtn.disabled) close(true);
+        if (e.key === "Enter" && !confirmBtn.disabled && e.target !== sel) close(okVal());
       };
       bg.querySelector(".cm-cancel").onclick = () => close(false);
-      confirmBtn.onclick = () => { if (!confirmBtn.disabled) close(true); };
+      confirmBtn.onclick = () => { if (!confirmBtn.disabled) close(okVal()); };
       bg.addEventListener("click", e => { if (e.target === bg) close(false); });
       document.addEventListener("keydown", onKey);
-      setTimeout(() => (input || confirmBtn).focus(), 30);
+      setTimeout(() => (input || sel || confirmBtn).focus(), 30);
+    });
+  }
+
+  // Hộp chọn THAO TÁC (mỗi nút: tên + 1 dòng giải thích; nút bị khoá hiện lý do). Trả id thao tác, null = đóng.
+  function actionSheet({ title, sub, actions }) {
+    return new Promise(resolve => {
+      const bg = document.createElement("div");
+      bg.className = "cm-bg";
+      bg.innerHTML = `<div class="cm-box" role="dialog" aria-modal="true"><h3 class="cm-title"></h3><p class="cm-msg"></p>
+        <div class="act-list"></div><div class="cm-row"><button class="cm-cancel" type="button">Đóng</button></div></div>`;
+      bg.querySelector(".cm-title").textContent = title || "";
+      bg.querySelector(".cm-msg").textContent = sub || "";
+      const list = bg.querySelector(".act-list");
+      actions.forEach(a => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "act-btn" + (a.danger ? " danger" : ""); b.dataset.act = a.id; b.disabled = !!a.disabled;
+        const t = document.createElement("span"), s = document.createElement("small");
+        t.textContent = a.label; s.textContent = a.disabled && a.why ? a.why : (a.desc || "");
+        b.append(t, s); list.appendChild(b);
+      });
+      document.body.appendChild(bg);
+      let closed = false;
+      const close = v => {
+        if (closed) return; closed = true;
+        document.removeEventListener("keydown", onKey);
+        resolve(v);
+        bg.classList.add("is-leaving");
+        setTimeout(() => bg.remove(), REDUCED ? 0 : 170);
+      };
+      const onKey = e => { if (e.key === "Escape") close(null); };
+      list.addEventListener("click", e => { const b = e.target.closest(".act-btn"); if (b && !b.disabled) close(b.dataset.act); });
+      bg.querySelector(".cm-cancel").onclick = () => close(null);
+      bg.addEventListener("click", e => { if (e.target === bg) close(null); });
+      document.addEventListener("keydown", onKey);
+      setTimeout(() => { const f = list.querySelector(".act-btn:not(:disabled)") || bg.querySelector(".cm-cancel"); f.focus(); }, 30);
     });
   }
 
@@ -382,8 +596,59 @@
   // Icon nút nhỏ dùng chung (thay emoji ✕ / ✎ — emoji phụ thuộc font, không theo màu chữ).
   const ICON_X    = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 6l12 12M18 6 6 18'/></svg>";
   const ICON_EDIT = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4'/></svg>";
+  const ICON_MORE = "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='5' cy='12' r='1.6'/><circle cx='12' cy='12' r='1.6'/><circle cx='19' cy='12' r='1.6'/></svg>";
   const emptyState   = txt => "<div class='empty-state'>" + emptySvg() + "<div>" + txt + "</div></div>";
   const loadingState = txt => "<div class='loading-row'><span class='spinner'></span>" + esc(txt) + "</div>";
+
+  // ── Quản trị viên: UID GỐC chỉ để HIỂN THỊ (không gỡ được) — PHẢI khớp isRootAdmin() trong backend/firestore.rules ──
+  const ROOT_ADMIN_UIDS = ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2", "tHN0gED97nS6KEmDBKO0SgJOiWJ3"];
+  const ADMIN_UID_RE = /^[^\s/]{6,128}$/, ADMIN_NOTE_MAX = 200;   // UID Firebase Auth ≤128 ký tự; ghi chú ≤200 (rules chặn cùng mức)
+
+  // ── ID sự kiện + link trang công khai ─────────────────────────────────────
+  // Cùng bộ ký tự với ?e= của trang sự kiện (^[a-z0-9][a-z0-9-]{0,99}$) ⇒ ID nào tạo được ở đây cũng mở được bằng link.
+  const EVENT_ID_MAX = 100;
+  const EVENT_ID_RE  = new RegExp("^[a-z0-9][a-z0-9-]{0," + (EVENT_ID_MAX - 1) + "}$");
+  const EVENT_PAGE = "index.html", HOME_PAGE = "home.html";   // trang sự kiện · trang home (bước 3B)
+  // Admin chạy ở site riêng (firebase.json: pickyourgroup-admin) KHÔNG có trang sự kiện ⇒ link sang site sự kiện.
+  // Nơi khác (GitHub Pages, localhost) admin nằm cạnh index.html ⇒ link tương đối.
+  const EVENT_SITE = { adminHost: /^pickyourgroup-admin\.(web\.app|firebaseapp\.com)$/, url: "https://pickyourgroup.web.app/" };
+  const eventSiteBase = () => EVENT_SITE.adminHost.test(location.hostname) ? EVENT_SITE.url : "";
+  const eventLink = id => eventSiteBase() + EVENT_PAGE + "?e=" + encodeURIComponent(id);
+  const homeLinkOf = id => HOME_PAGE + "?e=" + id;   // giá trị lưu vào profile.homeUrl (tương đối, cùng site với trang sự kiện)
+
+  // ── Hồ sơ sự kiện meta/config.profile (hợp đồng bước 2) ───────────────────
+  // Đọc PHÒNG THỦ: master chưa có các hằng dưới (bước 2 khai trong config.js). Dùng tên khác hằng gốc (tránh TDZ của typeof).
+  const PROFILE_VARIANTS = (typeof AVAILABLE_VARIANTS !== "undefined" && Array.isArray(AVAILABLE_VARIANTS) && AVAILABLE_VARIANTS.length)
+    ? AVAILABLE_VARIANTS.filter(v => v && typeof v.id === "string" && v.id)
+    : [{ id: "tnt", label: "TNT · Mini Outing", theme: "tech", defaultLang: "vi" }];
+  const PROFILE_BRAND = (typeof DEFAULT_BRAND !== "undefined" && DEFAULT_BRAND && typeof DEFAULT_BRAND === "object")
+    ? DEFAULT_BRAND : { name: "FARADAY", logoUrl: "themes/tech/img/LOGO.png", logoAlt: "Faraday Icon" };
+  const PROFILE_LANGS = { vi: "Tiếng Việt", en: "English" };
+  const PROFILE_FALLBACK_LANG = (typeof DEFAULT_LANG !== "undefined" && PROFILE_LANGS[DEFAULT_LANG]) ? DEFAULT_LANG : "en";
+  // Biến thể khi THIẾU key = DEFAULT_VARIANT (theme.js). Admin không nạp theme.js (xem đầu admin.css) ⇒ literal riêng, có kiểm tra.
+  const PROFILE_DEFAULT_VARIANT = (() => {
+    const id = (typeof DEFAULT_VARIANT !== "undefined") ? String(DEFAULT_VARIANT || "") : "tnt";
+    return (!id || PROFILE_VARIANTS.some(v => v.id === id)) ? id : "";
+  })();
+  // Hồ sơ ghi tường minh khi TẠO sự kiện (NEW_EVENT_PROFILE ở config.js); thiếu hằng ⇒ literal dự phòng cùng giá trị.
+  const PROFILE_NEW = (typeof NEW_EVENT_PROFILE !== "undefined" && NEW_EVENT_PROFILE && typeof NEW_EVENT_PROFILE === "object")
+    ? NEW_EVENT_PROFILE : { variant: "tnt", lang: "vi", homeUrl: "" };
+  const PROFILE_KEYS  = ["variant", "lang", "brand", "homeUrl", "introMs", "copy"];   // key admin soạn; key lạ (bản sau) được GIỮ khi lưu
+  const INTRO_MS_MIN = 1000, INTRO_MS_MAX = 15000, BRAND_NAME_MAX = 40, LOGO_ALT_MAX = 80, COPY_VALUE_MAX = 2000;
+  const variantLang = id => { const v = PROFILE_VARIANTS.find(x => x.id === id); return (v && PROFILE_LANGS[v.defaultLang]) ? v.defaultLang : PROFILE_FALLBACK_LANG; };
+  // Đường dẫn TƯƠNG ĐỐI trong site hoặc https:// (hợp đồng: cấm javascript:, data:…). Chặn khoảng trắng/ký tự điều khiển
+  // (trình duyệt bỏ tab/xuống dòng ⇒ "java\tscript:" thành javascript:), "//host" và "\" (bị hiểu thành host khác).
+  function siteUrlError(v, label) {
+    if (!v) return null;
+    if (/[\s\u0000-\u001f\u007f<>"'`]/.test(v)) return `${label}: không được có khoảng trắng hoặc ký tự < > " ' \`.`;
+    if (/^https:\/\//i.test(v)) {
+      try { const u = new URL(v); if (u.protocol === "https:" && u.hostname) return null; } catch (e) {}
+      return `${label}: link https:// không hợp lệ.`;
+    }
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(v)) return `${label}: chỉ nhận đường dẫn trong site (vd themes/…/logo.png) hoặc link bắt đầu bằng https://.`;
+    if (v.startsWith("//") || v.includes("\\")) return `${label}: đường dẫn trong site không được bắt đầu bằng // hoặc chứa \\.`;
+    return null;
+  }
 
   // ── Motion helpers ───────────────────────────────────────────────────────
   // Mọi hiệu ứng tắt khi người dùng bật "giảm chuyển động". Trạng thái cuối luôn đặt thẳng (không phụ thuộc animationend).
@@ -551,6 +816,7 @@
         vt.finished.catch(() => {});
       } else apply();
       if (btn.dataset.tab === "tab-allowlist" && allowlistOnTabOpen) allowlistOnTabOpen();
+      if (btn.dataset.tab === "tabAdmins") loadAdmins();
     });
   });
   // Nút trong nội dung chuyển trang: data-goto="<id panel>" (+ data-event để chọn sẵn sự kiện ở trang Đăng ký).
@@ -620,6 +886,7 @@
   let evRendered    = false; // đã vẽ dữ liệu sự kiện lần đầu chưa (false → loadEventList hiện skeleton)
   let editingId     = "";   // "" = đang TẠO mới; có giá trị = đang SỬA sự kiện này
   let editOriginal  = null; // cfg gốc của sự kiện đang sửa (để so sánh dedup/field)
+  let cloneSrc      = null; // { id } của sự kiện gốc khi form đang ở chế độ NHÂN BẢN (null = tạo mới / sửa)
   let allowlistOnTabOpen = null; // gán bởi IIFE allowlist; gọi khi mở tab "Danh sách cho phép"
 
   // Màn chờ: giữ tới khi BIẾT trạng thái đăng nhập; nếu đã đăng nhập thì giữ tiếp tới khi dữ liệu sự kiện đầu tiên về
@@ -650,6 +917,8 @@
       $("loginView").hidden = true;
       $("adminView").hidden = false;
       $("who").textContent = "Đăng nhập: " + (user.email || user.uid);
+      $("admMyUid").textContent = user.uid;
+      $("admRole").textContent = ROOT_ADMIN_UIDS.includes(user.uid) ? "Quản trị gốc" : "—";
       requestAnimationFrame(moveNavInd);
       loadEventList().finally(hideBoot);   // lỗi tải cũng bỏ màn chờ (thông báo lỗi nằm trong trang)
     } else {
@@ -1029,11 +1298,46 @@
     }
   }
 
+  // Kiểm tra cấu hình TRƯỚC khi mở (đọc bản mới nhất): errs = chặn mở (trang sẽ hỏng / chặn tất cả), warns = vẫn mở được.
+  // Điều kiện khớp trang công khai (app.js boot): thiếu key "name" ⇒ lỗi; blockDup + dedupField không có trong fields ⇒ lỗi.
+  async function openChecks(eid) {
+    const ref = db.collection("events").doc(eid);
+    const [cfgSnap, alSnap] = await Promise.all([ref.collection("meta").doc("config").get(), ref.collection("allowlist").limit(1).get()]);
+    const errs = [], warns = [];
+    if (!cfgSnap.exists) { errs.push("Sự kiện không có cấu hình (meta/config)."); return { errs, warns }; }
+    const c = cfgSnap.data() || {}, now = Date.now();
+    const ms = ts => (ts && typeof ts.toMillis === "function") ? ts.toMillis() : null;
+    const fields = Array.isArray(c.fields) ? c.fields : [], icons = Array.isArray(c.icons) ? c.icons : [];
+    const closeMs = ms(c.closeAt), openMs = ms(c.openAt);
+    if (closeMs == null) warns.push("Chưa đặt giờ đóng — sự kiện nhận đăng ký tới khi bấm Kết thúc.");
+    else if (closeMs <= now) errs.push(`Giờ đóng (${fmtTime(c.closeAt)}) đã qua — trang sẽ báo "đã kết thúc". Sửa giờ đóng hoặc để trống.`);
+    if (openMs != null && openMs > now) warns.push(`Chưa tới giờ mở (${fmtTime(c.openAt)}) — trang hiện đếm ngược tới lúc đó.`);
+    if (!fields.some(f => f && f.key === "name")) errs.push('Thiếu ô nhập có key "name" — trang báo lỗi cấu hình, không ai chọn đội được.');
+    if (c.blockDup !== false && c.dedupField && !fields.some(f => f && f.key === c.dedupField))
+      errs.push(`Ô kiểm tra trùng "${c.dedupField}" không còn trong các ô nhập — trang báo lỗi cấu hình.`);
+    if (c.allowlistMode && !c.dedupField) errs.push('Bật "Chỉ người trong danh sách" nhưng chưa chọn ô kiểm tra trùng ⇒ chặn tất cả.');
+    else if (c.allowlistMode && alSnap.empty) errs.push('Bật "Chỉ người trong danh sách" nhưng danh sách đang TRỐNG ⇒ chặn tất cả. Nạp danh sách trước.');
+    if (!icons.length) errs.push("Sự kiện chưa có đội nào.");
+    if (c.allowlistMode && c.allowlistGenderCheck && !icons.some(i => normGender(i && i.gender))) warns.push("Bật chia phòng theo giới tính nhưng chưa phòng nào gắn Nam/Nữ.");
+    return { errs, warns };
+  }
+
   async function openEvent(eid, name) {
+    let chk;
+    try { chk = await openChecks(eid); }
+    catch (err) { await confirmModal({ title: "Không kiểm tra được cấu hình", message: err.message || String(err), confirmText: "Đóng", cancelText: "" }); return; }
+    const warnItems = chk.warns.map(text => ({ kind: "warn", text }));
+    if (chk.errs.length) {
+      const fix = await confirmModal({ title: "Chưa mở được sự kiện", message: `"${name}" còn lỗi cấu hình:`,
+        list: chk.errs.map(text => ({ kind: "err", text })).concat(warnItems), confirmText: "Sửa sự kiện", cancelText: "Đóng" });
+      if (fix) editEvent(eid);
+      return;
+    }
     const ok = await confirmModal({
       title: "Mở sự kiện này?",
       message: `Chuyển sự kiện đang mở sang "${name}". Trang công khai sẽ hiển thị sự kiện này ngay lập tức.`,
-      confirmText: "Mở sự kiện",
+      list: warnItems.length ? warnItems : [{ kind: "ok", text: "Đã kiểm tra cấu hình: không có lỗi." }],
+      confirmText: warnItems.length ? "Vẫn mở sự kiện" : "Mở sự kiện",
     });
     if (!ok) return;
     try {
@@ -1064,17 +1368,51 @@
     }
   }
 
+  // Nhân bản = form tạo mới điền sẵn cấu hình + hồ sơ của sự kiện gốc. Lưu xử lý như backend/scripts/clone-event.js
+  // (submitForm): chép mọi key meta/config (trừ createdAt/updatedAt), dataEpoch 1, allowlist + meta/home tuỳ chọn, config/eventList.
   async function cloneEvent(eid) {
     const ev = cachedEvents.find(e => e.id === eid);
     if (!ev || !ev.cfg) { confirmModal({ title: "Không nhân bản được", message: "Không tìm thấy cấu hình sự kiện.", confirmText: "Đóng", cancelText: "" }); return; }
-    populateForm(ev.cfg, "");
+    populateForm(ev.cfg, "", eid);
+    cloneSrc = { id: eid };
     $("formHeading").textContent = `Nhân bản từ "${ev.cfg.title || eid}"`;
-    $("btnSave").textContent = "Tạo bản sao";
+    $("btnSave").textContent = $("btnSave").dataset.label = "Tạo bản sao";
     const banner = $("formModeBanner");
     banner.hidden = false;
     banner.className = "form-mode dup";
     banner.textContent = "Đặt ID mới trước khi lưu.";
+    $("fsClone").hidden = false;
+    $("fCloneAllowN").textContent = "(đang đếm…)";
     flashForm();
+    try {
+      const ref = db.collection("events").doc(eid);
+      const [al, home] = await Promise.all([ref.collection("allowlist").get(), ref.collection("meta").doc("home").get()]);
+      if (!cloneSrc || cloneSrc.id !== eid) return;              // form đã đóng / sang việc khác trong lúc chờ
+      $("fCloneAllowN").textContent = `(${fmtNum(al.size)} người)`;
+      $("fCloneAllow").checked = al.size > 0; $("fCloneAllow").disabled = al.size === 0;
+      $("fCloneHomeWrap").hidden = !home.exists;
+    } catch (err) {
+      if (cloneSrc && cloneSrc.id === eid) $("fCloneAllowN").textContent = "(không đếm được: " + (err.code || err.message || err) + ")";
+    }
+  }
+  // Chép allowlist + meta/home của sự kiện gốc sang ID mới (batch ≤400). Gọi TRƯỚC khi ghi meta/config ⇒ sự kiện chỉ hiện khi đã đủ dữ liệu.
+  async function cloneExtras(srcId, dstId, { allow, home }) {
+    const src = db.collection("events").doc(srcId), dst = db.collection("events").doc(dstId);
+    const out = { allow: 0, home: false };
+    if (allow) {
+      const docs = (await src.collection("allowlist").get()).docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = db.batch();
+        docs.slice(i, i + 400).forEach(x => batch.set(dst.collection("allowlist").doc(x.id), x.data()));
+        await batch.commit();
+      }
+      out.allow = docs.length;
+    }
+    if (home) {
+      const h = await src.collection("meta").doc("home").get();
+      if (h.exists) { await dst.collection("meta").doc("home").set(h.data()); out.home = true; }
+    }
+    return out;
   }
 
   // ── Quản lý dữ liệu: xóa dữ liệu · xóa sự kiện · sửa ───────────────────────
@@ -1197,7 +1535,7 @@
 
   // ── Form động: fields & icons ─────────────────────────────────────────────
   $("fTitle").addEventListener("input", function () {
-    if (!$("fId").dataset.manual) $("fId").value = slugify(this.value);
+    if (!$("fId").dataset.manual) $("fId").value = slugify(this.value).slice(0, EVENT_ID_MAX).replace(/-+$/, "");
   });
   $("fId").addEventListener("input", function () {
     this.dataset.manual = this.value ? "1" : "";
@@ -1250,9 +1588,22 @@
 
   // Đổi dropdown → đánh dấu admin đã tự chọn (tắt autopick) + đồng bộ checkbox.
   $("fDedupField").addEventListener("change", () => {
+    const wasAllow = $("fAllowlistMode").checked;
     $("fDedupField").dataset.manual = "1";
     syncDedupControls();
+    allowlistDedupWarn(wasAllow);
   });
+  // Đổi ô kiểm tra trùng có thể TẮT danh sách cho phép (bỏ ô ⇒ toggle tự tắt) hoặc làm danh sách cũ lệch (khoá theo ô cũ) ⇒ báo ngay.
+  function allowlistDedupWarn(wasAllow) {
+    const box = $("fAllowWarn"), cur = $("fDedupField").value, origDedup = (editOriginal && editOriginal.dedupField) || "";
+    let msg = "";
+    if (wasAllow && !$("fAllowlistMode").checked)
+      msg = "Đã TẮT “Chỉ người trong danh sách được tham gia” vì bỏ ô kiểm tra trùng ⇒ ai cũng vào được. Chọn lại ô kiểm tra trùng rồi bật lại nếu cần.";
+    else if ($("fAllowlistMode").checked && editingId && editOriginal && editOriginal.allowlistMode && origDedup && cur && cur !== origDedup)
+      msg = `Danh sách cho phép đang đối chiếu theo “${origDedup}”. Đổi sang “${cur}” thì danh sách cũ không khớp ai ⇒ chặn tất cả cho tới khi nạp lại danh sách theo “${cur}”.`;
+    box.textContent = msg;
+    box.hidden = !msg;
+  }
   // Admin tự bật/tắt checkbox → tôn trọng lựa chọn, không tự tích lại.
   $("fBlockDup").addEventListener("change", () => { $("fBlockDup").dataset.touched = "1"; });
   // Bật/tắt "Danh sách cho phép" → xám/khoá "Đối chiếu họ tên" ngay (tính năng con).
@@ -1388,7 +1739,8 @@
 
   function validateForm(d) {
     if (!d.eventId)                         return "Hãy nhập ID sự kiện.";
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(d.eventId))
+    if (d.eventId.length > EVENT_ID_MAX)    return `ID sự kiện tối đa ${EVENT_ID_MAX} ký tự.`;
+    if (!EVENT_ID_RE.test(d.eventId))
                                             return "ID sự kiện chỉ được dùng chữ thường, số và dấu gạch ngang, bắt đầu bằng chữ/số.";
     if (!d.title)                           return "Hãy nhập tên sự kiện.";
     if (!d.fields.length)                   return "Cần ít nhất 1 ô nhập.";
@@ -1440,29 +1792,64 @@
     return null;
   }
 
-  $("btnSave").addEventListener("click", async () => {
+  // Nút Lưu + "Lưu & xem trước" khoá cùng lúc (chặn bấm lặp khi đang ghi).
+  function formBusy(on, label) {
+    $("btnSave").disabled = $("btnPreview").disabled = !!on;
+    setBusy($("btnSave"), on);
+    if (label) $("btnSave").textContent = label;
+  }
+
+  // Lưu form (Tạo / Sửa / Nhân bản). Trả ID đã lưu; "" = chưa lưu (form lỗi, admin huỷ ở hộp xác nhận, lỗi ghi).
+  async function submitForm() {
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
     const d   = readForm();
     const err = validateForm(d);
-    if (err) { $("formErr").textContent = err; return; }
+    if (err) { showDrawerPane("dpCfg"); $("formErr").textContent = err; return ""; }
+    const pr = readProfile(d.eventId);
+    if (pr.error) {
+      showDrawerPane("dpId"); $("formErr").textContent = pr.error;
+      if (pr.focus && $(pr.focus)) $(pr.focus).focus({ preventScroll: false });
+      return "";
+    }
 
-    if (editingId) { saveEdit(d); return; }   // ── chế độ SỬA (Việc 3) ──
+    // ── chế độ SỬA (Việc 3): profile CHỈ ghi khi admin đã sửa tab Nhận diện ──
+    if (editingId) return saveEdit(d, idDirty ? pr.profile : null);
 
     // Kiểm tra trùng ID
     try {
       const ex = await db.collection("events").doc(d.eventId).collection("meta").doc("config").get();
       if (ex.exists) {
+        showDrawerPane("dpCfg");
         $("formErr").textContent = `Sự kiện "${d.eventId}" đã tồn tại. Chọn ID khác hoặc nhân bản sự kiện cũ.`;
-        return;
+        return "";
       }
     } catch (_) { /* chưa tồn tại hoặc permission — an toàn để tiếp tục */ }
 
-    $("btnSave").disabled    = true;
-    $("btnSave").textContent = "Đang lưu…";
-    setBusy($("btnSave"), true);
+    // ── Nhân bản: đọc lại cấu hình gốc (bản mới nhất) — mọi key không có trên form được chép nguyên (như clone-event.js) ──
+    const clone = cloneSrc;
+    const copyAllow = !!clone && $("fCloneAllow").checked && !$("fCloneAllow").disabled;
+    const copyHome  = !!clone && $("fCloneHome").checked && !$("fCloneHomeWrap").hidden;
+    let base = {};
+    if (clone) {
+      try {
+        const s = await db.collection("events").doc(clone.id).collection("meta").doc("config").get();
+        if (!s.exists) throw new Error(`sự kiện gốc "${clone.id}" không còn cấu hình`);
+        Object.entries(s.data() || {}).forEach(([k, v]) => { if (k !== "createdAt" && k !== "updatedAt") base[k] = v; });
+      } catch (err) { $("formErr").textContent = "Không đọc được sự kiện gốc: " + (err.message || err); return ""; }
+      if (copyAllow && (d.dedupField || "") !== (base.dedupField || "")) {
+        const ok = await confirmModal({ title: "Ô kiểm tra trùng khác bản gốc",
+          message: `Danh sách cho phép của "${clone.id}" đối chiếu theo "${base.dedupField || "(không có)"}", bản sao dùng "${d.dedupField || "(không có)"}" ⇒ danh sách chép sang sẽ không khớp ai. Vẫn tạo?`,
+          confirmText: "Vẫn tạo" });
+        if (!ok) return "";
+      }
+    }
+
+    formBusy(true, "Đang lưu…");
     try {
-      await db.collection("events").doc(d.eventId).collection("meta").doc("config").set({
+      let copied = { allow: 0, home: false };
+      if (clone) copied = await cloneExtras(clone.id, d.eventId, { allow: copyAllow, home: copyHome });
+      await db.collection("events").doc(d.eventId).collection("meta").doc("config").set(Object.assign(base, {
         title:      d.title,
         subtitle:   d.subtitle,
         fields:     d.fields,
@@ -1476,32 +1863,48 @@
         allowlistMode: d.allowlistMode,
         allowlistNameCheck: d.allowlistNameCheck,
         allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
+        profile:    pr.profile,        // hồ sơ TƯỜNG MINH (hợp đồng bước 2); key không ghi = theo giao diện / hành vi cũ
         createdAt:  FV.serverTimestamp()
-      });
+      }, clone ? { dataEpoch: 1 } : {}));   // bản sao = sự kiện mới ⇒ "thế hệ" dữ liệu đầu tiên
       await db.collection("config").doc("eventList")
               .set({ ids: FV.arrayUnion(d.eventId) }, { merge: true });
       resetForm();
       closeDrawer();
-      toast(`Đã tạo sự kiện "${d.eventId}".`);
+      toast(clone
+        ? `Đã tạo bản sao "${d.eventId}"` + (copied.allow ? ` kèm ${fmtNum(copied.allow)} người trong danh sách cho phép` : "") + (copied.home ? " + trang home" : "") + "."
+        : `Đã tạo sự kiện "${d.eventId}".`);
       await loadEventList();
+      return d.eventId;
     } catch (err) {
       $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
+      return "";
     } finally {
-      $("btnSave").disabled    = false;
-      setBusy($("btnSave"), false);
-      $("btnSave").textContent = "Tạo sự kiện";
+      formBusy(false, $("btnSave").dataset.label || "Tạo sự kiện");   // dataset.label: "Tạo bản sao" khi nhân bản
     }
-  });
+  }
+  $("btnSave").addEventListener("click", () => { submitForm(); });
+  // Xem trước = lưu rồi mở trang sự kiện (?e=<id>) ở tab mới. Mở SAU khi ghi xong ⇒ trang thấy đúng bản vừa lưu.
+  $("btnPreview").addEventListener("click", async () => { const id = await submitForm(); if (id) openPreview(id); });
+  function openPreview(id) {
+    const url = eventLink(id);
+    const w = window.open(url, "_blank");
+    if (w) { try { w.opener = null; } catch (e) {} return; }
+    // Trình duyệt chặn tab mới (chờ lưu lâu ⇒ hết "cử chỉ người dùng") ⇒ hỏi lại: bấm Mở là cử chỉ mới.
+    confirmModal({ title: "Mở trang xem trước?", message: "Trình duyệt vừa chặn mở tab mới. Bấm Mở để xem " + url,
+                   confirmText: "Mở", cancelText: "Để sau" })
+      .then(ok => { if (ok) { const w2 = window.open(url, "_blank"); if (w2) { try { w2.opener = null; } catch (e) {} } } });
+  }
 
   // Lưu khi SỬA (Việc 3): ghi đè meta/config nhưng GIỮ createdAt (merge), kèm các luật an toàn theo sĩ số đội.
-  async function saveEdit(d) {
+  // profile: null = KHÔNG đụng meta/config.profile (admin không sửa tab Nhận diện). Trả ID đã lưu, "" nếu không lưu.
+  async function saveEdit(d, profile) {
     // Đọc sĩ số đội hiện tại để áp luật. Nếu đọc lỗi → HỦY lưu (không fall-through như luồng tạo).
     let tSnap;
     try {
       tSnap = await db.collection("events").doc(editingId).collection("teams").get();
     } catch (e) {
       $("formErr").textContent = "Không đọc được số người hiện có của các đội nên chưa lưu. " + (e.message || e);
-      return;
+      return "";
     }
 
     // ① CHẶN CỨNG: emoji của đội đang có người (count>0) không được xóa/đổi (emoji = khóa định danh đội).
@@ -1512,7 +1915,8 @@
       $("formErr").textContent =
         `Không thể xóa hoặc đổi emoji của đội đang có người: ${missing.join(" ")}. ` +
         `Emoji là khóa định danh đội — chỉ đổi/xóa được đội có 0 người (tên & màu thì vẫn sửa thoải mái).`;
-      return;
+      showDrawerPane("dpCfg");
+      return "";
     }
 
     // ② Giảm sĩ số (CHUNG hoặc RIÊNG) xuống dưới số người đang có ở đội nào đó → CẢNH BÁO (không chặn; không ai bị đẩy ra).
@@ -1527,7 +1931,7 @@
         message: `Có đội đang đông hơn sĩ số mới (${detail}). Các đội này sẽ hiển thị "đầy" và không nhận thêm — không ai bị đẩy ra. Vẫn lưu?`,
         confirmText: "Vẫn lưu", danger: true,
       });
-      if (!ok) return;
+      if (!ok) return "";
     }
 
     // ③ Đổi/bật chống trùng giữa chừng → THÔNG BÁO (chỉ áp dụng lượt đăng ký MỚI).
@@ -1535,17 +1939,18 @@
       d.dedupField !== ((editOriginal && editOriginal.dedupField) || "") ||
       d.blockDup   !== ((editOriginal && editOriginal.blockDup) !== false);
     if (dedupChanged) {
-      const ok = await confirmModal({
-        title: "Đổi chống trùng?",
-        message: `Thay đổi chống trùng chỉ áp dụng cho lượt đăng ký MỚI. Bản trùng cũ KHÔNG bị xóa và khóa chống trùng cũ vẫn giữ nguyên. Tiếp tục?`,
-        confirmText: "Tiếp tục",
-      });
-      if (!ok) return;
+      // Đổi ô kiểm tra trùng còn kéo theo danh sách cho phép: bỏ ô ⇒ toggle tự TẮT (mở cửa cho mọi người); đổi ô khác ⇒ khoá cũ lệch.
+      const origAllow = !!(editOriginal && editOriginal.allowlistMode), origDedup = (editOriginal && editOriginal.dedupField) || "";
+      const list = [{ text: "Chỉ áp dụng cho lượt đăng ký MỚI. Bản trùng cũ KHÔNG bị xoá, khoá chống trùng cũ giữ nguyên." }];
+      if (origAllow && !d.allowlistMode && !d.dedupField)
+        list.push({ kind: "err", text: "“Chỉ người trong danh sách được tham gia” sẽ bị TẮT (vì bỏ ô kiểm tra trùng) ⇒ AI CŨNG vào được." });
+      else if (origAllow && d.allowlistMode && origDedup && d.dedupField !== origDedup)
+        list.push({ kind: "warn", text: `Danh sách cho phép đang đối chiếu theo “${origDedup}”; đổi sang “${d.dedupField}” ⇒ danh sách cũ không khớp ai (chặn tất cả) cho tới khi nạp lại.` });
+      const ok = await confirmModal({ title: "Đổi chống trùng?", message: "", list, confirmText: "Tiếp tục", danger: list.length > 1 });
+      if (!ok) return "";
     }
 
-    $("btnSave").disabled    = true;
-    $("btnSave").textContent = "Đang lưu…";
-    setBusy($("btnSave"), true);
+    formBusy(true, "Đang lưu…");
     try {
       // merge:true + KHÔNG ghi createdAt ⇒ giữ createdAt gốc và mọi key chưa biết. Ghi đè vào ID GỐC (editingId).
       await db.collection("events").doc(editingId).collection("meta").doc("config").set({
@@ -1563,20 +1968,24 @@
         allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
         updatedAt:  FV.serverTimestamp()
       }, { merge: true });
-      // caps là MAP → set(merge:true) chỉ deep-merge (không xoá key đã bỏ). Dùng update() để THAY caps trọn vẹn
-      // (đội bỏ cap riêng sẽ về dùng sĩ số chung). d.caps = {} nếu không còn đội nào đặt riêng.
-      await db.collection("events").doc(editingId).collection("meta").doc("config").update({ caps: d.caps });
+      // caps, profile là MAP → set(merge:true) chỉ deep-merge (không xoá key đã bỏ). Dùng update() để THAY trọn vẹn
+      // (đội bỏ cap riêng sẽ về dùng sĩ số chung; chữ ghi đè đã xoá thì mất hẳn). d.caps = {} nếu không còn đội nào đặt riêng.
+      // profile chỉ ghi khi admin sửa tab Nhận diện — không thì GIỮ NGUYÊN (sự kiện cũ thiếu profile vẫn thiếu = hành vi cũ).
+      const upd = { caps: d.caps };
+      if (profile) upd.profile = profile;
+      await db.collection("events").doc(editingId).collection("meta").doc("config").update(upd);
       const wasActive = editingId === activeEventId;
       const savedId   = editingId;
       resetForm();                 // xóa editingId, mở khóa fId, đổi nhãn nút về "Tạo sự kiện"
       closeDrawer();
       toast(`Đã lưu "${savedId}".` + (wasActive ? " Người đang mở trang công khai cần tải lại trang." : ""));
       await loadEventList();
+      formBusy(false);
+      return savedId;
     } catch (err) {
       $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
-      $("btnSave").disabled    = false;
-      setBusy($("btnSave"), false);
-      $("btnSave").textContent = "Lưu thay đổi";
+      formBusy(false, "Lưu thay đổi");
+      return "";
     }
   }
 
@@ -1585,6 +1994,11 @@
   function resetForm(seed = true) {
     editingId    = "";
     editOriginal = null;
+    cloneSrc     = null;
+    $("fAllowWarn").hidden = true; $("fAllowWarn").textContent = "";
+    $("fsClone").hidden = true;
+    $("fCloneAllow").checked = true; $("fCloneAllow").disabled = false; $("fCloneAllowN").textContent = "";
+    $("fCloneHome").checked = true; $("fCloneHomeWrap").hidden = true;
     $("fId").readOnly      = false;
     $("fId").value         = "";
     $("fId").dataset.manual = "";
@@ -1610,12 +2024,13 @@
     syncDedupControls();
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
-    $("btnSave").disabled    = false;
-    setBusy($("btnSave"), false);
-    $("btnSave").textContent = "Tạo sự kiện";
+    formBusy(false, "Tạo sự kiện");
+    $("btnSave").dataset.label = "";
     $("formHeading").textContent = "Tạo sự kiện mới";
     const banner = $("formModeBanner");
     if (banner) { banner.hidden = true; banner.className = "form-mode"; banner.textContent = ""; }
+    showDrawerPane("dpCfg");
+    populateIdentity(Object.assign({}, PROFILE_NEW), "create", "");   // tạo mới: NEW_EVENT_PROFILE (= giao diện hiện tại, homeUrl "")
   }
 
   // Sửa / nhân bản: form đã điền sẵn → mở drawer.
@@ -1630,8 +2045,10 @@
     return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
   }
 
-  function populateForm(cfg, id) {
+  // id = sự kiện đang SỬA ("" khi nhân bản); srcId = sự kiện nguồn khi nhân bản.
+  function populateForm(cfg, id, srcId) {
     resetForm(false);   // KHÔNG seed mặc định — sẽ tự thêm đúng field của sự kiện bên dưới
+    populateIdentity(cfg.profile, id ? "edit" : "clone", id || srcId || "");
     $("fId").value = id || "";
     $("fId").dataset.manual = id ? "1" : "";
     $("fTitle").value    = cfg.title    || "";
@@ -1663,6 +2080,311 @@
       $("fAllowlistGenderCheck").checked = !!cfg.allowlistMode && !!cfg.allowlistGenderCheck;   // tương tự: con của allowlist
       syncNameCheckToggle();
     }, 0);
+  }
+
+  // ── Form: 2 tab "Thiết lập" / "Nhận diện" ─────────────────────────────────
+  function showDrawerPane(id) {
+    [["dtabCfg", "dpCfg"], ["dtabId", "dpId"]].forEach(([t, p]) => {
+      const on = p === id;
+      $(p).hidden = !on;
+      $(t).setAttribute("aria-selected", on ? "true" : "false");
+      $(t).tabIndex = on ? 0 : -1;
+    });
+    $("createCard").querySelector(".drawer-body").scrollTop = 0;
+  }
+  $("dtabCfg").addEventListener("click", () => showDrawerPane("dpCfg"));
+  $("dtabId").addEventListener("click", () => showDrawerPane("dpId"));
+  $("createCard").querySelector(".drawer-tabs").addEventListener("keydown", e => {   // ←/→ chuyển tab (role=tablist)
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const next = $("dtabCfg").getAttribute("aria-selected") === "true" ? "dtabId" : "dtabCfg";
+    $(next).click(); $(next).focus(); e.preventDefault();
+  });
+
+  // ── Tab "Nhận diện" — soạn meta/config.profile ────────────────────────────
+  // Lưu: TẠO = ghi profile tường minh; SỬA = update({profile}) thay cả map, CHỈ khi idDirty (không đụng ⇒ giữ nguyên).
+  let idDirty   = false;               // admin đã sửa gì trong tab này chưa
+  let idExtra   = {};                  // key lạ của profile cũ (phiên bản sau thêm) — giữ nguyên khi lưu
+  let idCopy    = { vi: {}, en: {} };  // chữ ghi đè { lang: { "ns.key": chuỗi } }
+  let idLang    = "vi";                // ngôn ngữ đang xem ở khối "Chữ trên trang"
+  let idHomeSrc = "";                  // ID để nhận ra homeUrl = home.html?e=<ID> (Sửa: chính nó · Nhân bản: sự kiện nguồn)
+  const copyCatalogs = {};
+
+  $("pVariant").innerHTML = PROFILE_VARIANTS.map(v => `<option value="${esc(v.id)}">${esc(v.label || v.id)}</option>`).join("")
+    + `<option value="">Theme gốc (không biến thể)</option>`;
+  $("pLang").innerHTML = Object.keys(PROFILE_LANGS).map(k => `<option value="${k}">${esc(PROFILE_LANGS[k])}</option>`).join("");
+  $("pIntro").min = INTRO_MS_MIN; $("pIntro").max = INTRO_MS_MAX;
+  $("pIntroHint").textContent = `Thời gian màn “terminal” trước khi mở form, ${INTRO_MS_MIN}–${INTRO_MS_MAX} ms. Để trống = theo giao diện.`;
+  $("pBrandName").maxLength = BRAND_NAME_MAX; $("pLogoAlt").maxLength = LOGO_ALT_MAX;
+  $("fId").maxLength = EVENT_ID_MAX;
+
+  // Id biến thể không còn trong danh sách (dữ liệu cũ) ⇒ thêm 1 lựa chọn riêng để KHÔNG âm thầm đổi giá trị đã lưu.
+  function setVariantSelect(id) {
+    const sel = $("pVariant");
+    sel.querySelectorAll("option[data-unknown]").forEach(o => o.remove());
+    if (id && !PROFILE_VARIANTS.some(v => v.id === id)) {
+      const o = document.createElement("option");
+      o.value = id; o.dataset.unknown = "1"; o.textContent = `${id} (không còn — trang hiện theme gốc)`;
+      sel.appendChild(o);
+    }
+    sel.value = id;
+  }
+
+  // Danh mục chữ ghi đè được = STRINGS[lang] (config.js + themes/tech/strings.js) làm phẳng thành "ns.key".
+  // Chữ gốc là HÀM ⇒ hiện bằng cách gọi với "{0}","{1}"… (hợp đồng: tham số theo vị trí).
+  function copyCatalog(lang) {
+    if (copyCatalogs[lang]) return copyCatalogs[lang];
+    const out = [], src = (typeof STRINGS !== "undefined" && STRINGS && STRINGS[lang]) || {};
+    (function walk(o, pre) {
+      Object.keys(o).forEach(k => {
+        const v = o[k], p = pre ? pre + "." + k : k;
+        if (typeof v === "string") out.push({ path: p, fn: false, orig: v });
+        else if (typeof v === "function") {
+          let orig = "";
+          try { orig = String(v.apply(null, Array.from({ length: v.length }, (_, i) => "{" + i + "}"))); } catch (e) {}
+          out.push({ path: p, fn: true, arity: v.length, orig });
+        } else if (v && typeof v === "object" && !Array.isArray(v)) walk(v, p);
+      });
+    })(src, "");
+    return (copyCatalogs[lang] = out);
+  }
+  // Chỉ vi/en, chỉ chuỗi có nội dung (ô trống = dùng chữ gốc). Giữ cả mã lạ có sẵn trong dữ liệu (không tự xoá).
+  function cleanCopy(c) {
+    const out = {};
+    Object.keys(PROFILE_LANGS).forEach(lang => {
+      const m = c && c[lang];
+      if (!m || typeof m !== "object" || Array.isArray(m)) return;
+      const o = {};
+      Object.keys(m).forEach(k => { if (typeof m[k] === "string" && m[k].trim()) o[k] = m[k]; });
+      if (Object.keys(o).length) out[lang] = o;
+    });
+    return out;
+  }
+  const countCopy = () => Object.keys(PROFILE_LANGS).reduce((s, l) => s + Object.keys(idCopy[l] || {}).length, 0);
+  // Ô JSON nâng cao: { "vi": { "banner.sub": "…" }, "en": {…} } — mã phải có thật, giá trị là chuỗi.
+  function parseCopyJson(text) {
+    let o;
+    try { o = JSON.parse(text && text.trim() ? text : "{}"); } catch (e) { return { error: "JSON không hợp lệ: " + e.message }; }
+    if (!o || typeof o !== "object" || Array.isArray(o)) return { error: 'Cần object dạng { "vi": { "banner.sub": "…" }, "en": { … } }.' };
+    const badLang = Object.keys(o).filter(k => !PROFILE_LANGS[k]);
+    if (badLang.length) return { error: "Chỉ nhận ngôn ngữ " + Object.keys(PROFILE_LANGS).join(", ") + " — thừa: " + badLang.join(", ") };
+    const few = a => a.slice(0, 6).join(", ") + (a.length > 6 ? "…" : "");
+    for (const lang of Object.keys(o)) {
+      const m = o[lang];
+      if (!m || typeof m !== "object" || Array.isArray(m)) return { error: `"${lang}" phải là object { "mã.chữ": "nội dung" }.` };
+      const known = new Set(copyCatalog(lang).map(x => x.path));
+      const unknown = Object.keys(m).filter(k => !known.has(k));
+      if (unknown.length) return { error: `${lang}: mã không có trong ứng dụng (sai chính tả?): ${few(unknown)}` };
+      const notStr = Object.keys(m).filter(k => typeof m[k] !== "string");
+      if (notStr.length) return { error: `${lang}: giá trị phải là chuỗi — ${few(notStr)}` };
+      const tooLong = Object.keys(m).filter(k => m[k].length > COPY_VALUE_MAX);
+      if (tooLong.length) return { error: `${lang}: chữ dài quá ${COPY_VALUE_MAX} ký tự — ${few(tooLong)}` };
+    }
+    return { copy: cleanCopy(o) };
+  }
+
+  function updateCopyCounts() {
+    Object.keys(PROFILE_LANGS).forEach(l => { const el = $("cpCount-" + l); if (el) el.textContent = Object.keys(idCopy[l] || {}).length; });
+  }
+  // Chữ của biến thể (VARIANT_COPY[id][lang][ns][key] — themes/…/variants/<id>/strings.js tự đăng ký); null = biến thể không đổi chữ này.
+  function variantText(variant, lang, path, arity) {
+    const reg = (typeof VARIANT_COPY !== "undefined" && VARIANT_COPY && typeof VARIANT_COPY === "object") ? VARIANT_COPY : null;
+    let v = reg && variant && reg[variant] ? reg[variant][lang] : null;
+    for (const part of path.split(".")) { if (!v || typeof v !== "object") return null; v = v[part]; }
+    if (typeof v === "string") return v;
+    if (typeof v === "function") {
+      try { return String(v.apply(null, Array.from({ length: Math.max(v.length, arity || 0) }, (_, i) => "{" + i + "}"))); } catch (e) { return null; }
+    }
+    return null;
+  }
+  function renderCopyList() {
+    const list = $("cpList"), q = _foldVN($("cpSearch").value), variant = $("pVariant").value;
+    const cat = copyCatalog(idLang), cur = idCopy[idLang] || {};
+    updateCopyCounts();
+    if (!cat.length) { list.innerHTML = "<p class='hint'>Không đọc được danh sách chữ của ứng dụng (STRINGS).</p>"; return; }
+    const vLabel = (PROFILE_VARIANTS.find(v => v.id === variant) || {}).label || variant;
+    const groups = {};
+    cat.forEach(it => {
+      it.vtext = variantText(variant, idLang, it.path, it.arity);   // chữ đang hiển thị của biến thể (nếu biến thể đổi chữ này)
+      if (q && !_foldVN(it.path + " " + it.orig + " " + (it.vtext || "") + " " + (cur[it.path] || "")).includes(q)) return;
+      const ns = it.path.split(".")[0];
+      (groups[ns] = groups[ns] || []).push(it);
+    });
+    const nss = Object.keys(groups);
+    list.innerHTML = nss.length ? nss.map(ns => {
+      const items = groups[ns], n = items.filter(it => cur[it.path]).length;
+      return `<details class="cp-ns"${q || n ? " open" : ""}><summary><span>${esc(ns)}</span><span class="cp-n">${n ? n + " đã sửa" : items.length + " chữ"}</span></summary><div class="cp-rows">`
+        + items.map(it => {
+            const v = cur[it.path] || "", ph = it.vtext != null ? it.vtext : it.orig, rows = ph.length > 90 ? 3 : (ph.length > 40 ? 2 : 1);
+            return `<label class="cp-row${v ? " is-set" : ""}"><span class="cp-key"><code>${esc(it.path)}</code>`
+              + (it.fn ? `<span class="cp-fn" title="Có tham số: giữ {0}, {1}… đúng vị trí">${it.arity ? "có tham số" : "hàm"}</span>` : "")
+              + (it.vtext != null && it.vtext !== it.orig ? `<span class="cp-var" title="Chữ mờ là chữ của giao diện ${esc(vLabel)} (chữ gốc ứng dụng: ${esc(it.orig || "trống")})">${esc(vLabel)}</span>` : "")
+              + `</span><textarea class="cp-in" rows="${rows}" data-path="${esc(it.path)}" placeholder="${esc(ph || "(trống)")}">${esc(v)}</textarea></label>`;
+          }).join("") + "</div></details>";
+      }).join("") : "<p class='hint'>Không có chữ nào khớp.</p>";
+  }
+  function setCopyLang(lang) {
+    idLang = PROFILE_LANGS[lang] ? lang : "vi";
+    document.querySelectorAll(".seg-btn[data-lang]").forEach(b => {
+      const on = b.dataset.lang === idLang;
+      b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1;
+    });
+    renderCopyList();
+  }
+  function syncCopyJson(force) {
+    const ta = $("cpJson");
+    if (!$("cpJsonBox").open || (!force && (document.activeElement === ta || ta.dataset.dirty))) return;
+    ta.value = JSON.stringify(cleanCopy(idCopy), null, 2);
+    ta.dataset.dirty = "";
+  }
+  $("cpList").addEventListener("input", e => {
+    const ta = e.target.closest(".cp-in");
+    if (!ta) return;
+    const m = idCopy[idLang] || (idCopy[idLang] = {}), set = !!ta.value.trim();
+    if (set) m[ta.dataset.path] = ta.value; else delete m[ta.dataset.path];
+    ta.closest(".cp-row").classList.toggle("is-set", set);
+    const det = ta.closest(".cp-ns"), n = det.querySelectorAll(".cp-row.is-set").length;
+    det.querySelector(".cp-n").textContent = n ? n + " đã sửa" : det.querySelectorAll(".cp-row").length + " chữ";
+    idDirty = true; updateCopyCounts(); syncCopyJson(false);
+  });
+  $("cpSearch").addEventListener("input", renderCopyList);
+  document.querySelectorAll(".seg-btn[data-lang]").forEach(b => b.addEventListener("click", () => setCopyLang(b.dataset.lang)));
+  $("cpJsonBox").addEventListener("toggle", () => {
+    $("cpJson").dataset.dirty = "";                       // đóng ô = bỏ phần JSON gõ dở chưa áp dụng
+    if ($("cpJsonBox").open) { syncCopyJson(true); $("cpJsonMsg").textContent = ""; }
+  });
+  $("cpJson").addEventListener("input", () => { $("cpJson").dataset.dirty = "1"; });
+  $("cpJsonApply").addEventListener("click", () => {
+    const r = parseCopyJson($("cpJson").value), msg = $("cpJsonMsg");
+    if (r.error) { msg.style.color = "var(--err)"; msg.textContent = r.error; return; }
+    idCopy = Object.assign({ vi: {}, en: {} }, r.copy);
+    idDirty = true;
+    syncCopyJson(true);
+    renderCopyList();
+    msg.style.color = "var(--ok)"; msg.textContent = `Đã áp dụng: ${countCopy()} chữ ghi đè.`;
+  });
+
+  // Logo: "skin" = KHÔNG ghi brand (FE giữ logo của giao diện, vd TNT) · "none" = {name:"",logoUrl:""} ẩn khối logo · "custom".
+  function syncBrandUi() {
+    const m = $("pBrandMode").value;
+    $("pBrandBox").hidden = m !== "custom";
+    $("pBrandHint").textContent = m === "skin"
+      ? `Không ghi logo vào hồ sơ ⇒ trang giữ logo của giao diện (vd TNT) hoặc logo mặc định ${PROFILE_BRAND.name || ""}.`
+      : m === "none" ? "Trang sự kiện không hiện khối logo."
+      : `Tên tối đa ${BRAND_NAME_MAX} ký tự. Ảnh: đường dẫn trong site (vd ${PROFILE_BRAND.logoUrl}) hoặc link https://.`;
+    updateLogoPreview();
+  }
+  function updateLogoPreview() {
+    const box = $("pLogoPrev"), img = $("pLogoImg");
+    const url = $("pLogoUrl").value.trim(), name = $("pBrandName").value.trim();
+    if ($("pBrandMode").value !== "custom" || (!url && !name) || siteUrlError(url, "x")) { box.hidden = true; return; }
+    img.hidden = !url;
+    if (url) { const src = /^https:/i.test(url) ? url : eventSiteBase() + url; if (img.getAttribute("src") !== src) img.src = src; }
+    $("pLogoCap").textContent = name;
+    box.hidden = false;
+  }
+  $("pLogoImg").addEventListener("error", () => { $("pLogoImg").hidden = true; });
+  $("pLogoImg").addEventListener("load", () => { $("pLogoImg").hidden = false; });
+  // Nút Huỷ: "legacy" = KHÔNG ghi homeUrl (hành vi cũ) · "none" = "" · "home" = home.html?e=<ID> · "custom".
+  function syncHomeUi() {
+    const m = $("pHomeMode").value, id = $("fId").value.trim();
+    $("pHomeUrlWrap").hidden = m !== "custom";
+    $("pHomeHint").textContent = m === "legacy" ? "Không ghi vào hồ sơ: nút Huỷ / Quay lại hoạt động như hiện nay."
+      : m === "none" ? "Ẩn nút rời trang; Huỷ chỉ đóng popup."
+      : m === "home" ? `Lưu thành ${homeLinkOf(id || "<ID sự kiện>")} — trang home riêng của sự kiện.`
+      : "Đường dẫn trong site (vd travel.html) hoặc link https://.";
+  }
+
+  $("pVariant").addEventListener("change", () => {
+    if (!$("pLang").dataset.touched) $("pLang").value = variantLang($("pVariant").value);   // chưa tự chọn ⇒ theo biến thể
+    idDirty = true;
+    renderCopyList();                                   // chữ gợi ý theo biến thể mới
+  });
+  $("pLang").addEventListener("change", () => { $("pLang").dataset.touched = "1"; idDirty = true; });
+  $("pBrandMode").addEventListener("change", () => {
+    if ($("pBrandMode").value === "custom" && !$("pBrandName").value.trim() && !$("pLogoUrl").value.trim()) {
+      $("pBrandName").value = PROFILE_BRAND.name || ""; $("pLogoUrl").value = PROFILE_BRAND.logoUrl || ""; $("pLogoAlt").value = PROFILE_BRAND.logoAlt || "";
+    }
+    idDirty = true; syncBrandUi();
+  });
+  $("pHomeMode").addEventListener("change", () => { idDirty = true; syncHomeUi(); });
+  ["pIntro", "pBrandName", "pLogoUrl", "pLogoAlt", "pHomeUrl"].forEach(id => $(id).addEventListener("input", () => {
+    idDirty = true;
+    if (id !== "pIntro" && id !== "pHomeUrl") updateLogoPreview();
+  }));
+  $("fId").addEventListener("input", syncHomeUi);
+  $("fTitle").addEventListener("input", syncHomeUi);
+
+  // Đổ profile vào tab. p thiếu (sự kiện cũ) ⇒ hiện GIÁ TRỊ ĐANG CÓ HIỆU LỰC theo hợp đồng (thiếu key = hành vi hiện tại).
+  // mode: "create" | "edit" | "clone"; homeSrc: ID để nhận ra homeUrl = home.html?e=<ID>.
+  function populateIdentity(p, mode, homeSrc) {
+    const has = (p && typeof p === "object" && !Array.isArray(p)) ? p : null;
+    const own = k => !!has && Object.prototype.hasOwnProperty.call(has, k);
+    idExtra = {};
+    if (has) Object.keys(has).forEach(k => { if (!PROFILE_KEYS.includes(k)) idExtra[k] = has[k]; });
+    const variant = own("variant") && typeof has.variant === "string" ? has.variant : PROFILE_DEFAULT_VARIANT;
+    setVariantSelect(variant);
+    $("pLang").value = own("lang") && PROFILE_LANGS[has.lang] ? has.lang : variantLang(variant);
+    $("pLang").dataset.touched = (own("lang") && mode !== "create") ? "1" : "";   // tạo mới: đổi biến thể vẫn kéo ngôn ngữ theo
+    $("pIntro").value = own("introMs") && Number.isFinite(has.introMs) ? String(has.introMs) : "";
+    const b = own("brand") && has.brand && typeof has.brand === "object" ? has.brand : null;
+    const bName = b && b.name != null ? String(b.name) : "", bUrl = b && b.logoUrl != null ? String(b.logoUrl) : "";
+    $("pBrandMode").value = !b ? "skin" : (!bName && !bUrl ? "none" : "custom");
+    $("pBrandName").value = bName; $("pLogoUrl").value = bUrl; $("pLogoAlt").value = b && b.logoAlt ? String(b.logoAlt) : "";
+    idHomeSrc = homeSrc || "";
+    let hm = mode === "create" ? "none" : "legacy", hu = "";                 // tạo mới: homeUrl mặc định "" (hợp đồng)
+    if (own("homeUrl")) {
+      const h = has.homeUrl == null ? "" : String(has.homeUrl);
+      if (!h) hm = "none";
+      else if (idHomeSrc && h === homeLinkOf(idHomeSrc)) hm = "home";       // nhân bản ⇒ lưu theo ID MỚI
+      else { hm = "custom"; hu = h; }
+    }
+    $("pHomeMode").value = hm; $("pHomeUrl").value = hu;
+    idCopy = Object.assign({ vi: {}, en: {} }, own("copy") ? cleanCopy(has.copy) : {});
+    $("cpSearch").value = ""; $("cpJsonBox").open = false; $("cpJson").value = ""; $("cpJson").dataset.dirty = ""; $("cpJsonMsg").textContent = "";
+    setCopyLang($("pLang").value);
+    syncBrandUi(); syncHomeUi();
+    idDirty = false;
+  }
+
+  // Đọc tab → { profile } hoặc { error, focus }. Key không soạn ở đây (bản sau thêm) được giữ nguyên (idExtra).
+  function readProfile(eventId) {
+    const fail = (focus, error) => ({ error, focus });
+    const p = Object.assign({}, idExtra);
+    p.variant = $("pVariant").value;
+    p.lang = PROFILE_LANGS[$("pLang").value] ? $("pLang").value : variantLang(p.variant);
+    const introRaw = $("pIntro").value.trim();
+    if (introRaw) {
+      const n = Number(introRaw);
+      if (!Number.isInteger(n) || n < INTRO_MS_MIN || n > INTRO_MS_MAX)
+        return fail("pIntro", `Thời gian màn chào phải là số nguyên từ ${INTRO_MS_MIN} đến ${INTRO_MS_MAX} (ms), hoặc để trống.`);
+      p.introMs = n;
+    }
+    const bm = $("pBrandMode").value;
+    if (bm === "none") p.brand = { name: "", logoUrl: "" };
+    else if (bm === "custom") {
+      const name = $("pBrandName").value.trim(), logoUrl = $("pLogoUrl").value.trim(), logoAlt = $("pLogoAlt").value.trim();
+      if (name.length > BRAND_NAME_MAX) return fail("pBrandName", `Tên logo tối đa ${BRAND_NAME_MAX} ký tự.`);
+      if (!name && !logoUrl) return fail("pBrandName", 'Logo riêng cần tên hoặc ảnh. Muốn bỏ khối logo thì chọn "Ẩn khối logo".');
+      const ue = siteUrlError(logoUrl, "Ảnh logo");
+      if (ue) return fail("pLogoUrl", ue);
+      p.brand = { name, logoUrl };
+      if (logoAlt) p.brand.logoAlt = logoAlt.slice(0, LOGO_ALT_MAX);
+    }                                                    // "skin": không ghi brand
+    const hm = $("pHomeMode").value;
+    if (hm === "none") p.homeUrl = "";
+    else if (hm === "home") p.homeUrl = homeLinkOf(eventId);
+    else if (hm === "custom") {
+      const u = $("pHomeUrl").value.trim();
+      if (!u) return fail("pHomeUrl", 'Nhập đường dẫn trang home, hoặc chọn "Không có trang home".');
+      const ue = siteUrlError(u, "Đường dẫn trang home");
+      if (ue) return fail("pHomeUrl", ue);
+      p.homeUrl = u;
+    }                                                    // "legacy": không ghi homeUrl
+    if ($("cpJsonBox").open && $("cpJson").dataset.dirty)
+      return fail("cpJson", "Ô JSON có thay đổi chưa áp dụng — bấm “Áp dụng JSON” (hoặc đóng ô JSON) rồi lưu lại.");
+    const copy = cleanCopy(idCopy);
+    if (Object.keys(copy).length) p.copy = copy;
+    return { profile: p };
   }
 
   // ── Tab Đăng ký ───────────────────────────────────────────────────────────
@@ -1780,7 +2502,7 @@
       const teamName  = ic => String((sigIcons[ic] && sigIcons[ic].name) || ic || "—");
       const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
 
-      sigRows = sigSnap.docs.map(d => d.data());
+      sigRows = sigSnap.docs.map(d => Object.assign({ _id: d.id }, d.data()));   // _id = pid (doc id) cho thao tác từng người
       sigRows.sort((a, b) => {
         const tn = teamName(a.icon).localeCompare(teamName(b.icon), "vi");
         if (tn) return tn;
@@ -1829,25 +2551,26 @@
     // data-label trên mỗi <td> → trên điện thoại bảng biến thành thẻ "nhãn : giá trị".
     $("thead").innerHTML = "<tr><th class='num'>#</th><th>Đội</th>"
       + sigFields.map(f => "<th>" + esc(f.label) + "</th>").join("")
-      + "<th>Thời gian</th></tr>";
+      + "<th>Thời gian</th><th class='td-act'><span class='sr-only'>Thao tác</span></th></tr>";
     $("tbody").innerHTML = sigRows.map((r, i) => {
       const isDup = sigDedupField && dupKeys.has(_dedupKey(r[sigDedupField]));
       return "<tr" + (isDup ? " class='is-dup'" : "") + ">"
         + "<td class='num' data-label='#'>" + (i+1) + "</td>"
-        + "<td class='td-team' data-label='Đội'>" + esc(teamLabel(r.icon)) + "</td>"
+        + "<td class='td-team' data-label='Đội'>" + esc(r.icon ? teamLabel(r.icon) : "Chưa chọn") + "</td>"
         + sigFields.map(f => {
             const dupMark = (f.key === sigDedupField && isDup) ? " <span class='dup-tag'>trùng</span>" : "";
             return "<td data-label=\"" + esc(f.label) + "\">" + esc(r[f.key]) + dupMark + "</td>";
           }).join("")
-        + "<td class='td-time' data-label='Thời gian'>" + esc(fmtTime(r.at)) + "</td></tr>";
+        + "<td class='td-time' data-label='Thời gian'>" + esc(fmtTime(r.at)) + "</td>"
+        + "<td class='td-act' data-label='Thao tác'><button type='button' class='icon-btn row-act' data-pid=\"" + esc(r._id) + "\" title='Chuyển phòng, gỡ, bỏ chặn, xoá' aria-label=\"Thao tác với " + esc(r.name || r._id) + "\">" + ICON_MORE + "</button></td></tr>";
     }).join("");
 
-    const per = {};
-    sigRows.forEach(r => { per[r.icon] = (per[r.icon] || 0) + 1; });
+    const per = {};   // khoá "" = chưa chọn phòng (trước đây thành chip "undefined")
+    sigRows.forEach(r => { const k = r.icon ? String(r.icon) : ""; per[k] = (per[k] || 0) + 1; });
     $("summary").innerHTML = "Tổng số người đăng ký: <b>" + sigRows.length + "</b>"
       + " — sự kiện <b>" + esc(eid) + "</b>";
     $("chips").innerHTML = Object.keys(per).sort((a, b) => per[b] - per[a])
-      .map(ic => "<span class='chip'>" + esc(teamLabel(ic)) + ": <b>" + per[ic] + "</b></span>")
+      .map(ic => "<span class='chip'>" + esc(ic ? teamLabel(ic) : "Chưa chọn phòng") + ": <b>" + per[ic] + "</b></span>")
       .join("");
 
     renderDupWarn(dupGroups, dupKeys, teamLabel);
@@ -1878,6 +2601,228 @@
           "Hãy xử lý thủ công — giữ lại một, xoá phần thừa. Lượt đăng ký trùng MỚI từ giờ đã bị hệ thống chặn.</div>" +
       "</div>";
   }
+
+  // ── Thao tác TỪNG NGƯỜI (tab Đăng ký): chuyển phòng · gỡ khỏi phòng · bỏ chặn · xoá đăng ký ──────────────────────────
+  // Giữ ĐỒNG BỘ mọi thứ apiClaim (js/data/api.js) ghi lúc join: teams/{icon}.count+names · members/{pid} · signups/{pid}.icon ·
+  // dedup_keys/k1 {at, icon} · dedup_keys/m~{fold} (DÙNG CHUNG cho mọi tên có dấu cùng gốc ⇒ chỉ xoá khi không còn ai giữ) · reg_keys/k1.
+  // Đọc danh sách (signups, dedup_keys, teams) để lập kế hoạch + hiện hậu quả, rồi 1 TRANSACTION đọc lại các doc chính:
+  // dữ liệu đổi giữa chừng (vd người đó vừa đổi phòng) ⇒ huỷ cả lượt, không ghi nửa vời.
+  const STALE = "Dữ liệu vừa thay đổi — đã tải lại bảng, hãy thử lại.";
+  const teamNameOf = (cfg, ic) => { const g = (Array.isArray(cfg.icons) ? cfg.icons : []).find(x => x && x.icon === ic); const nm = String((g && g.name) || ic || "—"); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };
+  const capOfCfg = (cfg, ic) => { const c = cfg.caps && cfg.caps[ic]; return (typeof c === "number" && c > 0) ? c : (Number(cfg.capacity) || 0); };
+  async function personPlan(eid, pid) {
+    const ev = db.collection("events").doc(eid);
+    const [cfgSnap, sigSnap, dkSnap, tSnap] = await Promise.all([ev.collection("meta").doc("config").get(),
+      ev.collection("signups").get(), ev.collection("dedup_keys").get(), ev.collection("teams").get()]);
+    const cfg = cfgSnap.exists ? (cfgSnap.data() || {}) : {};
+    const sigs = sigSnap.docs.map(d => Object.assign({ _id: d.id }, d.data()));
+    const row = sigs.find(s => s._id === pid);
+    if (!row) throw new Error("Đăng ký này không còn (có thể vừa bị xoá). Bấm Tải dữ liệu.");
+    const field = String(cfg.dedupField || "");
+    const raw = field && row[field] != null ? String(row[field]).trim() : "";
+    const k1 = raw ? _dedupKey(raw) : "", F = raw ? _foldKey(raw) : "";
+    const M = (k1 && F && k1 !== F) ? "m~" + F : "";                       // chỉ tên CÓ dấu mới có doc m~ (api.js _dedupPlan)
+    const same = k1 ? sigs.filter(s => s._id !== pid && _dedupKey(field ? s[field] : "") === k1) : [];
+    const dkIds = new Set(dkSnap.docs.map(d => d.id));
+    // người khác còn giữ M: khoá k1 khác (không phải m~), CÓ dấu, cùng gốc không dấu
+    const mOthers = M ? [...dkIds].filter(id => !id.startsWith("m~") && id !== k1 && id !== _foldKey(id) && _foldKey(id) === F).length : 0;
+    const k1Shared = same.some(s => s.icon);                                  // hồ sơ khác CÙNG mã đang ở phòng ⇒ khoá là của họ
+    const teams = {}; tSnap.docs.forEach(d => { const t = d.data() || {}; teams[d.id] = { count: Number(t.count) || 0, names: Array.isArray(t.names) ? t.names : [] }; });
+    let gender = "";
+    if (k1 && cfg.allowlistMode) { try { const a = await ev.collection("allowlist").doc(k1).get(); gender = a.exists ? normGender((a.data() || {}).gender) : ""; } catch (e) {} }
+    return { eid, ev, cfg, row, field, raw, k1, M, teams, gender, name: String(row.name == null ? "" : row.name).trim(),
+      k1Exists: !!k1 && dkIds.has(k1), mExists: !!M && dkIds.has(M), k1Shared, mKeep: k1Shared || mOthers > 0, mOthers, regShared: same.length > 0 };
+  }
+  // Bỏ 1 lần xuất hiện của tên khỏi names (khớp đúng chuỗi; không có thì khớp theo _dedupKey).
+  function namesWithout(names, name) {
+    const arr = (Array.isArray(names) ? names : []).filter(n => typeof n === "string");
+    let i = arr.lastIndexOf(name);
+    if (i < 0 && name) { const k = _dedupKey(name); i = arr.map(n => _dedupKey(n)).lastIndexOf(k); }
+    if (i >= 0) arr.splice(i, 1);
+    return { names: arr, found: i >= 0 };
+  }
+  // Ghi trong transaction: gỡ người khỏi teams/{icon}. Không thấy tên ⇒ chỉ giảm count khi count đang lớn hơn số tên (dữ liệu cũ
+  // không lưu tên); còn lại GIỮ NGUYÊN đội (giữ names.length == count để client join tiếp được — rules đòi đúng bằng).
+  // Về 0 người ⇒ XOÁ doc đội (như "Xóa dữ liệu"): client join lại theo nhánh tạo đội mới (count 1). Doc {count:0, names:[]}
+  // từng làm rules của client lỗi ở phép so tiền tố names[0:0] ⇒ không ai vào lại được phòng đó.
+  function txLeaveTeam(tx, ref, snap, name) {
+    if (!snap || !snap.exists) return "nodoc";
+    const t = snap.data() || {}, count = Number(t.count) || 0, rm = namesWithout(t.names, name);
+    let next = null;
+    if (rm.found) next = { count: Math.max(0, count - 1), names: rm.names };
+    else if (count > rm.names.length) next = { count: count - 1, names: rm.names };
+    else return "notfound";
+    if (next.count <= 0 && !next.names.length) tx.delete(ref); else tx.update(ref, next);
+    return rm.found ? "ok" : "countOnly";
+  }
+  function keyLines(P, { regDelete }) {
+    const L = [];
+    if (P.k1Exists) L.push(P.k1Shared ? { kind: "warn", text: `Giữ khoá chống trùng "${P.raw}": còn hồ sơ khác cùng mã đang ở phòng.` }
+                                      : { text: `Gỡ khoá chống trùng "${P.raw}" (dedup_keys).` });
+    if (P.mExists) L.push(P.mKeep ? { text: `Giữ khoá tên không dấu (${P.M}): còn ${P.mOthers || "người"} khác cùng gốc không dấu.` }
+                                  : { text: `Gỡ khoá tên không dấu (${P.M}).` });
+    if (regDelete && P.k1) L.push(P.regShared && regDelete === "ifAlone" ? { text: "Giữ giữ-chỗ khi điền form (reg_keys): còn hồ sơ khác cùng mã." }
+                                                                         : { text: "Gỡ giữ-chỗ khi điền form (reg_keys)." });
+    return L;
+  }
+
+  async function personMenu(pid) {
+    const eid = sigShownEid, row = sigRows.find(r => r._id === pid);
+    if (!eid || !row) return;
+    const joined = !!row.icon;
+    const fLabel = (sigFields.find(f => f.key === sigDedupField) || {}).label || sigDedupField;
+    const act = await actionSheet({
+      title: String(row.name || "(chưa có tên)"),
+      sub: (joined ? "Đang ở " + String((sigIcons[row.icon] && sigIcons[row.icon].name) || row.icon) : "Chưa chọn phòng")
+        + (sigDedupField && row[sigDedupField] ? ` · ${fLabel}: ${row[sigDedupField]}` : ""),
+      actions: [
+        { id: "move", label: "Chuyển phòng…", desc: "Sang phòng khác; khoá chống trùng đi theo, vẫn không đăng ký lần 2 được.", disabled: !joined, why: "Chưa ở phòng nào để chuyển." },
+        { id: "unjoin", label: "Gỡ khỏi phòng", desc: "Trả 1 chỗ; giữ hồ sơ. Người này chọn lại phòng được trên thiết bị đã đăng ký.", disabled: !joined, why: "Chưa ở phòng nào." },
+        { id: "unblock", label: "Bỏ chặn (kèm khoá ghi lúc chọn phòng)", desc: "Gỡ giữ-chỗ điền form + khoá chống trùng ⇒ đăng ký lại được trên mọi thiết bị.",
+          disabled: joined, why: "Đang ở phòng — gỡ khỏi phòng trước (gỡ khoá khi còn ở phòng sẽ cho chọn thêm phòng thứ hai)." },
+        { id: "delete", label: "Xoá đăng ký", desc: "Xoá hồ sơ + chỗ trong phòng + mọi khoá chặn. Không hoàn tác.", danger: true },
+      ],
+    });
+    if (!act) return;
+    let P;
+    try { P = await personPlan(eid, pid); }
+    catch (err) { toast("Không đọc được dữ liệu: " + (err.message || err), "err"); return; }
+    if ((act === "move" || act === "unjoin") && !P.row.icon) { toast(STALE, "err"); loadSignups(eid); return; }
+    if (act === "unblock" && P.row.icon) { toast(STALE, "err"); loadSignups(eid); return; }
+    const runs = { move: personMove, unjoin: personUnjoin, unblock: personUnblock, delete: personDelete };
+    let done = "";
+    try { done = await runs[act](P); }
+    catch (err) {
+      const stale = err && err.message === STALE;
+      toast(stale ? STALE : "Lỗi: " + (err.message || err), "err");
+      if (stale) loadSignups(eid);
+      return;
+    }
+    if (!done) return;                                            // admin huỷ ở hộp xác nhận
+    toast(done);
+    await loadSignups(eid);
+    loadEventList();                                              // số người trên thẻ / tổng quan
+  }
+
+  async function personMove(P) {
+    const from = P.row.icon, cfg = P.cfg, icons = Array.isArray(cfg.icons) ? cfg.icons : [];
+    const cnt = ic => (P.teams[ic] ? P.teams[ic].count : 0);
+    const to = await confirmModal({
+      title: `Chuyển ${P.name || "người này"} sang phòng khác?`,
+      message: `Đang ở ${teamNameOf(cfg, from)} (${cnt(from)}/${capOfCfg(cfg, from)}).`,
+      confirmText: "Chuyển phòng",
+      select: {
+        label: "Phòng mới", value: "",
+        options: [{ value: "", label: "— Chọn phòng —" }].concat(icons.map(g => {
+          const c = cnt(g.icon), cap = capOfCfg(cfg, g.icon), gd = normGender(g.gender);
+          return { value: g.icon, disabled: g.icon === from, label: `${teamNameOf(cfg, g.icon)} · ${c}/${cap}${c >= cap ? " (đầy)" : ""}${gd ? " · Phòng " + gd : ""}${g.icon === from ? " — đang ở" : ""}` };
+        })),
+        onChange: v => {
+          if (!v) return [];
+          const g = icons.find(x => x.icon === v) || {}, c = cnt(v), cap = capOfCfg(cfg, v), gd = normGender(g.gender);
+          const L = [{ text: `${teamNameOf(cfg, from)}: ${cnt(from)} → ${Math.max(0, cnt(from) - 1)} người (trả 1 chỗ).` },
+                     { kind: c >= cap ? "warn" : "", text: `${teamNameOf(cfg, v)}: ${c} → ${c + 1}/${cap} người` + (c >= cap ? " — VƯỢT số chỗ (admin vẫn chuyển được)." : ".") }];
+          if (cfg.allowlistGenderCheck && gd && P.gender && gd !== P.gender) L.push({ kind: "warn", text: `Người này là ${P.gender} theo danh sách, phòng mới chỉ dành cho ${gd}.` });
+          if (P.k1Exists) L.push({ text: `Khoá chống trùng "${P.raw}" chuyển theo sang phòng mới — vẫn chặn đăng ký lần 2.` });
+          L.push({ text: "Máy người này thấy phòng mới khi tải lại trang." });
+          return L;
+        },
+      },
+    });
+    if (!to) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), memRef = ev.collection("members").doc(pid);
+      const aRef = ev.collection("teams").doc(from), bRef = ev.collection("teams").doc(to);
+      const kRef = P.k1 ? ev.collection("dedup_keys").doc(P.k1) : null, mRef = P.M ? ev.collection("dedup_keys").doc(P.M) : null;
+      const [sS, memS, aS, bS, kS, mS] = await Promise.all([tx.get(sigRef), tx.get(memRef), tx.get(aRef), tx.get(bRef),
+        kRef ? tx.get(kRef) : null, mRef ? tx.get(mRef) : null]);
+      if (!sS.exists || (sS.data() || {}).icon !== from) throw new Error(STALE);
+      txLeaveTeam(tx, aRef, aS, P.name);
+      const b = bS.exists ? (bS.data() || {}) : null;
+      const bNames = (b && Array.isArray(b.names) ? b.names.filter(n => typeof n === "string") : []).concat(P.name || "—");
+      if (b) tx.update(bRef, { count: (Number(b.count) || 0) + 1, names: bNames });
+      else tx.set(bRef, { icon: to, count: 1, names: bNames });
+      if (memS.exists) tx.update(memRef, { icon: to }); else tx.set(memRef, { icon: to, at: FV.serverTimestamp() });
+      tx.update(sigRef, { icon: to });
+      if (kS && kS.exists && !P.k1Shared) tx.update(kRef, { icon: to });   // k1 {at, icon}: giữ at, đổi icon (bảng tra xuyên thiết bị)
+      if (mS && mS.exists && !P.mKeep && (mS.data() || {}).icon === from) tx.update(mRef, { icon: to });
+    });
+    return `Đã chuyển ${P.name || pid} sang ${teamNameOf(cfg, to)}.`;
+  }
+
+  async function personUnjoin(P) {
+    const from = P.row.icon, t = P.teams[from] || { count: 0 };
+    const ok = await confirmModal({
+      title: `Gỡ ${P.name || "người này"} khỏi phòng?`, message: `${teamNameOf(P.cfg, from)}:`, confirmText: "Gỡ khỏi phòng", danger: true,
+      list: [{ text: `${teamNameOf(P.cfg, from)}: ${t.count} → ${Math.max(0, t.count - 1)} người (trả 1 chỗ cho người khác).` },
+             { text: "Giữ hồ sơ trong danh sách đăng ký (chưa có phòng)." }]
+        .concat(keyLines(P, { regDelete: false }))
+        .concat([{ text: "Giữ giữ-chỗ khi điền form (reg_keys): máy đã đăng ký chọn lại phòng được; máy khác vẫn bị chặn tới khi Bỏ chặn." }]),
+    });
+    if (!ok) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), memRef = ev.collection("members").doc(pid), tRef = ev.collection("teams").doc(from);
+      const kRef = P.k1 ? ev.collection("dedup_keys").doc(P.k1) : null;
+      const [sS, memS, tS, kS] = await Promise.all([tx.get(sigRef), tx.get(memRef), tx.get(tRef), kRef ? tx.get(kRef) : null]);
+      if (!sS.exists || (sS.data() || {}).icon !== from) throw new Error(STALE);
+      txLeaveTeam(tx, tRef, tS, P.name);
+      if (memS.exists) tx.delete(memRef);
+      tx.update(sigRef, { icon: FV.delete() });
+      if (kS && kS.exists && !P.k1Shared) tx.delete(kRef);
+      if (P.mExists && !P.mKeep) tx.delete(ev.collection("dedup_keys").doc(P.M));
+    });
+    return `Đã gỡ ${P.name || pid} khỏi ${teamNameOf(P.cfg, from)}.`;
+  }
+
+  async function personUnblock(P) {
+    if (!P.k1) { await confirmModal({ title: "Không có khoá để gỡ", message: "Sự kiện không có ô kiểm tra trùng hoặc hồ sơ này để trống ô đó.", confirmText: "Đóng", cancelText: "" }); return ""; }
+    const ok = await confirmModal({
+      title: `Bỏ chặn ${P.name || P.raw}?`, message: "Người này chưa ở phòng nào. Sẽ:", confirmText: "Bỏ chặn", danger: true,
+      list: [{ text: `Gỡ giữ-chỗ khi điền form (reg_keys/${P.k1}).` }].concat(keyLines(P, { regDelete: false }))
+        .concat([{ text: "Giữ hồ sơ. Tải lại trang là đăng ký / chọn phòng được (kể cả máy khác)." }]),
+    });
+    if (!ok) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), kRef = ev.collection("dedup_keys").doc(P.k1);
+      const [sS, kS] = await Promise.all([tx.get(sigRef), tx.get(kRef)]);
+      if (!sS.exists || (sS.data() || {}).icon) throw new Error(STALE);
+      tx.delete(ev.collection("reg_keys").doc(P.k1));
+      if (kS.exists && !P.k1Shared) tx.delete(kRef);
+      if (P.mExists && !P.mKeep) tx.delete(ev.collection("dedup_keys").doc(P.M));
+    });
+    return `Đã bỏ chặn ${P.name || P.raw}.`;
+  }
+
+  async function personDelete(P) {
+    const from = P.row.icon, t = from ? (P.teams[from] || { count: 0 }) : null;
+    const fLabel = (Array.isArray(P.cfg.fields) ? P.cfg.fields : []).find(f => f && f.key === P.field);
+    const ok = await confirmModal({
+      title: `Xoá đăng ký của ${P.name || "người này"}?`, message: "Không hoàn tác được. Sẽ:", confirmText: "Xoá đăng ký", danger: true,
+      list: (t ? [{ kind: "warn", text: `${teamNameOf(P.cfg, from)}: ${t.count} → ${Math.max(0, t.count - 1)} người.` }] : [])
+        .concat([{ kind: "warn", text: `Xoá hồ sơ (họ tên${fLabel ? ", " + fLabel.label : ""}, thời gian) khỏi danh sách đăng ký và file xuất.` }])
+        .concat(keyLines(P, { regDelete: "ifAlone" }))
+        .concat([{ text: "Người này đăng ký lại được từ đầu." }]),
+    });
+    if (!ok) return "";
+    const ev = P.ev, pid = P.row._id;
+    await db.runTransaction(async tx => {
+      const sigRef = ev.collection("signups").doc(pid), memRef = ev.collection("members").doc(pid);
+      const tRef = from ? ev.collection("teams").doc(from) : null, kRef = P.k1 ? ev.collection("dedup_keys").doc(P.k1) : null;
+      const [sS, memS, tS, kS] = await Promise.all([tx.get(sigRef), tx.get(memRef), tRef ? tx.get(tRef) : null, kRef ? tx.get(kRef) : null]);
+      if (!sS.exists || ((sS.data() || {}).icon || "") !== (from || "")) throw new Error(STALE);
+      if (tRef) txLeaveTeam(tx, tRef, tS, P.name);
+      if (memS.exists) tx.delete(memRef);
+      tx.delete(sigRef);
+      if (kS && kS.exists && !P.k1Shared) tx.delete(kRef);
+      if (P.mExists && !P.mKeep) tx.delete(ev.collection("dedup_keys").doc(P.M));
+      if (P.k1 && !P.regShared) tx.delete(ev.collection("reg_keys").doc(P.k1));
+    });
+    return `Đã xoá đăng ký của ${P.name || pid}.`;
+  }
+  $("tbody").addEventListener("click", e => { const b = e.target.closest(".row-act"); if (b) personMenu(b.dataset.pid); });
 
   function exportExcel() {
     if (!sigRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }
@@ -1924,8 +2869,11 @@
       download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
       seedWrap:$('alSeedWrap'), seedTeams:$('alSeedTeams'),
       oneKey:$('alOneKey'), oneName:$('alOneName'), addOne:$('alAddOne'), oneCancel:$('alOneCancel'), oneMsg:$('alOneMsg'),
+      tplPanel:$('tplPanel'), tplFile:$('tplFile'), tplDownload:$('tplDownload'), tplPreview:$('tplPreview'), tplSeedWrap:$('tplSeedWrap'),
+      tplSeed:$('tplSeed'), tplAdd:$('tplAdd'), tplReplace:$('tplReplace'), tplResult:$('tplResult'),
     };
     let cur = { eid:'', dedupField:'', genderCheck:false, rows:[], parsed:null };   // parsed = {items:[{key,name,team,raw,gender,genderRaw}]}
+    let tplParsed = null;   // file mẫu (Nhân sự + Phòng) đang xem trước: { errors, warns, rooms, people, … }
     // Ô chọn giới tính cho "Thêm/sửa 1 mã": "" = không có giới (người này không bị khoá phòng nào).
     el.oneGender.innerHTML = `<option value="">Giới tính: —</option>` +
       GENDER_OPTIONS.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
@@ -1958,6 +2906,31 @@
         }
       },
       async clear(eid){ await deleteAll(`events/${eid}/allowlist`); },   // tái dùng deleteAll của admin
+      // "Xoá cũ & nạp mới" AN TOÀN: GHI XONG danh sách mới (ghi đè trọn từng dòng — file mới là nguồn sự thật, ô trống thì
+      // xoá giá trị cũ) RỒI mới xoá những mã không còn trong file. Không có lúc danh sách trống ⇒ không chặn nhầm cả sự kiện.
+      async replaceAll(eid, items){
+        const col = db.collection('events').doc(eid).collection('allowlist');
+        const oldKeys = (await col.get()).docs.map(d => d.id);
+        const ts = FV.serverTimestamp();
+        for (let i=0;i<items.length;i+=400){
+          const batch = db.batch();
+          items.slice(i,i+400).forEach(it => {
+            const doc = { at:ts };
+            if (it.name) doc.name = it.name;
+            if (it.gender) doc.gender = it.gender;
+            batch.set(col.doc(it.key), doc);
+          });
+          await batch.commit();
+        }
+        const keep = new Set(items.map(it => it.key));
+        const stale = oldKeys.filter(k => !keep.has(k));
+        for (let i=0;i<stale.length;i+=400){
+          const batch = db.batch();
+          stale.slice(i,i+400).forEach(k => batch.delete(col.doc(k)));
+          await batch.commit();
+        }
+        return { written: items.length, removed: stale.length };
+      },
       async delOne(eid, key){ return db.collection('events').doc(eid).collection('allowlist').doc(key).delete(); },
 
       // Seed người ĐÃ CÓ ĐỘI (cột "team") vào đúng đội — CHIẾM SLOT THẬT + KHOÁ MÃ.
@@ -2039,6 +3012,7 @@
       const noField = !cur.dedupField;
       el.warnNoField.hidden = !noField;
       el.import.classList.toggle('is-disabled', noField);
+      el.tplPanel.classList.toggle('is-disabled', noField);   // file mẫu cũng đối chiếu theo ô kiểm tra trùng
       el.warnEmpty.hidden = !(el.mode.checked && cur.rows.length === 0);
       // Bật "Check giới tính" mà danh sách (không rỗng) chưa có ai mang giới tính ⇒ tính năng vô tác dụng → nhắc.
       el.warnNoGender.hidden = !(el.mode.checked && cur.genderCheck && cur.rows.length > 0 && !cur.rows.some(r => r.gender));
@@ -2059,6 +3033,7 @@
 
     async function loadEvent(eid){
       cur.eid = eid; cur.parsed = null; el.result.hidden = true;
+      tplReset();        // đổi sự kiện → bỏ file mẫu đang xem trước (đã đọc theo cấu hình sự kiện cũ)
       cancelEditOne();   // đổi sự kiện → thoát chế độ sửa (tránh lưu nhầm mã sang event khác)
       el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
       el.seedWrap.hidden = true; el.seedTeams.checked = false; el.replace.textContent = 'Xoá cũ & nạp mới';
@@ -2203,8 +3178,7 @@
         el.add.disabled = el.replace.disabled = true;
         try {
           await clearEventData(cur.eid);                 // teams/members/dedup_keys/reg_keys/signups (giữ config + allowlist)
-          await data.clear(cur.eid);                     // allowlist
-          await data.addMany(cur.eid, cur.parsed.items); // nạp lại danh sách cho phép (kèm cột name)
+          await data.replaceAll(cur.eid, cur.parsed.items); // danh sách mới ghi xong rồi mới xoá mã cũ không còn trong file
           const res = await data.seedTeams(cur.eid, cur.parsed.items, cfg);
           // Bump dataEpoch: máy người chơi đang giữ localStorage cũ sẽ tự nhả khi vào lại (giống "Xóa dữ liệu").
           await db.collection('events').doc(cur.eid).collection('meta').doc('config').set({ dataEpoch: FV.increment(1) }, { merge:true });
@@ -2234,8 +3208,8 @@
       }
       el.add.disabled = el.replace.disabled = true;
       try {
-        if (replace) await data.clear(cur.eid);
-        await data.addMany(cur.eid, cur.parsed.items);
+        if (replace) await data.replaceAll(cur.eid, cur.parsed.items);   // ghi mới xong mới xoá cũ (không có lúc danh sách trống)
+        else await data.addMany(cur.eid, cur.parsed.items);
         // Replace = thay TOÀN BỘ danh sách (roster mới) ⇒ bump dataEpoch để máy đã đăng nhập tự ĐĂNG NHẬP LẠI
         // khi vào lại (boot so seenEpoch → xóa me.fields → cổng allowlist kiểm theo danh sách MỚI). KHÔNG bump
         // khi chỉ "Thêm" (additive: người cũ vẫn hợp lệ, không nên đá ra).
@@ -2260,7 +3234,284 @@
       URL.revokeObjectURL(a.href);
     }
 
+    // ── Nạp "Nhân sự + Phòng" từ MỘT file mẫu (thay backend/scripts/tnt-import.js) ───────────────────────
+    // Sheet "Nhân sự": <ô kiểm tra trùng> (sự kiện chống trùng theo tên: NAME) | NAME | Gender | Phòng (STT phòng nếu xếp sẵn)
+    // Sheet "Phòng":   STT | Tên phòng | Số giường | Giới tính | Team | Emoji  (Team ghép vào tên: "Phòng 1 · Team 1")
+    // Có sheet Phòng ⇒ THAY danh sách đội (icons/capacity/caps, như tnt-import.js). Đội đang có người phải giữ emoji (khoá teams/{icon}).
+    const TPL = {
+      people: 'nhan su', rooms: 'phong', guide: 'huong dan',            // tên sheet (đã bỏ dấu, chữ thường)
+      roomCols: { stt:/^stt$/, name:/^ten phong$/, beds:/^so giuong$/, gender:/^gioi tinh$/, team:/^(team|nhom)$/, emoji:/^emoji$/ },
+      nameCol: /^(name|ho ten|ho va ten|ten|full ?name)$/,
+      genderCol: /^(gioi tinh|gioi|ma gioi|ma gioi tinh|gender|sex)$/,
+      roomCol: /^(phong|room|team|doi|nhom)$/,
+      emojiPool: ['🌊','🌸','🐬','🌷','🦈','🌻','🐳','🌼','🌴','🌺','⭐','🍀'],   // như tnt-import.js; hết thì dùng số thứ tự
+      colors: ['#2f80ed','#e0479e','#38bdf8','#ff6cce','#7a8cff','#ffb13d','#4dd47a','#b06cff','#ff7a45','#4dffe1','#ffe14d','#ff3b5c'],
+      emojiMax: 16, show: 40,                                             // độ dài emoji tối đa · số lỗi/lưu ý hiện tối đa
+    };
+    const tplFold = h => _foldVN(h).replace(/\s+/g, ' ');
+
+    function tplReset(){
+      tplParsed = null; el.tplFile.value = ''; el.tplResult.hidden = true;
+      el.tplPreview.innerHTML = '<p class="hint">Chọn file để xem trước phòng, số người và lỗi từng dòng.</p>';
+      el.tplSeedWrap.hidden = true; el.tplSeed.checked = false;
+      syncTplButtons();
+    }
+    function syncTplButtons(){
+      const ok = !!(tplParsed && !tplParsed.errors.length && (tplParsed.people.length || tplParsed.rooms.length));
+      const seeding = el.tplSeed.checked && !el.tplSeedWrap.hidden;
+      el.tplAdd.disabled = !ok || seeding;               // xếp sẵn = làm mới dữ liệu ⇒ chỉ qua "Xoá cũ & nạp mới"
+      el.tplReplace.disabled = !ok;
+      el.tplReplace.textContent = seeding ? 'Xoá cũ & nạp mới + xếp sẵn' : 'Xoá cũ & nạp mới';
+    }
+    function tplMsg(msg, err){ el.tplResult.textContent = msg; el.tplResult.classList.toggle('err', !!err); el.tplResult.hidden = false; }
+
+    // Workbook → { errors[], warns[], rooms[], people[], roomSheet, peopleSheet }. Mỗi lỗi ghi rõ sheet + dòng.
+    function tplParse(wb, cfg){
+      const errors = [], warns = [];
+      const aoaOf = n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, defval:'' });
+      const cell = (r, i) => (i >= 0 && r[i] != null ? String(r[i]).trim() : '');
+      const colOf = (hdr, re) => hdr.findIndex(h => re.test(tplFold(h)));
+      const roomSheet = wb.SheetNames.find(n => tplFold(n) === TPL.rooms) || '';
+      const peopleSheet = wb.SheetNames.find(n => tplFold(n) === TPL.people)
+        || wb.SheetNames.find(n => n !== roomSheet && tplFold(n) !== TPL.guide) || '';
+      const curIcons = Array.isArray(cfg.icons) ? cfg.icons : [];
+      // ---- Phòng ----
+      const rooms = [];
+      if (roomSheet){
+        const ra = aoaOf(roomSheet), rh = (ra[0] || []).map(String), c = {};
+        Object.keys(TPL.roomCols).forEach(k => { c[k] = colOf(rh, TPL.roomCols[k]); });
+        if (c.name < 0 || c.beds < 0) errors.push(`Sheet "${roomSheet}": cần cột "Tên phòng" và "Số giường".`);
+        else ra.slice(1).forEach((r, i) => {
+          const name = cell(r, c.name); if (!name) return;
+          const line = `Phòng · dòng ${i + 2} (${name})`;
+          const sttRaw = cell(r, c.stt), stt = c.stt >= 0 ? Number(sttRaw) : rooms.length + 1;
+          if (stt !== rooms.length + 1) errors.push(`${line}: STT phải liên tục 1, 2, 3… (đang là "${sttRaw}").`);
+          const bedsRaw = cell(r, c.beds), beds = Number(bedsRaw);
+          if (!Number.isInteger(beds) || beds < 1) errors.push(`${line}: Số giường phải là số nguyên ≥ 1 (đang là "${bedsRaw}").`);
+          const gRaw = cell(r, c.gender), gender = normGender(gRaw);
+          if (gRaw && !gender) errors.push(`${line}: Giới tính "${gRaw}" không hiểu — ghi Nam hoặc Nữ (trống = phòng chung).`);
+          const team = cell(r, c.team), emoji = cell(r, c.emoji);
+          if (emoji && (emoji.length > TPL.emojiMax || emoji.includes('/'))) errors.push(`${line}: Emoji "${emoji}" không hợp lệ.`);
+          rooms.push({ stt, name, beds, gender, team, label: team ? `${name} · ${team}` : name, emoji, color: '' });
+        });
+        if (!rooms.length && !errors.length) errors.push(`Sheet "${roomSheet}": chưa có phòng nào.`);
+        // Emoji trống ⇒ emoji của đội CÙNG TÊN đang có (giữ khoá teams/{icon}) → kho emoji → số thứ tự chưa dùng.
+        rooms.forEach(r => {
+          if (r.emoji) return;
+          const m = curIcons.find(ic => ic && ic.icon && (tplFold(ic.name) === tplFold(r.label) || tplFold(ic.name) === tplFold(r.name)));
+          if (m) r.emoji = m.icon;
+        });
+        // Kho emoji bỏ cả emoji của MỌI đội hiện có: phòng mới không được "chiếm" khoá teams/{icon} của đội khác tên (đội đó có thể đang có người).
+        const used = new Set(rooms.map(r => r.emoji).filter(Boolean).concat(curIcons.map(ic => ic && ic.icon).filter(Boolean)));
+        const pool = TPL.emojiPool.filter(e => !used.has(e));
+        let no = 1;
+        rooms.forEach(r => {
+          if (r.emoji) return;
+          let e = pool.shift();
+          if (!e) { while (used.has(String(no))) no++; e = String(no); }
+          r.emoji = e; used.add(e);
+        });
+        const seenE = new Map();
+        rooms.forEach((r, i) => {
+          if (seenE.has(r.emoji)) errors.push(`Phòng "${r.name}" trùng emoji ${r.emoji} với phòng "${seenE.get(r.emoji)}" — mỗi phòng cần 1 emoji riêng.`);
+          else seenE.set(r.emoji, r.name);
+          const m = curIcons.find(ic => ic && ic.icon === r.emoji);       // đội cũ cùng emoji ⇒ giữ màu
+          r.color = (m && m.color) || TPL.colors[i % TPL.colors.length];
+        });
+      }
+      // Cột "Phòng" của Nhân sự trỏ tới: phòng trong file (sẽ thay); không có sheet Phòng ⇒ đội hiện tại theo thứ tự.
+      const target = roomSheet ? rooms : curIcons.map((ic, i) => ({ stt: i + 1, name: ic.name || ic.icon, label: ic.name || ic.icon, emoji: ic.icon,
+        gender: normGender(ic.gender), beds: (cfg.caps && typeof cfg.caps[ic.icon] === 'number' && cfg.caps[ic.icon] > 0) ? cfg.caps[ic.icon] : (Number(cfg.capacity) || 0) }));
+      // ---- Nhân sự ----
+      const people = [], df = cur.dedupField;
+      const dfLabel = ((Array.isArray(cfg.fields) ? cfg.fields : []).find(f => f && f.key === df) || {}).label || '';
+      if (!peopleSheet) errors.push('Không thấy sheet "Nhân sự".');
+      else {
+        const pa = aoaOf(peopleSheet), ph = (pa[0] || []).map(String);
+        const nameCol = colOf(ph, TPL.nameCol);
+        let idCol = ph.findIndex(h => { const x = tplFold(h); return !!x && (x === tplFold(df) || (!!dfLabel && x === tplFold(dfLabel))); });
+        if (idCol < 0 && df === 'name') idCol = nameCol;
+        const gCol = colOf(ph, TPL.genderCol), rCol = colOf(ph, TPL.roomCol);
+        if (idCol < 0) errors.push(`Sheet "${peopleSheet}": cần cột "${df}"${dfLabel ? ` (hoặc "${dfLabel}")` : ''} — khớp ô kiểm tra trùng của sự kiện.`);
+        else {
+          const seenK = new Map();
+          pa.slice(1).forEach((r, i) => {
+            const raw = cell(r, idCol); if (!raw) return;
+            const name = nameCol >= 0 ? cell(r, nameCol) : '';
+            const line = `Nhân sự · dòng ${i + 2} (${name || raw})`;
+            const key = _dedupKey(raw);
+            if (seenK.has(key)) { errors.push(`${line}: trùng với dòng ${seenK.get(key)} — người sau sẽ bị chặn.`); return; }
+            seenK.set(key, i + 2);
+            const gRaw = cell(r, gCol), gender = normGender(gRaw);
+            if (gRaw && !gender) errors.push(`${line}: Giới tính "${gRaw}" không hiểu — ghi Nam hoặc Nữ.`);
+            else if (gCol >= 0 && !gRaw) warns.push(`${line}: trống giới tính ⇒ vào được mọi phòng.`);
+            const roomRaw = cell(r, rCol);
+            let room = null;
+            if (roomRaw){
+              const n = Number(roomRaw);
+              room = Number.isInteger(n) ? (target.find(x => x.stt === n) || null) : null;
+              if (!room) errors.push(`${line}: Phòng "${roomRaw}" không hợp lệ — ghi số thứ tự 1…${target.length}${roomSheet ? ' (cột STT sheet Phòng)' : ' (thứ tự đội của sự kiện)'}.`);
+              else if (room.gender && gender && room.gender !== gender) errors.push(`${line}: là ${gender} nhưng xếp vào ${room.name} (phòng ${room.gender}).`);
+            }
+            people.push({ key, raw, name: name || (df === 'name' ? raw : ''), gender, room });
+          });
+          if (!people.length) warns.push(`Sheet "${peopleSheet}" chưa có ai ⇒ danh sách cho phép giữ nguyên.`);
+        }
+      }
+      target.forEach(r => { const n = people.filter(p => p.room === r).length; if (r.beds && n > r.beds) errors.push(`${r.name}: xếp sẵn ${n} người nhưng chỉ có ${r.beds} giường.`); });
+      if (rooms.length && people.length){
+        const bedsOf = g => rooms.filter(r => r.gender === g).reduce((s, r) => s + r.beds, 0);
+        const total = rooms.reduce((s, r) => s + r.beds, 0), common = bedsOf('');
+        if (people.length > total) warns.push(`Thiếu giường: ${people.length} người nhưng chỉ ${total} giường ⇒ ${people.length - total} người sẽ không còn chỗ.`);
+        GENDER_OPTIONS.forEach(g => { const n = people.filter(p => p.gender === g).length; if (n > bedsOf(g) + common) warns.push(`Thiếu giường ${g}: ${n} người ${g} nhưng chỉ ${bedsOf(g)} giường ${g} (+${common} chung).`); });
+      }
+      return { errors, warns, rooms, people, roomSheet, peopleSheet };
+    }
+    // Phòng → cấu hình đội (giống tnt-import.js): sĩ số chung = phòng nhiều giường nhất, phòng khác số đó ⇒ sĩ số riêng.
+    function tplRoomsCfg(rooms){
+      const capacity = Math.max(...rooms.map(r => r.beds));
+      const caps = {};
+      rooms.forEach(r => { if (r.beds !== capacity) caps[r.emoji] = r.beds; });
+      const icons = rooms.map(r => { const ic = { icon: r.emoji, name: r.label, color: r.color }; if (r.gender) ic.gender = r.gender; return ic; });
+      return { icons, capacity, caps };
+    }
+    function renderTplPreview(P){
+      const nG = g => P.people.filter(p => p.gender === g).length, pre = P.people.filter(p => p.room).length;
+      const head = P.errors.length ? `<div class="tpl-status bad">${P.errors.length} lỗi — sửa file rồi chọn lại.</div>`
+        : `<div class="tpl-status ok">File hợp lệ${P.warns.length ? ` · ${P.warns.length} lưu ý` : ''}.</div>`;
+      const stat = (k, v, s) => `<div class="stat"><span class="stat-k">${esc(k)}</span><span class="stat-v">${esc(v)}</span><span class="stat-s">${esc(s)}</span></div>`;
+      const stats = '<div class="stat-row">'
+        + stat('Nhân sự', String(P.people.length), P.people.length ? GENDER_OPTIONS.map(g => `${nG(g)} ${g}`).join(' · ') + (pre ? ` · xếp sẵn ${pre}` : '') : 'không đổi danh sách')
+        + stat('Phòng', P.roomSheet ? String(P.rooms.length) : '—', P.roomSheet ? `${P.rooms.reduce((s, r) => s + r.beds, 0)} giường · thay danh sách đội` : 'không có sheet Phòng ⇒ giữ đội hiện tại')
+        + '</div>';
+      const list = (arr, cls) => arr.length ? `<ul class="tpl-msgs ${cls}">` + arr.slice(0, TPL.show).map(m => `<li>${esc(m)}</li>`).join('')
+        + (arr.length > TPL.show ? `<li>…và ${arr.length - TPL.show} mục nữa</li>` : '') + '</ul>' : '';
+      const rooms = P.rooms.length ? '<div class="table-wrap tpl-rooms"><table class="reg-table"><thead><tr><th class="num">STT</th><th>Phòng</th><th>Giường</th><th>Giới tính</th><th>Xếp sẵn</th></tr></thead><tbody>'
+        + P.rooms.map(r => { const n = P.people.filter(p => p.room === r).length;
+            return `<tr><td class="num" data-label="STT">${r.stt}</td><td class="td-team" data-label="Phòng">${esc(r.emoji)} ${esc(r.label)}</td>`
+              + `<td data-label="Giường">${r.beds}</td><td data-label="Giới tính">${esc(r.gender || 'Chung')}</td><td data-label="Xếp sẵn">${n || '—'}</td></tr>`; }).join('')
+        + '</tbody></table></div>' : '';
+      el.tplPreview.innerHTML = head + stats + list(P.errors, 'err') + rooms + list(P.warns, 'warn');
+    }
+    async function tplOnFile(){
+      el.tplResult.hidden = true; tplParsed = null; syncTplButtons();
+      const f = el.tplFile.files[0]; if (!f) return;
+      if (!cur.eid || !cur.dedupField){ tplMsg('Chọn sự kiện có ô kiểm tra trùng trước.', true); return; }
+      let wb, cfg;
+      try { wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type:'array' }); }
+      catch (e) { tplMsg('Không đọc được file — cần file .xlsx theo mẫu.', true); el.tplFile.value = ''; return; }
+      try { cfg = await data.config(cur.eid); }
+      catch (e) { tplMsg('Không đọc được cấu hình sự kiện: ' + (e.message || e), true); return; }
+      tplParsed = tplParse(wb, cfg);
+      el.tplSeedWrap.hidden = !tplParsed.people.some(p => p.room);
+      if (el.tplSeedWrap.hidden) el.tplSeed.checked = false;
+      renderTplPreview(tplParsed);
+      syncTplButtons();
+    }
+    async function tplImport(replace){
+      const P = tplParsed;
+      if (!P || P.errors.length) return;
+      const eid = cur.eid, evRef = db.collection('events').doc(eid);
+      const seeding = replace && el.tplSeed.checked && !el.tplSeedWrap.hidden;
+      let cfg, teams;
+      try {
+        cfg = await data.config(eid);
+        teams = (await evRef.collection('teams').get()).docs.map(d => ({ icon: d.id, count: (d.data() || {}).count || 0 }));
+      } catch (err) { tplMsg('Không đọc được sự kiện: ' + (err.message || err), true); return; }
+      const roomsCfg = P.rooms.length ? tplRoomsCfg(P.rooms) : null;
+      const items = P.people.map(p => ({ key: p.key, name: p.name, gender: p.gender }));
+      const lines = [];
+      if (!items.length) lines.push({ text: 'Danh sách cho phép: giữ nguyên (sheet Nhân sự trống).' });
+      else lines.push(replace
+        ? { kind: 'warn', text: `Danh sách cho phép: THAY TOÀN BỘ bằng ${items.length} người trong file. Mã không còn trong file bị xoá SAU khi ghi xong danh sách mới.` }
+        : { text: `Danh sách cho phép: thêm / cập nhật ${items.length} người, giữ người cũ không có trong file.` });
+      if (roomsCfg){
+        const nCaps = Object.keys(roomsCfg.caps).length;
+        lines.push({ kind: 'warn', text: `Danh sách đội: thay ${(cfg.icons || []).length} đội hiện tại bằng ${roomsCfg.icons.length} phòng (sĩ số chung ${roomsCfg.capacity}${nCaps ? `, ${nCaps} phòng số giường riêng` : ''}).` });
+        if (!seeding){
+          const keep = new Set(roomsCfg.icons.map(i => i.icon));
+          const lost = teams.filter(t => t.count > 0 && !keep.has(t.icon)).map(t => t.icon);
+          if (lost.length){ tplMsg(`Chưa nạp: đội đang có người sẽ bị mất (${lost.join(' ')}). Giữ đúng emoji các đội này ở cột Emoji của sheet Phòng, hoặc dùng “Xếp sẵn” (làm mới dữ liệu đăng ký).`, true); return; }
+          const capOf = ic => roomsCfg.caps[ic] != null ? roomsCfg.caps[ic] : roomsCfg.capacity;
+          const over = teams.filter(t => t.count > capOf(t.icon));
+          if (over.length) lines.push({ kind: 'warn', text: `Có đội đông hơn số giường mới (${over.map(t => `${t.icon} ${t.count}/${capOf(t.icon)}`).join(', ')}) — không ai bị đẩy ra, đội đó hiện "đầy".` });
+        }
+      }
+      if (seeding) lines.push({ kind: 'err', text: `XOÁ toàn bộ đăng ký hiện có của "${eid}" (đội, người đã chọn, khoá chống trùng) rồi xếp sẵn ${P.people.filter(p => p.room).length} người theo cột Phòng. Không hồi phục được.` });
+      if (replace) lines.push({ text: 'Máy người chơi đã nhập thông tin trước đó sẽ phải nhập lại khi mở trang.' });
+      const ok = await confirmModal({ title: seeding ? 'Làm mới dữ liệu và nạp file mẫu?' : 'Nạp file mẫu?', message: `Sự kiện "${eid}":`, list: lines,
+        confirmText: seeding ? 'Làm mới & nạp' : 'Nạp', danger: replace, requireText: seeding ? eid : '' });
+      if (!ok) return;
+      el.tplAdd.disabled = el.tplReplace.disabled = true;
+      tplMsg('Đang nạp…');
+      try {
+        let removed = 0, seedRes = null, newCfg = cfg;
+        if (items.length){ if (replace) removed = (await data.replaceAll(eid, items)).removed; else await data.addMany(eid, items); }
+        if (roomsCfg){
+          await evRef.collection('meta').doc('config').update({ icons: roomsCfg.icons, capacity: roomsCfg.capacity, caps: roomsCfg.caps, updatedAt: FV.serverTimestamp() });
+          newCfg = Object.assign({}, cfg, roomsCfg);
+        }
+        if (seeding){
+          await clearEventData(eid);                        // seed đòi collection rỗng (rules members/dedup_keys: update:false)
+          const seedItems = P.people.filter(p => p.room).map(p => ({ key: p.key, raw: p.raw, name: p.name || p.raw, team: String(p.room.stt) }));
+          seedRes = await data.seedTeams(eid, seedItems, newCfg);
+        }
+        if (replace) await evRef.collection('meta').doc('config').set({ dataEpoch: FV.increment(1) }, { merge: true });   // như "Xoá cũ & nạp mới" hiện có
+        cur.rows = await data.list(eid); renderList();
+        let msg = items.length ? `Đã nạp ${items.length} người${replace ? ` (xoá ${removed} mã cũ không còn trong file)` : ''}` : 'Danh sách cho phép giữ nguyên';
+        if (roomsCfg) msg += ` · ${roomsCfg.icons.length} phòng`;
+        if (seedRes) msg += ` · xếp sẵn ${seedRes.seeded} người` + (seedRes.conflicts.length ? ` · ⚠ bỏ qua (trùng khoá): ${seedRes.conflicts.join('; ')}` : '');
+        tplReset(); tplMsg(msg + '.');
+        loadEventList();                                     // thẻ sự kiện / tổng quan thấy phòng mới
+      } catch (err) {
+        tplMsg('Lỗi khi nạp: ' + (err.message || err) + ' — một phần có thể đã ghi; kiểm tra rồi nạp lại.', true);
+        syncTplButtons();
+      }
+    }
+    // File mẫu sinh tại chỗ theo sự kiện đang chọn: cột đối chiếu = ô kiểm tra trùng; sheet Phòng điền sẵn các đội hiện có.
+    async function tplDownload(){
+      let cfg = {};
+      try { if (cur.eid) cfg = await data.config(cur.eid); } catch (e) {}
+      const df = cur.dedupField || 'name', byName = df === 'name';
+      const hdr = byName ? ['NAME', 'Gender', 'Phòng'] : [df, 'NAME', 'Gender', 'Phòng'];
+      const demo = [['NGUYỄN VĂN A', 'Nam', ''], ['TRẦN THỊ B', 'Nữ', '1'], ['LÊ VĂN C', 'Nam', '']];
+      const people = demo.map((r, i) => byName ? r : ['NV' + String(i + 1).padStart(4, '0')].concat(r));
+      const icons = Array.isArray(cfg.icons) ? cfg.icons : [];
+      const bedsOf = ic => (cfg.caps && typeof cfg.caps[ic.icon] === 'number' && cfg.caps[ic.icon] > 0) ? cfg.caps[ic.icon] : (Number(cfg.capacity) || 1);
+      const split = nm => { const m = /^(.*?)\s*·\s*(.+)$/.exec(String(nm || '')); return m ? [m[1], m[2]] : [String(nm || ''), '']; };
+      const rooms = icons.length ? icons.map((ic, i) => { const [n, t] = split(ic.name || ic.icon); return [i + 1, n, bedsOf(ic), normGender(ic.gender), t, ic.icon]; })
+        : [[1, 'Phòng 1', 4, 'Nam', 'Team 1', ''], [2, 'Phòng 2', 4, 'Nữ', 'Team 2', ''], [3, 'Phòng 3', 4, '', '', '']];
+      const guide = [
+        'HƯỚNG DẪN — nạp ở admin: trang "Danh sách cho phép" → "Nạp Nhân sự + Phòng từ file mẫu" (xem trước + báo lỗi từng dòng trước khi nạp).',
+        '',
+        'SHEET Nhân sự — mỗi dòng 1 người:',
+        byName ? '• NAME: họ tên CÓ DẤU đầy đủ, đúng như người chơi sẽ gõ (đây là mã đối chiếu). Không để 2 người trùng tên.'
+               : `• ${df}: mã đối chiếu (ô kiểm tra trùng của sự kiện), mỗi người 1 mã. NAME: họ tên (nên có).`,
+        '• Gender: Nam hoặc Nữ (trống = vào được mọi phòng).',
+        '• Phòng: để TRỐNG nếu người đó tự chọn trên web; ghi SỐ THỨ TỰ phòng (cột STT sheet Phòng) nếu BTC xếp sẵn.',
+        '   → Xếp sẵn chỉ chạy khi admin tích "Xếp sẵn": XOÁ toàn bộ đăng ký hiện có rồi xếp. Không vượt Số giường, cùng giới với phòng.',
+        '',
+        'SHEET Phòng — có sheet này thì THAY toàn bộ danh sách đội của sự kiện (không muốn đổi phòng: xoá sheet này):',
+        '• STT: 1, 2, 3… liên tục. Tên phòng, Số giường (số nguyên ≥ 1) bắt buộc.',
+        '• Giới tính: Nam / Nữ; trống = phòng chung.   Team (tuỳ chọn): hiện thành "Phòng 1 · Team 1".',
+        '• Emoji: khoá định danh phòng — phòng ĐANG CÓ NGƯỜI phải giữ nguyên emoji. Trống = tự đặt.',
+        '',
+        '"Nạp thêm" giữ người cũ trong danh sách cho phép; "Xoá cũ & nạp mới" thay toàn bộ (ghi xong danh sách mới mới xoá mã cũ).',
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.aoa_to_sheet([hdr].concat(people)); ws1['!cols'] = hdr.map(h => ({ wch: h === 'NAME' ? 28 : 12 }));
+      const ws2 = XLSX.utils.aoa_to_sheet([['STT', 'Tên phòng', 'Số giường', 'Giới tính', 'Team', 'Emoji']].concat(rooms)); ws2['!cols'] = [6, 22, 10, 10, 14, 8].map(w => ({ wch: w }));
+      const ws3 = XLSX.utils.aoa_to_sheet(guide.map(l => [l])); ws3['!cols'] = [{ wch: 120 }];
+      XLSX.utils.book_append_sheet(wb, ws1, 'Nhân sự'); XLSX.utils.book_append_sheet(wb, ws2, 'Phòng'); XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
+      XLSX.writeFile(wb, `mau-nhan-su-phong-${cur.eid || 'su-kien'}.xlsx`);
+    }
+
     // ── events ──
+    el.tplFile.onchange = tplOnFile;
+    el.tplSeed.onchange = syncTplButtons;
+    el.tplAdd.onclick = () => tplImport(false);
+    el.tplReplace.onclick = () => tplImport(true);
+    el.tplDownload.onclick = tplDownload;
     el.event.onchange = e => loadEvent(e.target.value);
     el.reload.onclick = () => cur.eid && loadEvent(cur.eid);
     el.file.onchange = onFile;
@@ -2343,6 +3594,76 @@
       if (el.event.value) loadEvent(el.event.value);
     };
   })();
+
+  // ── Tab "Quản trị viên": collection admins/{uid} (rules: isAdmin = UID gốc HOẶC có doc). Không ai tự thêm mình (rules chặn). ──
+  let admRows = [];
+  async function loadAdmins() {
+    const body = $("admBody"), me = auth.currentUser;
+    $("admErr").textContent = "";
+    if (!me) return;
+    if (!body.children.length) body.innerHTML = skelRows(3, 5);
+    busy(body, true);
+    try {
+      const snap = await db.collection("admins").get();
+      admRows = snap.docs.map(d => Object.assign({ uid: d.id }, d.data()));
+      admRows.sort((a, b) => ((b.at && b.at.seconds) || 0) - ((a.at && a.at.seconds) || 0));
+      $("admRole").textContent = ROOT_ADMIN_UIDS.includes(me.uid) ? "Quản trị gốc" : (admRows.some(r => r.uid === me.uid) ? "Quản trị (thêm bằng dữ liệu)" : "—");
+      const short = u => u ? (u.length > 14 ? u.slice(0, 6) + "…" + u.slice(-4) : u) : "—";
+      const rootRow = u => `<tr class="is-root"><td data-label="UID"><code>${esc(u)}</code></td><td data-label="Ghi chú"><span class="pill pill-root">Gốc · trong rules</span></td>`
+        + `<td data-label="Thêm bởi">—</td><td data-label="Lúc">—</td><td class="td-act" data-label="Thao tác"></td></tr>`;
+      body.innerHTML = ROOT_ADMIN_UIDS.map(rootRow).join("") + admRows.map(r =>
+        `<tr><td data-label="UID"><code>${esc(r.uid)}</code>${r.uid === me.uid ? ' <span class="pill">bạn</span>' : ""}</td>`
+        + `<td data-label="Ghi chú">${esc(r.note || "")}</td><td data-label="Thêm bởi" title="${esc(r.addedBy || "")}"><code>${esc(short(r.addedBy))}</code></td>`
+        + `<td class="td-time" data-label="Lúc">${esc(fmtTime(r.at))}</td>`
+        + `<td class="td-act" data-label="Thao tác"><button type="button" class="btn-del icon-del adm-del" data-uid="${esc(r.uid)}" title="Gỡ quyền quản trị" aria-label="Gỡ quyền quản trị của ${esc(r.uid)}">${ICON_X}</button></td></tr>`).join("");
+    } catch (err) {
+      const denied = /permission|insufficient/i.test(String(err && (err.code || err.message) || err));
+      body.innerHTML = "";
+      $("admRole").textContent = ROOT_ADMIN_UIDS.includes(me.uid) ? "Quản trị gốc" : (denied ? "Chưa có quyền quản trị" : "—");
+      $("admErr").textContent = denied ? "Tài khoản này chưa có quyền quản trị — gửi UID ở khung bên trái cho một quản trị viên." : "Lỗi tải danh sách: " + (err.message || err);
+    } finally { busy(body, false); }
+  }
+  $("admReload").addEventListener("click", loadAdmins);
+  $("admNote").maxLength = ADMIN_NOTE_MAX;
+  $("admCopy").addEventListener("click", async () => {
+    const uid = $("admMyUid").textContent;
+    try { await navigator.clipboard.writeText(uid); toast("Đã sao chép UID."); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("admMyUid")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Đã bôi đen UID — bấm Ctrl+C để sao chép."); }
+  });
+  $("admAdd").addEventListener("click", async () => {
+    const uid = $("admUid").value.trim(), note = $("admNote").value.trim(), me = auth.currentUser, msg = $("admMsg");
+    msg.style.color = "var(--err)";
+    if (!ADMIN_UID_RE.test(uid) || uid === "." || uid === "..") { msg.textContent = "UID không hợp lệ (6–128 ký tự, không có khoảng trắng hay dấu /)."; return; }
+    if (me && uid === me.uid) { msg.textContent = "Không tự thêm chính mình được."; return; }
+    if (ROOT_ADMIN_UIDS.includes(uid)) { msg.textContent = "UID này đã là quản trị gốc."; return; }
+    if (admRows.some(r => r.uid === uid)) { msg.textContent = "UID này đã có trong danh sách."; return; }
+    const ok = await confirmModal({ title: "Thêm quản trị viên?", message: `UID ${uid} sẽ có TOÀN QUYỀN trang quản trị: xem họ tên người đăng ký, sửa / xoá sự kiện, thêm / gỡ quản trị viên khác.`,
+                                    confirmText: "Thêm quản trị viên" });
+    if (!ok) return;
+    $("admAdd").disabled = true;
+    try {
+      const doc = { addedBy: me.uid, at: FV.serverTimestamp() };
+      if (note) doc.note = note.slice(0, ADMIN_NOTE_MAX);
+      await db.collection("admins").doc(uid).set(doc);
+      $("admUid").value = ""; $("admNote").value = "";
+      msg.style.color = "var(--ok)"; msg.textContent = `Đã thêm ${uid}. Người đó tải lại trang quản trị là dùng được.`;
+      await loadAdmins();
+    } catch (err) {
+      msg.textContent = /permission|insufficient/i.test(String(err && (err.code || err.message) || err))
+        ? "Không thêm được: tài khoản này không có quyền (hoặc UID đã có / đang tự thêm chính mình)." : "Lỗi: " + (err.message || err);
+    } finally { $("admAdd").disabled = false; }
+  });
+  $("admBody").addEventListener("click", async e => {
+    const b = e.target.closest(".adm-del");
+    if (!b) return;
+    const uid = b.dataset.uid, self = auth.currentUser && auth.currentUser.uid === uid;
+    const ok = await confirmModal({ title: "Gỡ quyền quản trị?", message: self
+        ? `Đây là CHÍNH BẠN — gỡ xong bạn mất quyền quản trị ngay (cần một quản trị viên khác thêm lại).`
+        : `UID ${uid} mất quyền quản trị ở lần đọc / ghi kế tiếp.`, confirmText: "Gỡ quyền", danger: true });
+    if (!ok) return;
+    try { await db.collection("admins").doc(uid).delete(); toast(`Đã gỡ quyền của ${uid}.`); await loadAdmins(); }
+    catch (err) { toast("Không gỡ được: " + (err.message || err), "err"); }
+  });
 
   // Khởi tạo: mở form ở chế độ "Tạo sự kiện mới" + seed sẵn field mặc định (name + employeeId)
   // ngay khi tải trang. Gọi ở CUỐI IIFE để EMP_ID_RE + các hàm sync đã khởi tạo xong (tránh TDZ).
