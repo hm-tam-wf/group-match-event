@@ -222,8 +222,14 @@
       <button type="button" class="icon-btn" id="drawerClose" aria-label="Đóng">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </header>
+    <!-- 2 phần của form: Thiết lập (cấu hình đăng ký) · Nhận diện (meta/config.profile — giao diện, logo, chữ) -->
+    <div class="drawer-tabs" role="tablist" aria-label="Phần của form">
+      <button type="button" class="dtab" role="tab" id="dtabCfg" aria-controls="dpCfg" aria-selected="true">Thiết lập</button>
+      <button type="button" class="dtab" role="tab" id="dtabId" aria-controls="dpId" aria-selected="false" tabindex="-1">Nhận diện</button>
+    </div>
 
     <div class="drawer-body">
+     <div class="dpane" id="dpCfg" role="tabpanel" aria-labelledby="dtabCfg">
       <fieldset class="fs">
         <legend>Thông tin chung</legend>
         <label class="field"><span>Tên sự kiện</span><input type="text" id="fTitle" placeholder="vd: Team Building Q2" /></label>
@@ -271,6 +277,75 @@
         <div id="iconsList" class="dyn-list"></div>
         <button type="button" id="btnAddIcon" class="btn-ghost btn-sm">+ Thêm đội</button>
       </fieldset>
+     </div>
+
+     <!-- ── Nhận diện: soạn meta/config.profile (hợp đồng bước 2). Key không ghi = trang công khai giữ hành vi hiện tại. ── -->
+     <div class="dpane" id="dpId" role="tabpanel" aria-labelledby="dtabId" hidden>
+      <fieldset class="fs">
+        <legend>Giao diện &amp; ngôn ngữ</legend>
+        <div class="form-grid two">
+          <label class="field"><span>Giao diện</span><select id="pVariant"></select></label>
+          <label class="field"><span>Ngôn ngữ trang</span><select id="pLang"></select></label>
+        </div>
+        <small class="hint">Link có <code>?lang=vi</code> hoặc <code>?lang=en</code> vẫn thắng ngôn ngữ đặt ở đây.</small>
+        <label class="field field-narrow"><span>Giữ màn chào (ms)</span>
+          <input type="number" id="pIntro" step="100" placeholder="Theo giao diện" inputmode="numeric" />
+          <small class="hint" id="pIntroHint">Thời gian màn “terminal” trước khi mở form. Để trống = theo giao diện.</small></label>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Logo</legend>
+        <label class="field"><span>Khối logo</span>
+          <select id="pBrandMode">
+            <option value="skin">Dùng logo mặc định của giao diện</option>
+            <option value="custom">Logo riêng</option>
+            <option value="none">Ẩn khối logo</option>
+          </select></label>
+        <div class="form-grid" id="pBrandBox" hidden>
+          <label class="field"><span>Tên hiển thị</span><input type="text" id="pBrandName" placeholder="vd FARADAY" autocomplete="off" /></label>
+          <label class="field"><span>Ảnh logo</span><input type="text" id="pLogoUrl" placeholder="themes/…/logo.png hoặc https://…" spellcheck="false" autocomplete="off" /></label>
+          <label class="field"><span>Mô tả ảnh (alt)</span><input type="text" id="pLogoAlt" placeholder="vd Logo công ty" autocomplete="off" /></label>
+        </div>
+        <div class="logo-prev" id="pLogoPrev" hidden><img id="pLogoImg" alt="" /><span id="pLogoCap"></span></div>
+        <small class="hint" id="pBrandHint"></small>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Nút Huỷ / Quay lại</legend>
+        <label class="field"><span>Khi người chơi bấm Huỷ</span>
+          <select id="pHomeMode">
+            <option value="legacy">Như cũ (về trang trước / travel.html)</option>
+            <option value="none">Không có trang home (Huỷ chỉ đóng popup)</option>
+            <option value="home">Về trang home của sự kiện</option>
+            <option value="custom">Về đường dẫn khác…</option>
+          </select></label>
+        <label class="field" id="pHomeUrlWrap" hidden><span>Đường dẫn</span>
+          <input type="text" id="pHomeUrl" placeholder="vd travel.html hoặc https://…" spellcheck="false" autocomplete="off" /></label>
+        <small class="hint" id="pHomeHint"></small>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Chữ trên trang</legend>
+        <small class="hint">Chỉ ô đã điền mới được lưu; để trống = giữ chữ gốc (chữ mờ). <code>{0}</code>, <code>{1}</code> là chỗ chèn tham số (tên đội, số người…). Dùng được HTML đơn giản như &lt;b&gt;. Giao diện biến thể (vd TNT) có thể đã thay sẵn một số chữ gốc.</small>
+        <div class="cp-bar">
+          <div class="seg-tabs" role="tablist" aria-label="Ngôn ngữ của chữ">
+            <button type="button" class="seg-btn" role="tab" data-lang="vi" aria-selected="true">Tiếng Việt <b id="cpCount-vi">0</b></button>
+            <button type="button" class="seg-btn" role="tab" data-lang="en" aria-selected="false" tabindex="-1">English <b id="cpCount-en">0</b></button>
+          </div>
+          <label class="search grow">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="text" id="cpSearch" placeholder="Tìm theo chữ hoặc mã (vd banner)…" aria-label="Tìm chữ" autocomplete="off" />
+          </label>
+        </div>
+        <div id="cpList" class="cp-list"></div>
+        <details class="cp-json" id="cpJsonBox">
+          <summary>Nâng cao: sửa bằng JSON</summary>
+          <textarea id="cpJson" rows="8" spellcheck="false" aria-label="JSON chữ ghi đè"></textarea>
+          <div class="btn-row"><button type="button" class="btn-ghost btn-sm" id="cpJsonApply">Áp dụng JSON</button>
+            <span id="cpJsonMsg" class="hint" role="status"></span></div>
+        </details>
+      </fieldset>
+     </div>
     </div>
 
     <footer class="drawer-foot">
@@ -278,6 +353,8 @@
       <p id="formOk" class="ok-msg" role="status"></p>
       <div class="btn-row end">
         <button type="button" id="btnCancel" class="btn-ghost">Huỷ</button>
+        <button type="button" id="btnPreview" class="btn-ghost" title="Lưu rồi mở trang sự kiện ở tab mới">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Lưu &amp; xem trước</button>
         <button type="button" id="btnSave" class="btn-pri">Tạo sự kiện</button>
       </div>
     </footer>
@@ -291,6 +368,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="js/config/config.js"></script>
+<!-- Chuỗi riêng theme tech (tech.terminalLine…): chỉ để tab Nhận diện liệt kê được key ghi đè. Không đổi giao diện admin. -->
+<script src="themes/tech/strings.js"></script>
 <script src="js/config/firebase-config.js"></script>
 
 <script>
@@ -384,6 +463,49 @@
   const ICON_EDIT = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4'/></svg>";
   const emptyState   = txt => "<div class='empty-state'>" + emptySvg() + "<div>" + txt + "</div></div>";
   const loadingState = txt => "<div class='loading-row'><span class='spinner'></span>" + esc(txt) + "</div>";
+
+  // ── ID sự kiện + link trang công khai ─────────────────────────────────────
+  // Cùng bộ ký tự với ?e= của trang sự kiện (^[a-z0-9][a-z0-9-]{0,99}$) ⇒ ID nào tạo được ở đây cũng mở được bằng link.
+  const EVENT_ID_MAX = 100;
+  const EVENT_ID_RE  = new RegExp("^[a-z0-9][a-z0-9-]{0," + (EVENT_ID_MAX - 1) + "}$");
+  const EVENT_PAGE = "index.html", HOME_PAGE = "home.html";   // trang sự kiện · trang home (bước 3B)
+  // Admin chạy ở site riêng (firebase.json: pickyourgroup-admin) KHÔNG có trang sự kiện ⇒ link sang site sự kiện.
+  // Nơi khác (GitHub Pages, localhost) admin nằm cạnh index.html ⇒ link tương đối.
+  const EVENT_SITE = { adminHost: /^pickyourgroup-admin\.(web\.app|firebaseapp\.com)$/, url: "https://pickyourgroup.web.app/" };
+  const eventSiteBase = () => EVENT_SITE.adminHost.test(location.hostname) ? EVENT_SITE.url : "";
+  const eventLink = id => eventSiteBase() + EVENT_PAGE + "?e=" + encodeURIComponent(id);
+  const homeLinkOf = id => HOME_PAGE + "?e=" + id;   // giá trị lưu vào profile.homeUrl (tương đối, cùng site với trang sự kiện)
+
+  // ── Hồ sơ sự kiện meta/config.profile (hợp đồng bước 2) ───────────────────
+  // Đọc PHÒNG THỦ: master chưa có các hằng dưới (bước 2 khai trong config.js). Dùng tên khác hằng gốc (tránh TDZ của typeof).
+  const PROFILE_VARIANTS = (typeof AVAILABLE_VARIANTS !== "undefined" && Array.isArray(AVAILABLE_VARIANTS) && AVAILABLE_VARIANTS.length)
+    ? AVAILABLE_VARIANTS.filter(v => v && typeof v.id === "string" && v.id)
+    : [{ id: "tnt", label: "TNT · Mini Outing", theme: "tech", defaultLang: "vi" }];
+  const PROFILE_BRAND = (typeof DEFAULT_BRAND !== "undefined" && DEFAULT_BRAND && typeof DEFAULT_BRAND === "object")
+    ? DEFAULT_BRAND : { name: "FARADAY", logoUrl: "themes/tech/img/LOGO.png", logoAlt: "Faraday Icon" };
+  const PROFILE_LANGS = { vi: "Tiếng Việt", en: "English" };
+  const PROFILE_FALLBACK_LANG = (typeof DEFAULT_LANG !== "undefined" && PROFILE_LANGS[DEFAULT_LANG]) ? DEFAULT_LANG : "en";
+  // Biến thể khi THIẾU key = DEFAULT_VARIANT (theme.js). Admin không nạp theme.js (xem đầu admin.css) ⇒ literal riêng, có kiểm tra.
+  const PROFILE_DEFAULT_VARIANT = (() => {
+    const id = (typeof DEFAULT_VARIANT !== "undefined") ? String(DEFAULT_VARIANT || "") : "tnt";
+    return (!id || PROFILE_VARIANTS.some(v => v.id === id)) ? id : "";
+  })();
+  const PROFILE_KEYS  = ["variant", "lang", "brand", "homeUrl", "introMs", "copy"];   // key admin soạn; key lạ (bản sau) được GIỮ khi lưu
+  const INTRO_MS_MIN = 1000, INTRO_MS_MAX = 15000, BRAND_NAME_MAX = 40, LOGO_ALT_MAX = 80, COPY_VALUE_MAX = 2000;
+  const variantLang = id => { const v = PROFILE_VARIANTS.find(x => x.id === id); return (v && PROFILE_LANGS[v.defaultLang]) ? v.defaultLang : PROFILE_FALLBACK_LANG; };
+  // Đường dẫn TƯƠNG ĐỐI trong site hoặc https:// (hợp đồng: cấm javascript:, data:…). Chặn khoảng trắng/ký tự điều khiển
+  // (trình duyệt bỏ tab/xuống dòng ⇒ "java\tscript:" thành javascript:), "//host" và "\" (bị hiểu thành host khác).
+  function siteUrlError(v, label) {
+    if (!v) return null;
+    if (/[\s\u0000-\u001f\u007f<>"'`]/.test(v)) return `${label}: không được có khoảng trắng hoặc ký tự < > " ' \`.`;
+    if (/^https:\/\//i.test(v)) {
+      try { const u = new URL(v); if (u.protocol === "https:" && u.hostname) return null; } catch (e) {}
+      return `${label}: link https:// không hợp lệ.`;
+    }
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(v)) return `${label}: chỉ nhận đường dẫn trong site (vd themes/…/logo.png) hoặc link bắt đầu bằng https://.`;
+    if (v.startsWith("//") || v.includes("\\")) return `${label}: đường dẫn trong site không được bắt đầu bằng // hoặc chứa \\.`;
+    return null;
+  }
 
   // ── Motion helpers ───────────────────────────────────────────────────────
   // Mọi hiệu ứng tắt khi người dùng bật "giảm chuyển động". Trạng thái cuối luôn đặt thẳng (không phụ thuộc animationend).
@@ -1067,9 +1189,9 @@
   async function cloneEvent(eid) {
     const ev = cachedEvents.find(e => e.id === eid);
     if (!ev || !ev.cfg) { confirmModal({ title: "Không nhân bản được", message: "Không tìm thấy cấu hình sự kiện.", confirmText: "Đóng", cancelText: "" }); return; }
-    populateForm(ev.cfg, "");
+    populateForm(ev.cfg, "", eid);
     $("formHeading").textContent = `Nhân bản từ "${ev.cfg.title || eid}"`;
-    $("btnSave").textContent = "Tạo bản sao";
+    $("btnSave").textContent = $("btnSave").dataset.label = "Tạo bản sao";
     const banner = $("formModeBanner");
     banner.hidden = false;
     banner.className = "form-mode dup";
@@ -1197,7 +1319,7 @@
 
   // ── Form động: fields & icons ─────────────────────────────────────────────
   $("fTitle").addEventListener("input", function () {
-    if (!$("fId").dataset.manual) $("fId").value = slugify(this.value);
+    if (!$("fId").dataset.manual) $("fId").value = slugify(this.value).slice(0, EVENT_ID_MAX).replace(/-+$/, "");
   });
   $("fId").addEventListener("input", function () {
     this.dataset.manual = this.value ? "1" : "";
@@ -1388,7 +1510,8 @@
 
   function validateForm(d) {
     if (!d.eventId)                         return "Hãy nhập ID sự kiện.";
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(d.eventId))
+    if (d.eventId.length > EVENT_ID_MAX)    return `ID sự kiện tối đa ${EVENT_ID_MAX} ký tự.`;
+    if (!EVENT_ID_RE.test(d.eventId))
                                             return "ID sự kiện chỉ được dùng chữ thường, số và dấu gạch ngang, bắt đầu bằng chữ/số.";
     if (!d.title)                           return "Hãy nhập tên sự kiện.";
     if (!d.fields.length)                   return "Cần ít nhất 1 ô nhập.";
@@ -1440,27 +1563,41 @@
     return null;
   }
 
-  $("btnSave").addEventListener("click", async () => {
+  // Nút Lưu + "Lưu & xem trước" khoá cùng lúc (chặn bấm lặp khi đang ghi).
+  function formBusy(on, label) {
+    $("btnSave").disabled = $("btnPreview").disabled = !!on;
+    setBusy($("btnSave"), on);
+    if (label) $("btnSave").textContent = label;
+  }
+
+  // Lưu form (Tạo / Sửa / Nhân bản). Trả ID đã lưu; "" = chưa lưu (form lỗi, admin huỷ ở hộp xác nhận, lỗi ghi).
+  async function submitForm() {
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
     const d   = readForm();
     const err = validateForm(d);
-    if (err) { $("formErr").textContent = err; return; }
+    if (err) { showDrawerPane("dpCfg"); $("formErr").textContent = err; return ""; }
+    const pr = readProfile(d.eventId);
+    if (pr.error) {
+      showDrawerPane("dpId"); $("formErr").textContent = pr.error;
+      if (pr.focus && $(pr.focus)) $(pr.focus).focus({ preventScroll: false });
+      return "";
+    }
 
-    if (editingId) { saveEdit(d); return; }   // ── chế độ SỬA (Việc 3) ──
+    // ── chế độ SỬA (Việc 3): profile CHỈ ghi khi admin đã sửa tab Nhận diện ──
+    if (editingId) return saveEdit(d, idDirty ? pr.profile : null);
 
     // Kiểm tra trùng ID
     try {
       const ex = await db.collection("events").doc(d.eventId).collection("meta").doc("config").get();
       if (ex.exists) {
+        showDrawerPane("dpCfg");
         $("formErr").textContent = `Sự kiện "${d.eventId}" đã tồn tại. Chọn ID khác hoặc nhân bản sự kiện cũ.`;
-        return;
+        return "";
       }
     } catch (_) { /* chưa tồn tại hoặc permission — an toàn để tiếp tục */ }
 
-    $("btnSave").disabled    = true;
-    $("btnSave").textContent = "Đang lưu…";
-    setBusy($("btnSave"), true);
+    formBusy(true, "Đang lưu…");
     try {
       await db.collection("events").doc(d.eventId).collection("meta").doc("config").set({
         title:      d.title,
@@ -1476,6 +1613,7 @@
         allowlistMode: d.allowlistMode,
         allowlistNameCheck: d.allowlistNameCheck,
         allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
+        profile:    pr.profile,        // hồ sơ TƯỜNG MINH (hợp đồng bước 2); key không ghi = theo giao diện / hành vi cũ
         createdAt:  FV.serverTimestamp()
       });
       await db.collection("config").doc("eventList")
@@ -1484,24 +1622,37 @@
       closeDrawer();
       toast(`Đã tạo sự kiện "${d.eventId}".`);
       await loadEventList();
+      return d.eventId;
     } catch (err) {
       $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
+      return "";
     } finally {
-      $("btnSave").disabled    = false;
-      setBusy($("btnSave"), false);
-      $("btnSave").textContent = "Tạo sự kiện";
+      formBusy(false, $("btnSave").dataset.label || "Tạo sự kiện");   // dataset.label: "Tạo bản sao" khi nhân bản
     }
-  });
+  }
+  $("btnSave").addEventListener("click", () => { submitForm(); });
+  // Xem trước = lưu rồi mở trang sự kiện (?e=<id>) ở tab mới. Mở SAU khi ghi xong ⇒ trang thấy đúng bản vừa lưu.
+  $("btnPreview").addEventListener("click", async () => { const id = await submitForm(); if (id) openPreview(id); });
+  function openPreview(id) {
+    const url = eventLink(id);
+    const w = window.open(url, "_blank");
+    if (w) { try { w.opener = null; } catch (e) {} return; }
+    // Trình duyệt chặn tab mới (chờ lưu lâu ⇒ hết "cử chỉ người dùng") ⇒ hỏi lại: bấm Mở là cử chỉ mới.
+    confirmModal({ title: "Mở trang xem trước?", message: "Trình duyệt vừa chặn mở tab mới. Bấm Mở để xem " + url,
+                   confirmText: "Mở", cancelText: "Để sau" })
+      .then(ok => { if (ok) { const w2 = window.open(url, "_blank"); if (w2) { try { w2.opener = null; } catch (e) {} } } });
+  }
 
   // Lưu khi SỬA (Việc 3): ghi đè meta/config nhưng GIỮ createdAt (merge), kèm các luật an toàn theo sĩ số đội.
-  async function saveEdit(d) {
+  // profile: null = KHÔNG đụng meta/config.profile (admin không sửa tab Nhận diện). Trả ID đã lưu, "" nếu không lưu.
+  async function saveEdit(d, profile) {
     // Đọc sĩ số đội hiện tại để áp luật. Nếu đọc lỗi → HỦY lưu (không fall-through như luồng tạo).
     let tSnap;
     try {
       tSnap = await db.collection("events").doc(editingId).collection("teams").get();
     } catch (e) {
       $("formErr").textContent = "Không đọc được số người hiện có của các đội nên chưa lưu. " + (e.message || e);
-      return;
+      return "";
     }
 
     // ① CHẶN CỨNG: emoji của đội đang có người (count>0) không được xóa/đổi (emoji = khóa định danh đội).
@@ -1512,7 +1663,8 @@
       $("formErr").textContent =
         `Không thể xóa hoặc đổi emoji của đội đang có người: ${missing.join(" ")}. ` +
         `Emoji là khóa định danh đội — chỉ đổi/xóa được đội có 0 người (tên & màu thì vẫn sửa thoải mái).`;
-      return;
+      showDrawerPane("dpCfg");
+      return "";
     }
 
     // ② Giảm sĩ số (CHUNG hoặc RIÊNG) xuống dưới số người đang có ở đội nào đó → CẢNH BÁO (không chặn; không ai bị đẩy ra).
@@ -1527,7 +1679,7 @@
         message: `Có đội đang đông hơn sĩ số mới (${detail}). Các đội này sẽ hiển thị "đầy" và không nhận thêm — không ai bị đẩy ra. Vẫn lưu?`,
         confirmText: "Vẫn lưu", danger: true,
       });
-      if (!ok) return;
+      if (!ok) return "";
     }
 
     // ③ Đổi/bật chống trùng giữa chừng → THÔNG BÁO (chỉ áp dụng lượt đăng ký MỚI).
@@ -1540,12 +1692,10 @@
         message: `Thay đổi chống trùng chỉ áp dụng cho lượt đăng ký MỚI. Bản trùng cũ KHÔNG bị xóa và khóa chống trùng cũ vẫn giữ nguyên. Tiếp tục?`,
         confirmText: "Tiếp tục",
       });
-      if (!ok) return;
+      if (!ok) return "";
     }
 
-    $("btnSave").disabled    = true;
-    $("btnSave").textContent = "Đang lưu…";
-    setBusy($("btnSave"), true);
+    formBusy(true, "Đang lưu…");
     try {
       // merge:true + KHÔNG ghi createdAt ⇒ giữ createdAt gốc và mọi key chưa biết. Ghi đè vào ID GỐC (editingId).
       await db.collection("events").doc(editingId).collection("meta").doc("config").set({
@@ -1563,20 +1713,24 @@
         allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
         updatedAt:  FV.serverTimestamp()
       }, { merge: true });
-      // caps là MAP → set(merge:true) chỉ deep-merge (không xoá key đã bỏ). Dùng update() để THAY caps trọn vẹn
-      // (đội bỏ cap riêng sẽ về dùng sĩ số chung). d.caps = {} nếu không còn đội nào đặt riêng.
-      await db.collection("events").doc(editingId).collection("meta").doc("config").update({ caps: d.caps });
+      // caps, profile là MAP → set(merge:true) chỉ deep-merge (không xoá key đã bỏ). Dùng update() để THAY trọn vẹn
+      // (đội bỏ cap riêng sẽ về dùng sĩ số chung; chữ ghi đè đã xoá thì mất hẳn). d.caps = {} nếu không còn đội nào đặt riêng.
+      // profile chỉ ghi khi admin sửa tab Nhận diện — không thì GIỮ NGUYÊN (sự kiện cũ thiếu profile vẫn thiếu = hành vi cũ).
+      const upd = { caps: d.caps };
+      if (profile) upd.profile = profile;
+      await db.collection("events").doc(editingId).collection("meta").doc("config").update(upd);
       const wasActive = editingId === activeEventId;
       const savedId   = editingId;
       resetForm();                 // xóa editingId, mở khóa fId, đổi nhãn nút về "Tạo sự kiện"
       closeDrawer();
       toast(`Đã lưu "${savedId}".` + (wasActive ? " Người đang mở trang công khai cần tải lại trang." : ""));
       await loadEventList();
+      formBusy(false);
+      return savedId;
     } catch (err) {
       $("formErr").textContent = "Lỗi khi lưu: " + (err.message || err);
-      $("btnSave").disabled    = false;
-      setBusy($("btnSave"), false);
-      $("btnSave").textContent = "Lưu thay đổi";
+      formBusy(false, "Lưu thay đổi");
+      return "";
     }
   }
 
@@ -1610,12 +1764,13 @@
     syncDedupControls();
     $("formErr").textContent = "";
     $("formOk").textContent  = "";
-    $("btnSave").disabled    = false;
-    setBusy($("btnSave"), false);
-    $("btnSave").textContent = "Tạo sự kiện";
+    formBusy(false, "Tạo sự kiện");
+    $("btnSave").dataset.label = "";
     $("formHeading").textContent = "Tạo sự kiện mới";
     const banner = $("formModeBanner");
     if (banner) { banner.hidden = true; banner.className = "form-mode"; banner.textContent = ""; }
+    showDrawerPane("dpCfg");
+    populateIdentity(null, "create", "");   // tạo mới: hồ sơ mặc định = đúng giao diện hiện tại (homeUrl "")
   }
 
   // Sửa / nhân bản: form đã điền sẵn → mở drawer.
@@ -1630,8 +1785,10 @@
     return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
   }
 
-  function populateForm(cfg, id) {
+  // id = sự kiện đang SỬA ("" khi nhân bản); srcId = sự kiện nguồn khi nhân bản.
+  function populateForm(cfg, id, srcId) {
     resetForm(false);   // KHÔNG seed mặc định — sẽ tự thêm đúng field của sự kiện bên dưới
+    populateIdentity(cfg.profile, id ? "edit" : "clone", id || srcId || "");
     $("fId").value = id || "";
     $("fId").dataset.manual = id ? "1" : "";
     $("fTitle").value    = cfg.title    || "";
@@ -1663,6 +1820,296 @@
       $("fAllowlistGenderCheck").checked = !!cfg.allowlistMode && !!cfg.allowlistGenderCheck;   // tương tự: con của allowlist
       syncNameCheckToggle();
     }, 0);
+  }
+
+  // ── Form: 2 tab "Thiết lập" / "Nhận diện" ─────────────────────────────────
+  function showDrawerPane(id) {
+    [["dtabCfg", "dpCfg"], ["dtabId", "dpId"]].forEach(([t, p]) => {
+      const on = p === id;
+      $(p).hidden = !on;
+      $(t).setAttribute("aria-selected", on ? "true" : "false");
+      $(t).tabIndex = on ? 0 : -1;
+    });
+    $("createCard").querySelector(".drawer-body").scrollTop = 0;
+  }
+  $("dtabCfg").addEventListener("click", () => showDrawerPane("dpCfg"));
+  $("dtabId").addEventListener("click", () => showDrawerPane("dpId"));
+  $("createCard").querySelector(".drawer-tabs").addEventListener("keydown", e => {   // ←/→ chuyển tab (role=tablist)
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const next = $("dtabCfg").getAttribute("aria-selected") === "true" ? "dtabId" : "dtabCfg";
+    $(next).click(); $(next).focus(); e.preventDefault();
+  });
+
+  // ── Tab "Nhận diện" — soạn meta/config.profile ────────────────────────────
+  // Lưu: TẠO = ghi profile tường minh; SỬA = update({profile}) thay cả map, CHỈ khi idDirty (không đụng ⇒ giữ nguyên).
+  let idDirty   = false;               // admin đã sửa gì trong tab này chưa
+  let idExtra   = {};                  // key lạ của profile cũ (phiên bản sau thêm) — giữ nguyên khi lưu
+  let idCopy    = { vi: {}, en: {} };  // chữ ghi đè { lang: { "ns.key": chuỗi } }
+  let idLang    = "vi";                // ngôn ngữ đang xem ở khối "Chữ trên trang"
+  let idHomeSrc = "";                  // ID để nhận ra homeUrl = home.html?e=<ID> (Sửa: chính nó · Nhân bản: sự kiện nguồn)
+  const copyCatalogs = {};
+
+  $("pVariant").innerHTML = PROFILE_VARIANTS.map(v => `<option value="${esc(v.id)}">${esc(v.label || v.id)}</option>`).join("")
+    + `<option value="">Theme gốc (không biến thể)</option>`;
+  $("pLang").innerHTML = Object.keys(PROFILE_LANGS).map(k => `<option value="${k}">${esc(PROFILE_LANGS[k])}</option>`).join("");
+  $("pIntro").min = INTRO_MS_MIN; $("pIntro").max = INTRO_MS_MAX;
+  $("pIntroHint").textContent = `Thời gian màn “terminal” trước khi mở form, ${INTRO_MS_MIN}–${INTRO_MS_MAX} ms. Để trống = theo giao diện.`;
+  $("pBrandName").maxLength = BRAND_NAME_MAX; $("pLogoAlt").maxLength = LOGO_ALT_MAX;
+  $("fId").maxLength = EVENT_ID_MAX;
+
+  // Id biến thể không còn trong danh sách (dữ liệu cũ) ⇒ thêm 1 lựa chọn riêng để KHÔNG âm thầm đổi giá trị đã lưu.
+  function setVariantSelect(id) {
+    const sel = $("pVariant");
+    sel.querySelectorAll("option[data-unknown]").forEach(o => o.remove());
+    if (id && !PROFILE_VARIANTS.some(v => v.id === id)) {
+      const o = document.createElement("option");
+      o.value = id; o.dataset.unknown = "1"; o.textContent = `${id} (không còn — trang hiện theme gốc)`;
+      sel.appendChild(o);
+    }
+    sel.value = id;
+  }
+
+  // Danh mục chữ ghi đè được = STRINGS[lang] (config.js + themes/tech/strings.js) làm phẳng thành "ns.key".
+  // Chữ gốc là HÀM ⇒ hiện bằng cách gọi với "{0}","{1}"… (hợp đồng: tham số theo vị trí).
+  function copyCatalog(lang) {
+    if (copyCatalogs[lang]) return copyCatalogs[lang];
+    const out = [], src = (typeof STRINGS !== "undefined" && STRINGS && STRINGS[lang]) || {};
+    (function walk(o, pre) {
+      Object.keys(o).forEach(k => {
+        const v = o[k], p = pre ? pre + "." + k : k;
+        if (typeof v === "string") out.push({ path: p, fn: false, orig: v });
+        else if (typeof v === "function") {
+          let orig = "";
+          try { orig = String(v.apply(null, Array.from({ length: v.length }, (_, i) => "{" + i + "}"))); } catch (e) {}
+          out.push({ path: p, fn: true, arity: v.length, orig });
+        } else if (v && typeof v === "object" && !Array.isArray(v)) walk(v, p);
+      });
+    })(src, "");
+    return (copyCatalogs[lang] = out);
+  }
+  // Chỉ vi/en, chỉ chuỗi có nội dung (ô trống = dùng chữ gốc). Giữ cả mã lạ có sẵn trong dữ liệu (không tự xoá).
+  function cleanCopy(c) {
+    const out = {};
+    Object.keys(PROFILE_LANGS).forEach(lang => {
+      const m = c && c[lang];
+      if (!m || typeof m !== "object" || Array.isArray(m)) return;
+      const o = {};
+      Object.keys(m).forEach(k => { if (typeof m[k] === "string" && m[k].trim()) o[k] = m[k]; });
+      if (Object.keys(o).length) out[lang] = o;
+    });
+    return out;
+  }
+  const countCopy = () => Object.keys(PROFILE_LANGS).reduce((s, l) => s + Object.keys(idCopy[l] || {}).length, 0);
+  // Ô JSON nâng cao: { "vi": { "banner.sub": "…" }, "en": {…} } — mã phải có thật, giá trị là chuỗi.
+  function parseCopyJson(text) {
+    let o;
+    try { o = JSON.parse(text && text.trim() ? text : "{}"); } catch (e) { return { error: "JSON không hợp lệ: " + e.message }; }
+    if (!o || typeof o !== "object" || Array.isArray(o)) return { error: 'Cần object dạng { "vi": { "banner.sub": "…" }, "en": { … } }.' };
+    const badLang = Object.keys(o).filter(k => !PROFILE_LANGS[k]);
+    if (badLang.length) return { error: "Chỉ nhận ngôn ngữ " + Object.keys(PROFILE_LANGS).join(", ") + " — thừa: " + badLang.join(", ") };
+    const few = a => a.slice(0, 6).join(", ") + (a.length > 6 ? "…" : "");
+    for (const lang of Object.keys(o)) {
+      const m = o[lang];
+      if (!m || typeof m !== "object" || Array.isArray(m)) return { error: `"${lang}" phải là object { "mã.chữ": "nội dung" }.` };
+      const known = new Set(copyCatalog(lang).map(x => x.path));
+      const unknown = Object.keys(m).filter(k => !known.has(k));
+      if (unknown.length) return { error: `${lang}: mã không có trong ứng dụng (sai chính tả?): ${few(unknown)}` };
+      const notStr = Object.keys(m).filter(k => typeof m[k] !== "string");
+      if (notStr.length) return { error: `${lang}: giá trị phải là chuỗi — ${few(notStr)}` };
+      const tooLong = Object.keys(m).filter(k => m[k].length > COPY_VALUE_MAX);
+      if (tooLong.length) return { error: `${lang}: chữ dài quá ${COPY_VALUE_MAX} ký tự — ${few(tooLong)}` };
+    }
+    return { copy: cleanCopy(o) };
+  }
+
+  function updateCopyCounts() {
+    Object.keys(PROFILE_LANGS).forEach(l => { const el = $("cpCount-" + l); if (el) el.textContent = Object.keys(idCopy[l] || {}).length; });
+  }
+  function renderCopyList() {
+    const list = $("cpList"), q = _foldVN($("cpSearch").value);
+    const cat = copyCatalog(idLang), cur = idCopy[idLang] || {};
+    updateCopyCounts();
+    if (!cat.length) { list.innerHTML = "<p class='hint'>Không đọc được danh sách chữ của ứng dụng (STRINGS).</p>"; return; }
+    const groups = {};
+    cat.forEach(it => {
+      if (q && !_foldVN(it.path + " " + it.orig + " " + (cur[it.path] || "")).includes(q)) return;
+      const ns = it.path.split(".")[0];
+      (groups[ns] = groups[ns] || []).push(it);
+    });
+    const nss = Object.keys(groups);
+    list.innerHTML = nss.length ? nss.map(ns => {
+      const items = groups[ns], n = items.filter(it => cur[it.path]).length;
+      return `<details class="cp-ns"${q || n ? " open" : ""}><summary><span>${esc(ns)}</span><span class="cp-n">${n ? n + " đã sửa" : items.length + " chữ"}</span></summary><div class="cp-rows">`
+        + items.map(it => {
+            const v = cur[it.path] || "", rows = it.orig.length > 90 ? 3 : (it.orig.length > 40 ? 2 : 1);
+            return `<label class="cp-row${v ? " is-set" : ""}"><span class="cp-key"><code>${esc(it.path)}</code>`
+              + (it.fn ? `<span class="cp-fn" title="Có tham số: giữ {0}, {1}… đúng vị trí">${it.arity ? "có tham số" : "hàm"}</span>` : "")
+              + `</span><textarea class="cp-in" rows="${rows}" data-path="${esc(it.path)}" placeholder="${esc(it.orig || "(trống)")}">${esc(v)}</textarea></label>`;
+          }).join("") + "</div></details>";
+      }).join("") : "<p class='hint'>Không có chữ nào khớp.</p>";
+  }
+  function setCopyLang(lang) {
+    idLang = PROFILE_LANGS[lang] ? lang : "vi";
+    document.querySelectorAll(".seg-btn[data-lang]").forEach(b => {
+      const on = b.dataset.lang === idLang;
+      b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1;
+    });
+    renderCopyList();
+  }
+  function syncCopyJson(force) {
+    const ta = $("cpJson");
+    if (!$("cpJsonBox").open || (!force && (document.activeElement === ta || ta.dataset.dirty))) return;
+    ta.value = JSON.stringify(cleanCopy(idCopy), null, 2);
+    ta.dataset.dirty = "";
+  }
+  $("cpList").addEventListener("input", e => {
+    const ta = e.target.closest(".cp-in");
+    if (!ta) return;
+    const m = idCopy[idLang] || (idCopy[idLang] = {}), set = !!ta.value.trim();
+    if (set) m[ta.dataset.path] = ta.value; else delete m[ta.dataset.path];
+    ta.closest(".cp-row").classList.toggle("is-set", set);
+    const det = ta.closest(".cp-ns"), n = det.querySelectorAll(".cp-row.is-set").length;
+    det.querySelector(".cp-n").textContent = n ? n + " đã sửa" : det.querySelectorAll(".cp-row").length + " chữ";
+    idDirty = true; updateCopyCounts(); syncCopyJson(false);
+  });
+  $("cpSearch").addEventListener("input", renderCopyList);
+  document.querySelectorAll(".seg-btn[data-lang]").forEach(b => b.addEventListener("click", () => setCopyLang(b.dataset.lang)));
+  $("cpJsonBox").addEventListener("toggle", () => {
+    $("cpJson").dataset.dirty = "";                       // đóng ô = bỏ phần JSON gõ dở chưa áp dụng
+    if ($("cpJsonBox").open) { syncCopyJson(true); $("cpJsonMsg").textContent = ""; }
+  });
+  $("cpJson").addEventListener("input", () => { $("cpJson").dataset.dirty = "1"; });
+  $("cpJsonApply").addEventListener("click", () => {
+    const r = parseCopyJson($("cpJson").value), msg = $("cpJsonMsg");
+    if (r.error) { msg.style.color = "var(--err)"; msg.textContent = r.error; return; }
+    idCopy = Object.assign({ vi: {}, en: {} }, r.copy);
+    idDirty = true;
+    syncCopyJson(true);
+    renderCopyList();
+    msg.style.color = "var(--ok)"; msg.textContent = `Đã áp dụng: ${countCopy()} chữ ghi đè.`;
+  });
+
+  // Logo: "skin" = KHÔNG ghi brand (FE giữ logo của giao diện, vd TNT) · "none" = {name:"",logoUrl:""} ẩn khối logo · "custom".
+  function syncBrandUi() {
+    const m = $("pBrandMode").value;
+    $("pBrandBox").hidden = m !== "custom";
+    $("pBrandHint").textContent = m === "skin"
+      ? `Không ghi logo vào hồ sơ ⇒ trang giữ logo của giao diện (vd TNT) hoặc logo mặc định ${PROFILE_BRAND.name || ""}.`
+      : m === "none" ? "Trang sự kiện không hiện khối logo."
+      : `Tên tối đa ${BRAND_NAME_MAX} ký tự. Ảnh: đường dẫn trong site (vd ${PROFILE_BRAND.logoUrl}) hoặc link https://.`;
+    updateLogoPreview();
+  }
+  function updateLogoPreview() {
+    const box = $("pLogoPrev"), img = $("pLogoImg");
+    const url = $("pLogoUrl").value.trim(), name = $("pBrandName").value.trim();
+    if ($("pBrandMode").value !== "custom" || (!url && !name) || siteUrlError(url, "x")) { box.hidden = true; return; }
+    img.hidden = !url;
+    if (url) { const src = /^https:/i.test(url) ? url : eventSiteBase() + url; if (img.getAttribute("src") !== src) img.src = src; }
+    $("pLogoCap").textContent = name;
+    box.hidden = false;
+  }
+  $("pLogoImg").addEventListener("error", () => { $("pLogoImg").hidden = true; });
+  $("pLogoImg").addEventListener("load", () => { $("pLogoImg").hidden = false; });
+  // Nút Huỷ: "legacy" = KHÔNG ghi homeUrl (hành vi cũ) · "none" = "" · "home" = home.html?e=<ID> · "custom".
+  function syncHomeUi() {
+    const m = $("pHomeMode").value, id = $("fId").value.trim();
+    $("pHomeUrlWrap").hidden = m !== "custom";
+    $("pHomeHint").textContent = m === "legacy" ? "Không ghi vào hồ sơ: nút Huỷ / Quay lại hoạt động như hiện nay."
+      : m === "none" ? "Ẩn nút rời trang; Huỷ chỉ đóng popup."
+      : m === "home" ? `Lưu thành ${homeLinkOf(id || "<ID sự kiện>")} — trang home riêng của sự kiện.`
+      : "Đường dẫn trong site (vd travel.html) hoặc link https://.";
+  }
+
+  $("pVariant").addEventListener("change", () => {
+    if (!$("pLang").dataset.touched) $("pLang").value = variantLang($("pVariant").value);   // chưa tự chọn ⇒ theo biến thể
+    idDirty = true;
+  });
+  $("pLang").addEventListener("change", () => { $("pLang").dataset.touched = "1"; idDirty = true; });
+  $("pBrandMode").addEventListener("change", () => {
+    if ($("pBrandMode").value === "custom" && !$("pBrandName").value.trim() && !$("pLogoUrl").value.trim()) {
+      $("pBrandName").value = PROFILE_BRAND.name || ""; $("pLogoUrl").value = PROFILE_BRAND.logoUrl || ""; $("pLogoAlt").value = PROFILE_BRAND.logoAlt || "";
+    }
+    idDirty = true; syncBrandUi();
+  });
+  $("pHomeMode").addEventListener("change", () => { idDirty = true; syncHomeUi(); });
+  ["pIntro", "pBrandName", "pLogoUrl", "pLogoAlt", "pHomeUrl"].forEach(id => $(id).addEventListener("input", () => {
+    idDirty = true;
+    if (id !== "pIntro" && id !== "pHomeUrl") updateLogoPreview();
+  }));
+  $("fId").addEventListener("input", syncHomeUi);
+  $("fTitle").addEventListener("input", syncHomeUi);
+
+  // Đổ profile vào tab. p thiếu (sự kiện cũ) ⇒ hiện GIÁ TRỊ ĐANG CÓ HIỆU LỰC theo hợp đồng (thiếu key = hành vi hiện tại).
+  // mode: "create" | "edit" | "clone"; homeSrc: ID để nhận ra homeUrl = home.html?e=<ID>.
+  function populateIdentity(p, mode, homeSrc) {
+    const has = (p && typeof p === "object" && !Array.isArray(p)) ? p : null;
+    const own = k => !!has && Object.prototype.hasOwnProperty.call(has, k);
+    idExtra = {};
+    if (has) Object.keys(has).forEach(k => { if (!PROFILE_KEYS.includes(k)) idExtra[k] = has[k]; });
+    const variant = own("variant") && typeof has.variant === "string" ? has.variant : PROFILE_DEFAULT_VARIANT;
+    setVariantSelect(variant);
+    $("pLang").value = own("lang") && PROFILE_LANGS[has.lang] ? has.lang : variantLang(variant);
+    $("pLang").dataset.touched = own("lang") ? "1" : "";
+    $("pIntro").value = own("introMs") && Number.isFinite(has.introMs) ? String(has.introMs) : "";
+    const b = own("brand") && has.brand && typeof has.brand === "object" ? has.brand : null;
+    const bName = b && b.name != null ? String(b.name) : "", bUrl = b && b.logoUrl != null ? String(b.logoUrl) : "";
+    $("pBrandMode").value = !b ? "skin" : (!bName && !bUrl ? "none" : "custom");
+    $("pBrandName").value = bName; $("pLogoUrl").value = bUrl; $("pLogoAlt").value = b && b.logoAlt ? String(b.logoAlt) : "";
+    idHomeSrc = homeSrc || "";
+    let hm = mode === "create" ? "none" : "legacy", hu = "";                 // tạo mới: homeUrl mặc định "" (hợp đồng)
+    if (own("homeUrl")) {
+      const h = has.homeUrl == null ? "" : String(has.homeUrl);
+      if (!h) hm = "none";
+      else if (idHomeSrc && h === homeLinkOf(idHomeSrc)) hm = "home";       // nhân bản ⇒ lưu theo ID MỚI
+      else { hm = "custom"; hu = h; }
+    }
+    $("pHomeMode").value = hm; $("pHomeUrl").value = hu;
+    idCopy = Object.assign({ vi: {}, en: {} }, own("copy") ? cleanCopy(has.copy) : {});
+    $("cpSearch").value = ""; $("cpJsonBox").open = false; $("cpJson").value = ""; $("cpJson").dataset.dirty = ""; $("cpJsonMsg").textContent = "";
+    setCopyLang($("pLang").value);
+    syncBrandUi(); syncHomeUi();
+    idDirty = false;
+  }
+
+  // Đọc tab → { profile } hoặc { error, focus }. Key không soạn ở đây (bản sau thêm) được giữ nguyên (idExtra).
+  function readProfile(eventId) {
+    const fail = (focus, error) => ({ error, focus });
+    const p = Object.assign({}, idExtra);
+    p.variant = $("pVariant").value;
+    p.lang = PROFILE_LANGS[$("pLang").value] ? $("pLang").value : variantLang(p.variant);
+    const introRaw = $("pIntro").value.trim();
+    if (introRaw) {
+      const n = Number(introRaw);
+      if (!Number.isInteger(n) || n < INTRO_MS_MIN || n > INTRO_MS_MAX)
+        return fail("pIntro", `Thời gian màn chào phải là số nguyên từ ${INTRO_MS_MIN} đến ${INTRO_MS_MAX} (ms), hoặc để trống.`);
+      p.introMs = n;
+    }
+    const bm = $("pBrandMode").value;
+    if (bm === "none") p.brand = { name: "", logoUrl: "" };
+    else if (bm === "custom") {
+      const name = $("pBrandName").value.trim(), logoUrl = $("pLogoUrl").value.trim(), logoAlt = $("pLogoAlt").value.trim();
+      if (name.length > BRAND_NAME_MAX) return fail("pBrandName", `Tên logo tối đa ${BRAND_NAME_MAX} ký tự.`);
+      if (!name && !logoUrl) return fail("pBrandName", 'Logo riêng cần tên hoặc ảnh. Muốn bỏ khối logo thì chọn "Ẩn khối logo".');
+      const ue = siteUrlError(logoUrl, "Ảnh logo");
+      if (ue) return fail("pLogoUrl", ue);
+      p.brand = { name, logoUrl };
+      if (logoAlt) p.brand.logoAlt = logoAlt.slice(0, LOGO_ALT_MAX);
+    }                                                    // "skin": không ghi brand
+    const hm = $("pHomeMode").value;
+    if (hm === "none") p.homeUrl = "";
+    else if (hm === "home") p.homeUrl = homeLinkOf(eventId);
+    else if (hm === "custom") {
+      const u = $("pHomeUrl").value.trim();
+      if (!u) return fail("pHomeUrl", 'Nhập đường dẫn trang home, hoặc chọn "Không có trang home".');
+      const ue = siteUrlError(u, "Đường dẫn trang home");
+      if (ue) return fail("pHomeUrl", ue);
+      p.homeUrl = u;
+    }                                                    // "legacy": không ghi homeUrl
+    if ($("cpJsonBox").open && $("cpJson").dataset.dirty)
+      return fail("cpJson", "Ô JSON có thay đổi chưa áp dụng — bấm “Áp dụng JSON” (hoặc đóng ô JSON) rồi lưu lại.");
+    const copy = cleanCopy(idCopy);
+    if (Object.keys(copy).length) p.copy = copy;
+    return { profile: p };
   }
 
   // ── Tab Đăng ký ───────────────────────────────────────────────────────────
