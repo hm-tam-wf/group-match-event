@@ -1,0 +1,75 @@
+# Deploy PRODUCTION theo tag: push tag v* (vd v1.4.0) trỏ vào commit THUỘC master
+#   ⇒ chạy lại toàn bộ test (ci.yml) trên đúng commit đó
+#   ⇒ firebase deploy --only hosting,firestore:rules (cả 2 site trong firebase.json + backend/firestore.rules).
+# Cần secret FIREBASE_SERVICE_ACCOUNT (JSON key của service account quyền tối thiểu) — xem documentation/DEPLOY.md.
+# KHÔNG đụng GitHub Pages (pages.yml tự deploy fe/ khi push master) và KHÔNG ghi dữ liệu Firestore.
+
+name: Deploy production
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+# Mỗi lúc chỉ 1 lần deploy production; tag đến sau xếp hàng, KHÔNG huỷ lần đang chạy giữa chừng.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  FIREBASE_PROJECT: icon-picker   # = .firebaserc → projects.default
+  NODE_VERSION: '26'              # giữ đồng bộ với ci.yml
+
+jobs:
+  test:
+    name: test
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: deploy
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://pickyourgroup.web.app
+    steps:
+      - name: Kiểm tra secret FIREBASE_SERVICE_ACCOUNT
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error title=Thiếu secret FIREBASE_SERVICE_ACCOUNT::Chưa có JSON key service account để deploy. Thêm secret FIREBASE_SERVICE_ACCOUNT vào environment 'production' (Settings → Environments) hoặc Settings → Secrets and variables → Actions. Hướng dẫn: documentation/DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Checkout (đủ lịch sử để kiểm tag thuộc master)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Chỉ deploy tag trỏ vào commit thuộc master
+        run: |
+          git fetch --no-tags origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error title=Tag không thuộc master::Tag $GITHUB_REF_NAME trỏ vào $GITHUB_SHA — commit này không nằm trên master. Merge vào master rồi tag commit trên master."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cài firebase-tools (bản cố định trong package.json → config.firebaseTools)
+        run: npm install --global --no-audit --no-fund "firebase-tools@$(node -p "require('./package.json').config.firebaseTools")"
+
+      - name: Xác thực Google Cloud bằng service account
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy hosting + Firestore rules
+        run: firebase deploy --only hosting,firestore:rules --project "$FIREBASE_PROJECT" --non-interactive --message "$GITHUB_REF_NAME (${GITHUB_SHA::7})"

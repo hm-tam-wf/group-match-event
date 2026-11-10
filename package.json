@@ -11,6 +11,19 @@
     "deploy:rules": "firebase deploy --only firestore:rules",
     "deploy:all": "firebase deploy",
     "export": "node backend/scripts/export.js",
-    "dedup:signups": "node backend/scripts/dedup-signups.js"
+    "dedup:signups": "node backend/scripts/dedup-signups.js",
+    "test": "node tests/run-all.js",
+    "test:unit": "node tests/unit/run.js",
+    "test:rules": "node tests/rules/run.js",
+    "test:scripts": "node tests/scripts/run.js",
+    "test:admin": "node tests/admin/run.js",
+    "test:e2e": "node tests/e2e/run.js",
+    "smoke:live": "node tests/smoke/live-travel.js && node tests/smoke/live-bfcache.js"
+  },
+  "config": {
+    "firebaseTools": "15.19.1"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
   }
 }
