@@ -27,6 +27,8 @@
   const MAX_SECTIONS = 12;
   const MAX_DOC_CHARS = 900000;   // dưới giới hạn 1 MiB/doc của Firestore (đo theo độ dài JSON)
   const DOC_PATH = { col: 'events', sub: 'meta', home: 'home', config: 'config' };
+  // Icon dùng khi field icon để trống (trang home vẽ; trình soạn hiện làm placeholder).
+  const DEFAULT_ICON = { date: '📅', location: '📍', venue: '🏨', schedule: '🗓️', section: '📌', item: '•', note: '📌', infoRow: '•' };
 
   // ── Kiểu lá ── s: chuỗi thường (LUÔN escape khi vẽ) · html: chuỗi HTML (lọc thẻ khi vẽ — chỉ field tên *Html)
   //              url: https:// hoặc đường dẫn trong site · hex: #RGB/#RRGGBB · tone · b: boolean · sid: id mục · type
@@ -254,7 +256,7 @@
   const configRef = (db, eventId) => db.collection(DOC_PATH.col).doc(eventId).collection(DOC_PATH.sub).doc(DOC_PATH.config);
 
   return {
-    VERSION, EVENT_ID_RE, SECTION_ID_RE, TYPE_RE, HEX_RE, TONES, MAX_SECTIONS, MAX_DOC_CHARS, DOC_PATH,
+    VERSION, EVENT_ID_RE, SECTION_ID_RE, TYPE_RE, HEX_RE, TONES, MAX_SECTIONS, MAX_DOC_CHARS, DOC_PATH, DEFAULT_ICON,
     SPEC, LISTS, TYPES,
     isSafeUrl, validate, normalize, blank, blankSection, uniqueId,
     parsePath, getPath, setPath, homeRef, configRef,
