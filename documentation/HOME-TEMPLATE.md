@@ -93,11 +93,13 @@ Mục có `type` hợp lệ (`^[a-z][a-z0-9-]{0,31}$`) nhưng chưa được h�
 + 1 hàm vẽ trong `fe/js/home/home-render.js` (+ nhãn trình soạn).
 
 ## 3. Giao diện, ngôn ngữ, chọn sự kiện (đọc từ `meta/config`, hợp đồng bước 2)
-- Chọn sự kiện: `?e=<id>` (sai định dạng ⇒ màn "không tìm thấy") → `config/hosts.byHost[hostname]` → `config/active.eventId`.
-- `profile.variant` (thiếu ⇒ `DEFAULT_VARIANT`; `""`/id lạ ⇒ theme gốc) đặt `data-variant` (+ `data-theme` của biến thể);
-  `?variant=` trên URL thắng. `profile.lang` (`vi`|`en`; thiếu ⇒ `defaultLang` của biến thể, rồi `en`) chọn
-  ngôn ngữ phần chữ tĩnh của trang (loader, nút mặc định, thông báo lỗi…); `?lang=` thắng. `profile.brand` ⇒ khối logo
-  (`name:""` + `logoUrl:""` ⇒ ẩn). `meta/config.title` làm H1 khi `hero.title` rỗng.
+- Chọn sự kiện (cùng quy tắc `index.html`): `?e=<id>` (sai định dạng ⇒ màn "không tìm thấy") → `config/hosts.byHost[hostname]`
+  (domain CÓ mục mà id sai ⇒ "không tìm thấy", KHÔNG rơi về sự kiện đang mở) → `config/active.eventId`.
+- Hồ sơ áp bằng `applyEventProfile()` của `js/config/profile.js` — chung với trang sự kiện (home.html nạp theme.js →
+  config.js → profile.js): `profile.variant` (thiếu ⇒ `DEFAULT_VARIANT`; `""`/id lạ ⇒ theme gốc; `?variant=` thắng),
+  `profile.lang` (thiếu ⇒ `defaultLang` của biến thể, rồi `DEFAULT_LANG`; `?lang=` thắng) chọn ngôn ngữ phần chữ tĩnh
+  của trang (loader, nút mặc định, thông báo lỗi…), `profile.brand` ⇒ khối logo (`name:""` + `logoUrl:""` ⇒ ẩn).
+  Đọc xong thì `cacheEventProfile()` như trang sự kiện. `meta/config.title` làm H1 khi `hero.title` rỗng.
 - Thiếu `meta/home` (có `meta/config`) ⇒ màn "chưa có trang thông tin" + nút sang trang sự kiện. Lỗi mạng ⇒ màn thử lại.
 - Giao diện dùng lại nguyên `travel/travel.css` (markup cùng class với `travel.html`) + `assets/home.css` (phần bổ sung) ⇒
   khi gỡ `travel.html` thì **giữ lại** `travel/travel.css` (hoặc chuyển chỗ và sửa `<link>` trong `home.html`).

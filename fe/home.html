@@ -89,8 +89,10 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <!-- config.js: AVAILABLE_VARIANTS / DEFAULT_BRAND / DEFAULT_LANG (bước 2) — home.js đọc phòng thủ -->
+  <!-- config.js (AVAILABLE_VARIANTS, DEFAULT_*, LANG) → profile.js (applyEventProfile: biến thể/ngôn ngữ/logo — chung với
+       trang sự kiện) → firebase-config.js (db). home.js dùng thẳng các global này. -->
   <script src="js/config/config.js"></script>
+  <script src="js/config/profile.js"></script>
   <script src="js/config/firebase-config.js"></script>
   <script src="js/home/home-schema.js"></script>
   <script src="js/home/home-strings.js"></script>

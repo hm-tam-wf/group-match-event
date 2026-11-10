@@ -1,14 +1,15 @@
 // ============================================================================
 // home.js — controller trang home dùng chung (fe/home.html)
 // ----------------------------------------------------------------------------
-// 1. Chọn sự kiện (hợp đồng §3): ?e=<id> (sai định dạng ⇒ màn "không tìm thấy") → config/hosts.byHost[hostname]
-//    → config/active.eventId.
-// 2. Đọc events/{id}/meta/home + meta/config SONG SONG; áp profile.variant/lang/brand (thiếu key = như trang sự kiện).
+// 1. Chọn sự kiện — CÙNG quy tắc index.html (app.js): ?e=<id> (sai định dạng ⇒ màn "không tìm thấy")
+//    → config/hosts.byHost[hostname] (domain CÓ mục mà id hỏng ⇒ CHẶN, không rơi về sự kiện đang mở) → config/active.
+// 2. Đọc events/{id}/meta/home + meta/config SONG SONG; hồ sơ meta/config.profile áp bằng applyEventProfile() của
+//    js/config/profile.js ⇒ biến thể / ngôn ngữ / logo theo ĐÚNG một nguồn với trang sự kiện.
 // 3. Vẽ bằng HomeRender (loader che tới khi có dữ liệu ⇒ không FOUC), rồi gắn tương tác như travel.js:
 //    cuộn mượt có bù mục lục bám dính, scrollspy, đổi ngày, nút lên đầu trang, hiệu ứng rời trang.
-// Bọc IIFE, KHÔNG khai tên toàn cục nào: theme.js/config.js (bước 2) khai VARIANT_ID_RE, EVENT_ID_RE, VARIANT_PARAM,
-// eventIdFromUrl, setActiveVariant, AVAILABLE_VARIANTS, DEFAULT_BRAND, DEFAULT_LANG… ⇒ chỉ đọc kiểu phòng thủ
-// (typeof … !== "undefined"); chưa có (master trước bước 2) thì dùng FALLBACK_* bên dưới.
+// Dùng global của các file nạp trước (thứ tự cố định trong home.html): theme.js (eventIdFromUrl, EVENT_ID_RE),
+// config.js (LANG, DEFAULT_LANG), profile.js (applyEventProfile, cacheEventProfile), firebase-config.js (db, FIREBASE_ON).
+// Bọc IIFE, KHÔNG khai tên toàn cục nào (tránh "already been declared" với các file trên).
 // ============================================================================
 (function () {
   'use strict';
@@ -20,7 +21,6 @@
   const EVENT_PAGE = 'index.html';                     // trang sự kiện; CTA mặc định = index.html?e=<id>
   const CFG_COL = 'config', CFG_HOSTS = 'hosts', CFG_ACTIVE = 'active';
   const CARRY_PARAMS = ['lang', 'variant'];            // giữ khi sang trang sự kiện (xem trước ?variant= / ?lang=)
-  const LANGS = ['vi', 'en'];
   const FETCH_TIMEOUT_MS = 15000;
   const LOADER_MIN_MS = 600;                           // lần mở đầu: giữ loader tối thiểu để không chớp
   const LOADER_EASE_MS = 900;                          // thanh tiến trình chạy dần tới LOADER_CAP trong lúc chờ mạng
@@ -30,11 +30,6 @@
   const STICKY_GAP_PX = 16, SPY_OFFSET_PX = 140, BOTTOM_SLACK_PX = 50, BACK_TOP_AFTER_PX = 450;
   const EXIT_MS = 150;
   const MSG_ICON = { noEvent: '🔍', noHome: '🗓️', network: '📡' };
-  // Dự phòng khi config.js/theme.js chưa có bản bước 2 (giá trị = hợp đồng §2). Có bản thật thì bản thật thắng.
-  const FALLBACK_VARIANTS = [{ id: 'tnt', theme: 'tech', defaultLang: 'vi' }];
-  const FALLBACK_BRAND = { name: 'FARADAY', logoUrl: 'themes/tech/img/LOGO.png', logoAlt: 'Faraday Icon' };
-  const FALLBACK_LANG = 'en';
-  const FALLBACK_VARIANT_RE = /^[a-z0-9-]{0,32}$/;
 
   const $ = id => document.getElementById(id);
   const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -44,61 +39,11 @@
   const params = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(''); } })();
   const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
 
-  // ── Đọc global của theme.js/config.js kiểu phòng thủ ──
-  const eventIdRe = () => (typeof EVENT_ID_RE !== 'undefined' && EVENT_ID_RE instanceof RegExp ? EVENT_ID_RE : HS.EVENT_ID_RE);
-  const variantList = () => (typeof AVAILABLE_VARIANTS !== 'undefined' && Array.isArray(AVAILABLE_VARIANTS) ? AVAILABLE_VARIANTS : FALLBACK_VARIANTS);
-  const defaultVariant = () => (typeof DEFAULT_VARIANT === 'string' ? DEFAULT_VARIANT : '');
-  const findVariant = id => (id ? variantList().find(v => v && v.id === id) || null : null);
+  // Bảng chữ tĩnh của trang theo ngôn ngữ hiệu lực (LANG / kết quả applyEventProfile — profile.js quyết định).
+  const strings = lang => STR[lang] || STR[DEFAULT_LANG];
 
-  function urlEvent() {
-    if (typeof eventIdFromUrl === 'function') {
-      try { const r = eventIdFromUrl(); if (isObj(r)) return { given: !!r.given, id: typeof r.id === 'string' ? r.id : '' }; } catch (e) {}
-    }
-    if (!params.has('e')) return { given: false, id: '' };
-    const v = params.get('e') || '';
-    return { given: true, id: eventIdRe().test(v) ? v : '' };
-  }
-  // null = URL không có ?variant= · "" = ép tắt biến thể · id
-  function urlVariant() {
-    if (typeof VARIANT_PARAM !== 'undefined') return VARIANT_PARAM;
-    if (!params.has('variant')) return null;
-    const re = typeof VARIANT_ID_RE !== 'undefined' && VARIANT_ID_RE instanceof RegExp ? VARIANT_ID_RE : FALLBACK_VARIANT_RE;
-    const v = params.get('variant') || '';
-    return re.test(v) ? v : null;
-  }
-  const urlLang = () => { const l = params.get('lang'); return LANGS.includes(l) ? l : ''; };
-  function defaultLangFor(vdef) {
-    if (vdef && LANGS.includes(vdef.defaultLang)) return vdef.defaultLang;
-    return typeof DEFAULT_LANG === 'string' && LANGS.includes(DEFAULT_LANG) ? DEFAULT_LANG : FALLBACK_LANG;
-  }
-  // Ngôn ngữ tạm cho loader (chưa đọc hồ sơ): ?lang= → biến thể đang áp (URL/mặc định) → mặc định.
-  function provisionalLang() {
-    const uv = urlVariant();
-    return urlLang() || defaultLangFor(findVariant(uv !== null ? uv : defaultVariant()));
-  }
-
-  // ── Áp giao diện + ngôn ngữ theo meta/config.profile (hợp đồng §2; key thiếu = như trang sự kiện) ──
-  function applyLook(profile) {
-    const p = isObj(profile) ? profile : {};
-    const uv = urlVariant();
-    let vid = uv !== null ? uv : hasOwn(p, 'variant') ? str(p.variant) : defaultVariant();
-    const vdef = findVariant(vid);
-    if (!vdef) vid = '';                                   // "" hoặc id lạ ⇒ theme gốc
-    const rootEl = document.documentElement;
-    if (vdef && str(vdef.theme)) rootEl.setAttribute('data-theme', vdef.theme);
-    if (typeof setActiveVariant === 'function') setActiveVariant(vid);
-    else if (vid) rootEl.setAttribute('data-variant', vid);
-    else rootEl.removeAttribute('data-variant');
-    const lang = urlLang() || (LANGS.includes(p.lang) ? p.lang : '') || defaultLangFor(vdef);
-    rootEl.lang = lang;
-    return { lang, variant: vid, brand: resolveBrand(p) };
-  }
-  function resolveBrand(p) {
-    const def = typeof DEFAULT_BRAND !== 'undefined' && isObj(DEFAULT_BRAND) ? DEFAULT_BRAND : FALLBACK_BRAND;
-    const b = hasOwn(p, 'brand') && isObj(p.brand) ? p.brand : def;
-    const logoUrl = str(b.logoUrl);
-    return { name: str(b.name), logoUrl: HS.isSafeUrl(logoUrl) ? logoUrl : '', logoAlt: str(b.logoAlt) };
-  }
+  // Khối logo = brand do applyEventProfile() trả về (profile.brand hoặc DEFAULT_BRAND; biến thể tnt tự vẽ logo
+  // bằng CSS trừ khi profile.js đặt <html data-brand="custom">).
   function paintBrand(brand) {
     const box = $('homeBrand');
     if (!box) return;
@@ -125,17 +70,18 @@
   }
 
   async function resolveEventId() {
-    const ue = urlEvent();
-    if (ue.given) return ue.id;                          // ?e= sai định dạng ⇒ "" (KHÔNG rơi về hosts/active)
+    const fromUrl = eventIdFromUrl();                    // theme.js
+    if (fromUrl.given) return fromUrl.id;                // ?e= sai định dạng ⇒ "" (KHÔNG rơi về hosts/active)
     const cfg = db.collection(CFG_COL);
     const [hostsSnap, activeSnap] = await Promise.all([cfg.doc(CFG_HOSTS).get(), cfg.doc(CFG_ACTIVE).get()]);
-    const re = eventIdRe();
     const hosts = hostsSnap.exists ? hostsSnap.data() : null;
     const byHost = hosts && isObj(hosts.byHost) ? hosts.byHost : null;
-    const h = byHost && hasOwn(byHost, location.hostname) ? str(byHost[location.hostname]) : '';
-    if (h && re.test(h)) return h;
+    if (byHost && hasOwn(byHost, location.hostname)) {   // domain CÓ mục ⇒ đúng mục đó; id hỏng ⇒ CHẶN (như app.js)
+      const id = str(byHost[location.hostname]);
+      return EVENT_ID_RE.test(id) ? id : '';
+    }
     const a = activeSnap.exists ? str((activeSnap.data() || {}).eventId) : '';
-    return re.test(a) ? a : '';
+    return EVENT_ID_RE.test(a) ? a : '';
   }
 
   // ── Loader ──
@@ -342,16 +288,17 @@
   });
 
   async function boot() {
-    let S = STR[provisionalLang()] || STR[FALLBACK_LANG];
+    let S = strings(LANG);                               // ngôn ngữ của hồ sơ lưu lần trước / mặc định (profile.js áp lúc nạp)
     startLoader(S);
     if (typeof FIREBASE_ON === 'undefined' || !FIREBASE_ON || typeof db === 'undefined' || !db) { showMsg('network', S); return; }
     try {
       const eventId = await withTimeout(resolveEventId(), FETCH_TIMEOUT_MS);
-      if (!eventId) { S = STR[applyLook(null).lang]; showMsg('noEvent', S); return; }
+      if (!eventId) { showMsg('noEvent', S); return; }
       const [homeSnap, cfgSnap] = await withTimeout(Promise.all([HS.homeRef(db, eventId).get(), HS.configRef(db, eventId).get()]), FETCH_TIMEOUT_MS);
       const cfg = cfgSnap.exists ? cfgSnap.data() || {} : null;
-      const look = applyLook(cfg && cfg.profile);
-      S = STR[look.lang] || STR[FALLBACK_LANG];
+      const look = applyEventProfile(cfg ? cfg.profile : null);   // profile.js: biến thể, ngôn ngữ, logo (+ data-brand)
+      if (cfg) cacheEventProfile(cfg.profile);                    // lần mở sau (kể cả trang sự kiện) vẽ đầu đúng skin
+      S = strings(look.lang);
       const home = homeSnap.exists ? HS.normalize(homeSnap.data()) : null;
       const cfgTitle = cfg ? str(cfg.title) : '';
       if (!home || (!home.hero.title && !cfgTitle && !home.sections.length)) {
