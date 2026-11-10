@@ -294,6 +294,7 @@
         <label class="switch"><input type="checkbox" id="fBlockDup" checked /><span class="switch-ui" aria-hidden="true"></span><span>Chặn đăng ký trùng</span></label>
         <label class="switch"><input type="checkbox" id="fAllowlistMode" /><span class="switch-ui" aria-hidden="true"></span><span>Chỉ người trong danh sách được tham gia</span></label>
         <small class="hint" id="fAllowlistHint">Cần chọn <b>ô kiểm tra trùng</b>. Tạo xong, nạp file ở trang <b>Danh sách cho phép</b>.</small>
+        <div class="alert" id="fAllowWarn" role="status" hidden></div>
         <label class="switch"><input type="checkbox" id="fAllowlistNameCheck" /><span class="switch-ui" aria-hidden="true"></span><span>Kiểm tra <b>họ tên</b> khớp danh sách</span></label>
         <small class="hint" id="fNameCheckHint">File cần có cột tên. Không phân biệt dấu và chữ hoa/thường.</small>
         <label class="switch"><input type="checkbox" id="fAllowlistGenderCheck" /><span class="switch-ui" aria-hidden="true"></span><span>Chia phòng theo <b>giới tính</b></span></label>
@@ -1248,11 +1249,46 @@
     }
   }
 
+  // Kiểm tra cấu hình TRƯỚC khi mở (đọc bản mới nhất): errs = chặn mở (trang sẽ hỏng / chặn tất cả), warns = vẫn mở được.
+  // Điều kiện khớp trang công khai (app.js boot): thiếu key "name" ⇒ lỗi; blockDup + dedupField không có trong fields ⇒ lỗi.
+  async function openChecks(eid) {
+    const ref = db.collection("events").doc(eid);
+    const [cfgSnap, alSnap] = await Promise.all([ref.collection("meta").doc("config").get(), ref.collection("allowlist").limit(1).get()]);
+    const errs = [], warns = [];
+    if (!cfgSnap.exists) { errs.push("Sự kiện không có cấu hình (meta/config)."); return { errs, warns }; }
+    const c = cfgSnap.data() || {}, now = Date.now();
+    const ms = ts => (ts && typeof ts.toMillis === "function") ? ts.toMillis() : null;
+    const fields = Array.isArray(c.fields) ? c.fields : [], icons = Array.isArray(c.icons) ? c.icons : [];
+    const closeMs = ms(c.closeAt), openMs = ms(c.openAt);
+    if (closeMs == null) warns.push("Chưa đặt giờ đóng — sự kiện nhận đăng ký tới khi bấm Kết thúc.");
+    else if (closeMs <= now) errs.push(`Giờ đóng (${fmtTime(c.closeAt)}) đã qua — trang sẽ báo "đã kết thúc". Sửa giờ đóng hoặc để trống.`);
+    if (openMs != null && openMs > now) warns.push(`Chưa tới giờ mở (${fmtTime(c.openAt)}) — trang hiện đếm ngược tới lúc đó.`);
+    if (!fields.some(f => f && f.key === "name")) errs.push('Thiếu ô nhập có key "name" — trang báo lỗi cấu hình, không ai chọn đội được.');
+    if (c.blockDup !== false && c.dedupField && !fields.some(f => f && f.key === c.dedupField))
+      errs.push(`Ô kiểm tra trùng "${c.dedupField}" không còn trong các ô nhập — trang báo lỗi cấu hình.`);
+    if (c.allowlistMode && !c.dedupField) errs.push('Bật "Chỉ người trong danh sách" nhưng chưa chọn ô kiểm tra trùng ⇒ chặn tất cả.');
+    else if (c.allowlistMode && alSnap.empty) errs.push('Bật "Chỉ người trong danh sách" nhưng danh sách đang TRỐNG ⇒ chặn tất cả. Nạp danh sách trước.');
+    if (!icons.length) errs.push("Sự kiện chưa có đội nào.");
+    if (c.allowlistMode && c.allowlistGenderCheck && !icons.some(i => normGender(i && i.gender))) warns.push("Bật chia phòng theo giới tính nhưng chưa phòng nào gắn Nam/Nữ.");
+    return { errs, warns };
+  }
+
   async function openEvent(eid, name) {
+    let chk;
+    try { chk = await openChecks(eid); }
+    catch (err) { await confirmModal({ title: "Không kiểm tra được cấu hình", message: err.message || String(err), confirmText: "Đóng", cancelText: "" }); return; }
+    const warnItems = chk.warns.map(text => ({ kind: "warn", text }));
+    if (chk.errs.length) {
+      const fix = await confirmModal({ title: "Chưa mở được sự kiện", message: `"${name}" còn lỗi cấu hình:`,
+        list: chk.errs.map(text => ({ kind: "err", text })).concat(warnItems), confirmText: "Sửa sự kiện", cancelText: "Đóng" });
+      if (fix) editEvent(eid);
+      return;
+    }
     const ok = await confirmModal({
       title: "Mở sự kiện này?",
       message: `Chuyển sự kiện đang mở sang "${name}". Trang công khai sẽ hiển thị sự kiện này ngay lập tức.`,
-      confirmText: "Mở sự kiện",
+      list: warnItems.length ? warnItems : [{ kind: "ok", text: "Đã kiểm tra cấu hình: không có lỗi." }],
+      confirmText: warnItems.length ? "Vẫn mở sự kiện" : "Mở sự kiện",
     });
     if (!ok) return;
     try {
@@ -1503,9 +1539,22 @@
 
   // Đổi dropdown → đánh dấu admin đã tự chọn (tắt autopick) + đồng bộ checkbox.
   $("fDedupField").addEventListener("change", () => {
+    const wasAllow = $("fAllowlistMode").checked;
     $("fDedupField").dataset.manual = "1";
     syncDedupControls();
+    allowlistDedupWarn(wasAllow);
   });
+  // Đổi ô kiểm tra trùng có thể TẮT danh sách cho phép (bỏ ô ⇒ toggle tự tắt) hoặc làm danh sách cũ lệch (khoá theo ô cũ) ⇒ báo ngay.
+  function allowlistDedupWarn(wasAllow) {
+    const box = $("fAllowWarn"), cur = $("fDedupField").value, origDedup = (editOriginal && editOriginal.dedupField) || "";
+    let msg = "";
+    if (wasAllow && !$("fAllowlistMode").checked)
+      msg = "Đã TẮT “Chỉ người trong danh sách được tham gia” vì bỏ ô kiểm tra trùng ⇒ ai cũng vào được. Chọn lại ô kiểm tra trùng rồi bật lại nếu cần.";
+    else if ($("fAllowlistMode").checked && editingId && editOriginal && editOriginal.allowlistMode && origDedup && cur && cur !== origDedup)
+      msg = `Danh sách cho phép đang đối chiếu theo “${origDedup}”. Đổi sang “${cur}” thì danh sách cũ không khớp ai ⇒ chặn tất cả cho tới khi nạp lại danh sách theo “${cur}”.`;
+    box.textContent = msg;
+    box.hidden = !msg;
+  }
   // Admin tự bật/tắt checkbox → tôn trọng lựa chọn, không tự tích lại.
   $("fBlockDup").addEventListener("change", () => { $("fBlockDup").dataset.touched = "1"; });
   // Bật/tắt "Danh sách cho phép" → xám/khoá "Đối chiếu họ tên" ngay (tính năng con).
@@ -1841,11 +1890,14 @@
       d.dedupField !== ((editOriginal && editOriginal.dedupField) || "") ||
       d.blockDup   !== ((editOriginal && editOriginal.blockDup) !== false);
     if (dedupChanged) {
-      const ok = await confirmModal({
-        title: "Đổi chống trùng?",
-        message: `Thay đổi chống trùng chỉ áp dụng cho lượt đăng ký MỚI. Bản trùng cũ KHÔNG bị xóa và khóa chống trùng cũ vẫn giữ nguyên. Tiếp tục?`,
-        confirmText: "Tiếp tục",
-      });
+      // Đổi ô kiểm tra trùng còn kéo theo danh sách cho phép: bỏ ô ⇒ toggle tự TẮT (mở cửa cho mọi người); đổi ô khác ⇒ khoá cũ lệch.
+      const origAllow = !!(editOriginal && editOriginal.allowlistMode), origDedup = (editOriginal && editOriginal.dedupField) || "";
+      const list = [{ text: "Chỉ áp dụng cho lượt đăng ký MỚI. Bản trùng cũ KHÔNG bị xoá, khoá chống trùng cũ giữ nguyên." }];
+      if (origAllow && !d.allowlistMode && !d.dedupField)
+        list.push({ kind: "err", text: "“Chỉ người trong danh sách được tham gia” sẽ bị TẮT (vì bỏ ô kiểm tra trùng) ⇒ AI CŨNG vào được." });
+      else if (origAllow && d.allowlistMode && origDedup && d.dedupField !== origDedup)
+        list.push({ kind: "warn", text: `Danh sách cho phép đang đối chiếu theo “${origDedup}”; đổi sang “${d.dedupField}” ⇒ danh sách cũ không khớp ai (chặn tất cả) cho tới khi nạp lại.` });
+      const ok = await confirmModal({ title: "Đổi chống trùng?", message: "", list, confirmText: "Tiếp tục", danger: list.length > 1 });
       if (!ok) return "";
     }
 
@@ -1894,6 +1946,7 @@
     editingId    = "";
     editOriginal = null;
     cloneSrc     = null;
+    $("fAllowWarn").hidden = true; $("fAllowWarn").textContent = "";
     $("fsClone").hidden = true;
     $("fCloneAllow").checked = true; $("fCloneAllow").disabled = false; $("fCloneAllowN").textContent = "";
     $("fCloneHome").checked = true; $("fCloneHomeWrap").hidden = true;
