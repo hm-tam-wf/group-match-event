@@ -17,7 +17,8 @@ function int(name, def) {
 // Cổng emulator = TEST_PORT_BASE + offset (cùng bố cục với cổng mặc định của Firebase 8080/9150/4400/4500).
 // Mặc định 21000 ⇒ 21080/21150/21400/21500: không trùng cổng mặc định của Firebase, nằm ngoài dải cổng tạm
 // (ephemeral) của Windows (49152+) và Linux (32768+). Máy chạy song song nhiều đợt test ⇒ mỗi đợt một TEST_PORT_BASE.
-const PORT_OFFSET = { firestore: 80, websocket: 150, hub: 400, logging: 500 };
+// auth (+99, như 9099 của Firebase): Auth Emulator — chỉ suite cần đăng nhập thật (admin-e2e) mới bật.
+const PORT_OFFSET = { firestore: 80, websocket: 150, hub: 400, logging: 500, auth: 99 };
 const PORT_BASE = int('TEST_PORT_BASE', 21000);
 if (PORT_BASE < 1024 || PORT_BASE + Math.max(...Object.values(PORT_OFFSET)) > 65535) {
   throw new Error(`TEST_PORT_BASE=${PORT_BASE} ngoài khoảng hợp lệ (1024..${65535 - Math.max(...Object.values(PORT_OFFSET))})`);
@@ -43,4 +44,5 @@ module.exports = {
   NO_SANDBOX: process.env.TEST_NO_SANDBOX === '1' || (process.platform === 'linux' && !!process.env.CI),
   LIVE_BASE: process.env.TEST_LIVE_BASE || 'https://hm-tam-wf.github.io/group-match-event/',   // chỉ smoke tay (đọc)
   ONLY: (process.env.TEST_ONLY || '').split(',').map(s => s.trim()).filter(Boolean),
+  SHOTS: process.env.TEST_SHOTS === '1',          // suite có ảnh chụp minh hoạ (admin-e2e) ⇒ lưu vào OUT/<suite>-shots/
 };

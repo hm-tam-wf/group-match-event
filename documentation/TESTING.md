@@ -9,28 +9,30 @@ Không bao giờ chạm Firebase production (xem [An toàn](#an-toàn)).
 | Suite | Lệnh | Cần | Kiểm gì | Hiện có |
 |---|---|---|---|---|
 | unit | `npm run test:unit` | Node | hàm FE / guard script backend chạy trong `vm` | 26 |
-| rules | `npm run test:rules` | Node + Java + firebase-tools | rules `dedup_keys` / `teams` / `signups` (client trần + admin) | 3 nhóm (42 thao tác) |
+| rules | `npm run test:rules` | Node + Java + firebase-tools | rules `dedup_keys` / `teams` / `signups` / `admins` (client trần, user thường, admin gốc, admin theo dữ liệu) | 6 nhóm |
 | scripts | `npm run test:scripts` | Node + Java + firebase-tools | `backend/scripts/*.js` chạy thật trên emulator (export, backfill) | 12 |
-| admin | `npm run test:admin` | Node + Chrome/Edge | `fe/admin.html` thật với Firebase GIẢ (không mạng) | 10 |
+| admin | `npm run test:admin` | Node + Chrome/Edge | `fe/admin.html` thật với Firebase GIẢ (không mạng) | 18 |
+| admin-e2e | `npm run test:admin-e2e` | Node + Java + firebase-tools + Chrome/Edge | `fe/admin.html` thật, đăng nhập thật (Auth Emulator) + rules thật: Nhận diện, file mẫu, nhân bản, thao tác từng người, kiểm tra trước khi mở, quản trị viên | 34 |
 | e2e | `npm run test:e2e` | Node + Java + firebase-tools + Chrome/Edge | luồng đăng ký: "thiết bị" Node (`a*`) + trình duyệt thật (`b*`) | 54 |
 
-`npm test` chạy cả 5 suite **tuần tự** (suite trước FAIL vẫn chạy suite sau) rồi in tổng kết. Chọn bớt: `node tests/run-all.js unit rules`.
-Thời gian đo trên máy dev (Windows, Edge): unit ~2s, rules ~10s, scripts ~10s, admin ~10s, e2e ~3 phút (gồm bật/tắt emulator).
+`npm test` chạy cả 6 suite **tuần tự** (suite trước FAIL vẫn chạy suite sau) rồi in tổng kết. Chọn bớt: `node tests/run-all.js unit rules`.
+Thời gian đo trên máy dev (Windows, Edge): unit ~2s, rules ~10s, scripts ~10s, admin ~10s, admin-e2e ~1 phút, e2e ~3 phút (gồm bật/tắt emulator).
 
 ## Chuẩn bị máy local
 
 1. Node 22+ (CI dùng Node 26) → `npm ci`.
-2. Java 21+ cho emulator (rules / scripts / e2e): đặt `JAVA_HOME` hoặc để `java` trên PATH. JRE portable cũng chạy được.
+2. Java 21+ cho emulator (rules / scripts / admin-e2e / e2e): đặt `JAVA_HOME` hoặc để `java` trên PATH. JRE portable cũng chạy được.
+   Auth Emulator (admin-e2e) chạy trong firebase-tools, không cần tải thêm gì.
 3. firebase-tools **đúng bản cố định** ở `package.json → config.firebaseTools` (hiện `15.19.1`): `npm i -g firebase-tools@15.19.1`.
    Lệch bản ⇒ harness chỉ cảnh báo. Lần chạy đầu firebase-tools tự tải jar emulator (~vài chục MB).
-4. Chrome hoặc Edge (admin / e2e): tự dò — Windows: Edge rồi Chrome; macOS: Chrome, Edge, Chromium; Linux: `google-chrome`,
+4. Chrome hoặc Edge (admin / admin-e2e / e2e): tự dò — Windows: Edge rồi Chrome; macOS: Chrome, Edge, Chromium; Linux: `google-chrome`,
    `chromium`… trên PATH. Hoặc chỉ định `TEST_BROWSER`.
 
 ## Biến môi trường
 
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
-| `TEST_PORT_BASE` | `21000` | Cổng emulator = base + 80 (Firestore), +150 (websocket), +400 (hub), +500 (logging) ⇒ mặc định 21080/21150/21400/21500. Chạy song song nhiều đợt trên cùng máy ⇒ mỗi đợt một base. |
+| `TEST_PORT_BASE` | `21000` | Cổng emulator = base + 80 (Firestore), +150 (websocket), +400 (hub), +500 (logging), +99 (Auth — chỉ suite admin-e2e bật) ⇒ mặc định 21080/21150/21400/21500/21099. Chạy song song nhiều đợt trên cùng máy ⇒ mỗi đợt một base. |
 | `TEST_REPO` | repo chứa `tests/` | Repo cần test (`fe/`, `backend/`). Cho phép dùng bộ test của worktree này kiểm worktree khác. |
 | `TEST_RULES` | `<TEST_REPO>/backend/firestore.rules` | File rules nạp vào emulator (vd thử bản rules đang chạy production). |
 | `JAVA_HOME` | — | Java cho emulator; không có thì tìm `java` trên PATH. |
@@ -40,6 +42,7 @@ Thời gian đo trên máy dev (Windows, Edge): unit ~2s, rules ~10s, scripts ~1
 | `TEST_NO_SANDBOX=1` | tự bật khi `CI` trên Linux | Thêm `--no-sandbox` cho Chrome. |
 | `TEST_ONLY` | — | Lọc file case (phẩy ngăn cách, giữ file có tên CHỨA chuỗi). Dùng khi chạy 1 suite — suite không có file khớp sẽ báo lỗi. |
 | `TEST_OUT_DIR` | `tests/.out` | Log emulator, `<suite>-results.json`, bản admin dựng tạm, ảnh smoke (đã gitignore). |
+| `TEST_SHOTS=1` | tắt | admin-e2e lưu ảnh minh hoạ (1440 / 390) vào `tests/.out/admin-e2e-shots/` — chỉ để xem, không ảnh hưởng PASS/FAIL. |
 | `TEST_LIVE_BASE` | GitHub Pages | Chỉ cho smoke tay. |
 
 ## Chạy
@@ -47,6 +50,8 @@ Thời gian đo trên máy dev (Windows, Edge): unit ~2s, rules ~10s, scripts ~1
 ```bash
 npm test                                  # tất cả
 npm run test:e2e -- b70 b80               # chỉ file case có tên chứa "b70" hoặc "b80"
+npm run test:admin-e2e -- 40-person       # admin thật trên emulator (Firestore + Auth), chỉ case thao tác từng người
+TEST_SHOTS=1 npm run test:admin-e2e       # kèm ảnh minh hoạ các màn admin
 npm run test:e2e -- --node                # chỉ thiết bị Node (a*), không mở trình duyệt
 npm run test:e2e -- --browser             # chỉ trình duyệt (b*)
 TEST_HEADFUL=1 npm run test:e2e -- b30    # xem trình duyệt
@@ -119,8 +124,9 @@ module.exports = {
 `r`: `reset()` · `ev()` (doc sự kiện fixture, admin SDK) · `adb` · `anon()` / `authed(uid)` / `admin()` → `{ fdb, col(tên collection con của sự kiện), FV }` ·
 `denied(tên, promise)` (đúng khi `permission-denied`) · `allowed(tên, promise)` · `adminUid()` · `FAKE(n)` · `EVENT`.
 Tên thao tác nên mở đầu bằng mã ngắn (`C1 …`) — bảng kết quả liệt kê theo mã.
-**Admin**: `adminUid()` đọc UID đầu tiên trong danh sách cứng của `isAdmin()` (`request.auth.uid in [...]`). Rules đổi mô hình admin
-(vd doc `admins/{uid}`) ⇒ sửa `adminUid()` trong `tests/rules/lib.js` và seed doc admin bằng `r.adb` trong case.
+**Admin**: `isAdmin()` = UID gốc (danh sách cứng trong `isRootAdmin()`) HOẶC có doc `admins/{uid}`. `r.admin()` / `adminUid()` = UID gốc
+đầu tiên (`request.auth.uid in [...]`). Admin THEO DỮ LIỆU: seed `admins/<uid>` bằng `r.adb` rồi dùng `r.authed('<uid>')`
+(mẫu: `cases/admins.js`, `cases/admin-data-batch.js`).
 
 ### scripts — `tests/scripts/cases/*.js` (script backend chạy THẬT trên emulator)
 
@@ -135,6 +141,35 @@ Chạy: `spawnSync(process.execPath, [t.script('export.js'), …args], { env: t.
 Dữ liệu mẫu + query hỗ trợ (`?delay`, `?auth=out`, `?authDelay`, `?signinDelay`): `tests/admin/mock-firebase.js`.
 Hook của bản dựng (`?tab=signups|allowlist|events|drawer`, `?theme=`): `tests/admin/build.js`.
 Ghi dữ liệu giả trong trang: `firebase.firestore().collection('events').doc('…')…set(…)` (store trong bộ nhớ).
+
+### admin-e2e — `tests/admin-e2e/cases/*.js` (admin THẬT, Firestore + Auth Emulator, rules thật)
+
+Runner bật emulator kèm **Auth** (cổng base+99), tạo 3 tài khoản bằng firebase-admin (`root` = UID gốc đầu tiên trong `isRootAdmin()`,
+`data` = UID cho admin theo dữ liệu — case tự thêm `admins/{uid}`, `plain` = đăng nhập được nhưng không phải admin), static server vá
+`firebase-config.js` (Firestore + Auth `useEmulator`). Mỗi file export `run()` và tự `fresh()` dữ liệu:
+
+```js
+'use strict';
+const H = require('../lib');
+const { fresh, seedEvent, baseCfg, openAdmin, clickTab, getCfg, rec } = H;
+module.exports = {
+  async run() {
+    await fresh();                                               // xoá sạch Firestore; config/active rỗng, config/eventList rỗng
+    await seedEvent('ev-x', baseCfg('Sự kiện X'), { active: true });
+    const { page } = await openAdmin('root');                    // đăng nhập thật qua form login
+    await clickTab(page, 'tabEvents');                           // chờ cả View Transition (lớp phủ nuốt click ~300ms)
+    // … thao tác UI bằng puppeteer, kiểm dữ liệu bằng admin SDK:
+    const cfg = await getCfg('ev-x');
+    rec('X1', 'mô tả', cfg.title === 'Sự kiện X', cfg);          // = ok('X1 mô tả', đạt, infoKhiFail)
+  },
+};
+```
+
+`H` (`tests/admin-e2e/lib.js`): dữ liệu `adb` / `FV` / `TS` / `evRef` / `seedEvent` / `getCfg` / `listCol` / `fresh` / `baseCfg` / `same` (so object
+bỏ qua thứ tự key) · trang `openAdmin(who, { width, height })` / `clickTab` / `openEdit` / `newEvent` / `setVal` / `confirmYes` / `confirmNo` /
+`modalText` / `waitText` / `waitDrawerClosed` / `typeCopy` · file mẫu `xlsxFile` / `uploadTpl` / `recBatches` (thứ tự ghi/xoá của batch) ·
+`L` (fixture Firestore của e2e: `makeDevice` / `claim` tạo đăng ký thật qua api.js) · `USERS` / `ROOT_UIDS` · `shot` (chỉ khi `TEST_SHOTS=1`).
+Cuối suite tự thêm kiểm tra `NOERR` (không exception JS, không hộp thoại gốc).
 
 ### e2e — `tests/e2e/cases/*.js`
 
@@ -185,7 +220,7 @@ module.exports = {
 - Chạy khi: pull request, push `master`, chạy tay (`workflow_dispatch`), và được `deploy.yml` gọi lại (`workflow_call`) trước khi deploy.
 - Ubuntu + Node 26 + Java temurin 21 + `npm ci` + firebase-tools đúng bản trong `package.json` + Chrome có sẵn của runner.
 - Cache: npm (theo `package-lock.json`), jar Firestore Emulator (theo bản firebase-tools).
-- Các suite là các step riêng (unit → rules → scripts → admin → e2e); suite FAIL không chặn suite sau. Job FAIL ⇒ tải artifact
+- Các suite là các step riêng (unit → rules → scripts → admin → admin-e2e → e2e); suite FAIL không chặn suite sau. Job FAIL ⇒ tải artifact
   `test-output-…` (= `tests/.out/`: log emulator + `*-results.json`) ở trang run để xem chi tiết.
 - Không deploy, không secret. Tên check để đặt branch protection: **`test`**.
 
@@ -206,6 +241,14 @@ module.exports = {
 | `export-test.js` · `shot/cdp-admin-step1.js` | `tests/scripts/cases/export.js` · `tests/admin/cases/signups-export-unblock.js` |
 | `shot/cdp-live.js` · `cdp-bfcache.js` | `tests/smoke/live-travel.js` · `live-bfcache.js` |
 | Env `E2E_WT` / `E2E_FB_CONFIG` / `E2E_JAVA_HOME` / `E2E_EDGE` / `E2E_ONLY_B` | `TEST_REPO` / `TEST_RULES` / `JAVA_HOME` / `TEST_BROWSER` / `--browser` |
+| 3A `agent-3a/e2e/rules-3a.js` S3A-1 / S3A-2 / S3A-3 | `tests/rules/cases/admins.js` / `admin-move-empty-team.js` / `admin-data-batch.js` |
+| 3A `agent-3a/adm/adm-e2e.js` (identity, template, clone, person, open, admins) | `tests/admin-e2e/cases/10…60-*.js` (cùng 34 kiểm tra) |
+| 3A `agent-3a/hosting-test.js` (Hosting Emulator cho site admin riêng) | **không port** — xem dưới |
+
+**hosting-test (site admin riêng) để ngoài `tests/`**: trên Windows, Hosting Emulator (superstatic) đổi glob `/admin` thành `\admin`
+(glob-slasher dùng dấu phân cách của Windows) ⇒ `redirects` / `headers` không bao giờ khớp; `ignore` chỉ lọc lúc deploy ⇒ emulator vẫn
+phục vụ file chấm. Kết quả khác nhau giữa Windows và Linux CI nên không đưa vào CI. Phần kiểm được ở máy: `node backend/scripts/build-admin-site.js`
+(ra đúng `admin.html` + file nó tham chiếu) và `firebase.json` hợp lệ theo schema của firebase-tools; redirect / header kiểm sau deploy (`documentation/ADMIN.md`).
 
 Đã gỡ (di sản cờ `DEDUP_STORE_ICON`, FE đã bỏ cờ): các biến thể "flag OFF" của S1–S5, S11–S12 + `S8[A]` (Layer A),
 `S2[browser,flag OFF]`, `S8[browser]`, `S8b[browser]`, `Q5` (Layer B), env `E2E_SKIP_FLAG_OFF`, bản vá `config.js` của static server.

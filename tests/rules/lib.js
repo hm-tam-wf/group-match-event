@@ -4,12 +4,12 @@
 const fs = require('fs');
 const C = require('../lib/config');
 
-// UID admin: rules hiện khai danh sách UID CỨNG trong isAdmin() ⇒ lấy UID đầu tiên.
-// Rules đổi mô hình admin (vd doc admins/{uid}) ⇒ sửa adminUid() (và seed doc admin bằng adb trong case) cho khớp.
+// UID admin GỐC: danh sách UID CỨNG trong isRootAdmin() (isAdmin() = gốc HOẶC có doc admins/{uid}, bước 3A) ⇒ lấy UID đầu tiên.
+// Case cần admin THEO DỮ LIỆU: seed doc admins/<uid> bằng r.adb rồi dùng r.authed(<uid>) (xem cases/admins.js, admin-data-batch.js).
 function adminUid() {
   const txt = fs.readFileSync(C.RULES, 'utf8');
   const m = /request\.auth\.uid in \[\s*"([^"]+)"/.exec(txt);
-  if (!m) throw new Error(`không đọc được UID admin trong ${C.RULES} — rules đổi mô hình admin? sửa adminUid() trong tests/rules/lib.js`);
+  if (!m) throw new Error(`không đọc được UID admin gốc (isRootAdmin) trong ${C.RULES} — rules đổi mô hình admin? sửa adminUid() trong tests/rules/lib.js`);
   return m[1];
 }
 

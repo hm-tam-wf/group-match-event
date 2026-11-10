@@ -34,13 +34,33 @@
   const wait = () => new Promise(r => setTimeout(r, DELAY));
   const snapDoc = (p) => { const id = p.split('/').pop(); const d = store[p]; return { id, exists: d !== undefined, data: () => d, ref: docRef(p) }; };
   const children = (p) => Object.keys(store).filter(k => k.startsWith(p + '/') && k.slice(p.length + 1).indexOf('/') < 0);
+  // FieldValue giả: sentinel áp lúc ghi (serverTimestamp / delete / increment / arrayUnion / arrayRemove) — đủ cho các luồng
+  // ghi của admin.html (nạp danh sách, chuyển/gỡ người, quản trị viên…). Map lồng nhau ghi đè nguyên khối (admin thay map bằng update).
+  const FV_TAG = '__mockFieldValue';
+  const fv = (op, v) => ({ [FV_TAG]: op, v });
+  function applyFields(prev, d) {
+    const out = Object.assign({}, prev || {});
+    Object.keys(d || {}).forEach(k => {
+      const x = d[k];
+      if (!x || typeof x !== 'object' || !x[FV_TAG]) { out[k] = x; return; }
+      const cur = out[k];
+      if (x[FV_TAG] === 'delete') delete out[k];
+      else if (x[FV_TAG] === 'serverTimestamp') out[k] = ts(Math.floor(Date.now() / 1000));
+      else if (x[FV_TAG] === 'increment') out[k] = (typeof cur === 'number' ? cur : 0) + x.v;
+      else if (x[FV_TAG] === 'arrayUnion') out[k] = (Array.isArray(cur) ? cur.slice() : []).concat(x.v.filter(e => !(Array.isArray(cur) && cur.includes(e))));
+      else if (x[FV_TAG] === 'arrayRemove') out[k] = (Array.isArray(cur) ? cur : []).filter(e => !x.v.includes(e));
+    });
+    return out;
+  }
+  const writeSet = (p, d, o) => { store[p] = applyFields(o && o.merge ? store[p] : {}, d); };
+  const writeUpdate = (p, d) => { if (store[p] === undefined) { const e = new Error('No document to update: ' + p); e.code = 'not-found'; throw e; } store[p] = applyFields(store[p], d); };
   function docRef(p) {
     return {
       id: p.split('/').pop(), path: p,
       collection: c => collRef(p + '/' + c),
       get: async () => { await wait(); return snapDoc(p); },
-      set: async (d, o) => { store[p] = o && o.merge ? Object.assign({}, store[p] || {}, d) : d; },
-      update: async d => { store[p] = Object.assign({}, store[p] || {}, d); },
+      set: async (d, o) => { writeSet(p, d, o); },
+      update: async d => { writeUpdate(p, d); },
       delete: async () => { delete store[p]; },
       onSnapshot: cb => { cb(snapDoc(p)); return () => {}; }
     };
@@ -55,13 +75,19 @@
     };
     return q;
   }
+  // batch: gom lệnh, ghi khi commit · transaction: đọc thật, ghi gom lại và áp khi hàm xong (không mô phỏng xung đột/thử lại).
+  const queueOps = () => { const ops = []; return {
+    ops, set(r, d, o) { ops.push(() => writeSet(r.path, d, o)); return this; }, update(r, d) { ops.push(() => writeUpdate(r.path, d)); return this; },
+    delete(r) { ops.push(() => { delete store[r.path]; }); return this; } }; };
   const db = {
     collection: c => collRef(c),
-    batch: () => ({ set() {}, update() {}, delete() {}, commit: async () => {} }),
-    runTransaction: async f => f({ get: r => r.get(), set() {}, update() {}, delete() {} })
+    doc: p => docRef(p),
+    batch: () => { const q = queueOps(); q.commit = async () => { await wait(); q.ops.forEach(f => f()); }; return q; },
+    runTransaction: async f => { const q = queueOps(); q.get = r => r.get(); const res = await f(q); q.ops.forEach(op => op()); return res; }
   };
   const firestore = () => db;
-  firestore.FieldValue = { serverTimestamp: () => ts(now), arrayRemove: () => [], arrayUnion: (...a) => a, increment: x => x, delete: () => undefined };
+  firestore.FieldValue = { serverTimestamp: () => fv('serverTimestamp'), arrayRemove: (...a) => fv('arrayRemove', a), arrayUnion: (...a) => fv('arrayUnion', a),
+    increment: x => fv('increment', x), delete: () => fv('delete') };
   firestore.Timestamp = { now: () => ts(now), fromDate: d => ts(Math.floor(d / 1000)), fromMillis: m => ts(Math.floor(m / 1000)) };
   const user = { email: 'admin@example.com', uid: 'demo-admin' };
   // ?auth=out → chưa đăng nhập; ?authDelay=ms → Firebase báo trạng thái chậm (thấy màn chờ);

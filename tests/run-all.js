@@ -3,7 +3,7 @@
 // Dùng: node tests/run-all.js [tên suite…]   vd: node tests/run-all.js unit rules
 const path = require('path'), { spawnSync } = require('child_process');
 
-const SUITES = ['unit', 'rules', 'scripts', 'admin', 'e2e'];   // nhẹ → nặng
+const SUITES = ['unit', 'rules', 'scripts', 'admin', 'admin-e2e', 'e2e'];   // nhẹ → nặng
 const pick = process.argv.slice(2);
 const bad = pick.filter(s => !SUITES.includes(s));
 if (bad.length) { console.error(`Suite không có: ${bad.join(', ')}. Có: ${SUITES.join(', ')}`); process.exit(2); }

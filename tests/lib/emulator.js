@@ -61,7 +61,7 @@ function checkTools(env) {
   }
 }
 
-function writeConfig(dir) {
+function writeConfig(dir, opts = {}) {
   const cfg = {
     firestore: { rules: C.RULES.split(path.sep).join('/') },
     emulators: {
@@ -71,25 +71,31 @@ function writeConfig(dir) {
       ui: { enabled: false },
     },
   };
+  if (opts.auth) cfg.emulators.auth = { host: C.EMU_HOST, port: C.ports.auth };   // Auth Emulator (trong process firebase-tools, không cần Java)
   const file = path.join(dir, 'firebase.json');
   fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
   return file;
 }
 
 // label: tên suite ⇒ log riêng ở tests/.out/emulator-<label>/ (emulator.log, firebase-debug.log, firestore-debug.log).
-async function start(label = 'tests') {
+// opts.auth: bật thêm Auth Emulator ở cổng TEST_PORT_BASE + 99 (suite cần đăng nhập Firebase Auth thật, vd admin-e2e).
+let withAuth = false;
+async function start(label = 'tests', opts = {}) {
   if (child) throw new Error('emulator đã bật trong process này');
   if (!/^demo-/.test(C.PROJECT)) throw new Error('Chỉ chạy emulator với project demo-*');
   const dir = path.join(C.OUT, 'emulator-' + label);
   fs.mkdirSync(dir, { recursive: true });
-  if (await portOpen(C.ports.firestore)) {
-    throw new Error(`Cổng ${C.ports.firestore} đang bận — emulator khác / đợt test trước chưa tắt? Tắt nó hoặc đặt TEST_PORT_BASE khác.`);
+  for (const p of [C.ports.firestore].concat(opts.auth ? [C.ports.auth] : [])) {
+    if (await portOpen(p)) {
+      throw new Error(`Cổng ${p} đang bận — emulator khác / đợt test trước chưa tắt? Tắt nó hoặc đặt TEST_PORT_BASE khác.`);
+    }
   }
   if (!fs.existsSync(C.RULES)) throw new Error('Không thấy file rules: ' + C.RULES);
   const env = childEnv();
   checkTools(env);
-  const cfgFile = writeConfig(dir);
-  const cmd = `"${C.FIREBASE_BIN}" emulators:start --only firestore --project ${C.PROJECT} --config "${cfgFile}"`;
+  withAuth = !!opts.auth;
+  const cfgFile = writeConfig(dir, opts);
+  const cmd = `"${C.FIREBASE_BIN}" emulators:start --only ${withAuth ? 'firestore,auth' : 'firestore'} --project ${C.PROJECT} --config "${cfgFile}"`;
   logStream = fs.createWriteStream(path.join(dir, 'emulator.log'));
   logTail = '';
   child = spawn(cmd, { cwd: dir, env, shell: true, detached: !isWin, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -103,13 +109,13 @@ async function start(label = 'tests') {
     (async () => {
       const t0 = Date.now();
       while (!done && Date.now() - t0 < START_TIMEOUT_MS) {
-        if (await httpReady(C.ports.firestore)) return finish();
+        if (await httpReady(C.ports.firestore) && (!withAuth || await httpReady(C.ports.auth))) return finish();
         await sleep(POLL_MS);
       }
       finish(new Error(`Emulator không lên sau ${START_TIMEOUT_MS / 1000}s. Log: ${path.join(dir, 'emulator.log')}\n${logTail}`));
     })();
   }).catch(async e => { await stop(); throw e; });
-  console.log(`[emulator] Firestore ${C.EMU_HOST}:${C.ports.firestore} · project ${C.PROJECT} · rules ${C.RULES}`);
+  console.log(`[emulator] Firestore ${C.EMU_HOST}:${C.ports.firestore}${withAuth ? ` · Auth ${C.EMU_HOST}:${C.ports.auth}` : ''} · project ${C.PROJECT} · rules ${C.RULES}`);
 }
 
 // Dự phòng: giết java của Firestore Emulator đang chạy đúng cổng của mình (không đụng emulator cổng khác).
@@ -144,6 +150,7 @@ async function stop() {
     killStray();
     await waitClosed(C.ports.firestore, STOP_TIMEOUT_MS / 4);
   }
+  if (withAuth) { await waitClosed(C.ports.auth, STOP_TIMEOUT_MS / 4); withAuth = false; }   // Auth nằm trong cây process vừa tắt
   if (logStream) { logStream.end(); logStream = null; }
 }
 
