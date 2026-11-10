@@ -27,6 +27,9 @@ const KEY = arg('key', path.join(__dirname, '../../serviceAccountKey.json'));
 
 // === Chuan hoa: GIONG admin.html / fe/js/data/api.js / fe/js/config/config.js ===
 const _dedupKey = v => String(v == null ? '' : v).normalize('NFC').trim().toUpperCase().replace(/\s+/g, '');
+// y hệt _foldKey ở fe/js/data/api.js (bỏ dấu kết hợp U+0300..U+036F, đ→d, hoa, bỏ khoảng trắng)
+const _foldKey = v => String(v == null ? '' : v).normalize('NFD').replace(new RegExp('[' + String.fromCharCode(768) + '-' + String.fromCharCode(879) + ']', 'g'), '')
+  .replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase().replace(/\s+/g, '');
 const _fold = v => String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/đ/g, 'd').trim();
 const normGender = v => { const s = _fold(v);
   return (s === 'nam' || s === 'male' || s === 'm') ? 'Nam' : (s === 'nu' || s === 'female' || s === 'f') ? 'Nữ' : ''; };
@@ -162,12 +165,16 @@ async function apply({ rooms, people }) {
     const names = pre.filter(p => p.room === r).map(p => p.name);
     if (names.length) await ev.collection('teams').doc(r.emoji).set({ icon: r.emoji, count: names.length, names });
   }
-  for (let i = 0; i < pre.length; i += 120) {
+  const mSeen = new Set();
+  for (let i = 0; i < pre.length; i += 100) {
     const b = db.batch();
-    pre.slice(i, i + 120).forEach(p => {
+    pre.slice(i, i + 100).forEach(p => {
       const pid = 'seed_' + p.key;
       b.set(ev.collection('members').doc(pid), { icon: p.room.emoji, at: ts });
-      b.set(ev.collection('dedup_keys').doc(p.key), { at: ts });
+      // dedup_keys: {at, icon} (icon = tên đội, không PII). Khoá bất đối xứng y hệt apiClaim: k1 luôn ghi; tên CÓ dấu ghi thêm M = "m~"+fold, 1 lần/khoá.
+      b.set(ev.collection('dedup_keys').doc(p.key), { at: ts, icon: p.room.emoji });
+      const fk = _foldKey(p.name);
+      if (fk && fk !== p.key && !mSeen.has(fk)) { mSeen.add(fk); b.set(ev.collection('dedup_keys').doc('m~' + fk), { at: ts, icon: p.room.emoji }); }
       b.set(ev.collection('signups').doc(pid), { name: p.name, playerId: pid, icon: p.room.emoji, at: ts });
     });
     await b.commit();

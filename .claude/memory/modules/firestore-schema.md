@@ -3,7 +3,7 @@ title: firestore-schema
 tags: [module, backend, data]
 code: [backend/firestore.rules, fe/js/data/api.js, fe/js/config/config.js]
 related: [[index]], [[architecture]], [[api-layer]], [[allowlist]]
-updated: 2026-09-29
+updated: 2026-11-10
 ---
 
 # Firestore Schema
@@ -20,14 +20,29 @@ members/{playerId}
   — READ: client có thể đọc 1 doc (cho transaction guard)
   — LIST: BLOCKED (không enumerate được)
 
-dedup_keys/{empId_hashed}
-  ts: timestamp         — thời điểm đăng ký (privacy: không store value)
+dedup_keys/{key}      — ADR [[0002-cross-device-lookup]] (2026-11-10)
+  at: timestamp, icon?: string   — shape `{at}` hoặc `{at, icon}`; KHÔNG có PII, KHÔNG có pid
+  — KEY `k1 = _dedupKey` (NFC+trim+UPPER+bỏ khoảng trắng, GIỮ dấu — không đổi). `F = _foldKey`
+    (`_normName`: bỏ dấu, đ→d + bỏ khoảng trắng). `M = "m~" + F` là doc ĐÁNH DẤU, CHỈ ghi cho tên có dấu
+    (tên không dấu: `k1 === F`, không ghi M). Cùng rule 3 nhánh bên dưới. Định nghĩa: `api.js` `_dedupPlan`.
+  — Claim: không dấu ⇒ đọc k1 + M, một có ⇒ DUP; ghi k1. Có dấu ⇒ đọc k1 + F + M, k1 hoặc F có ⇒ DUP;
+    ghi k1, ghi M khi M chưa có. Rules KHÔNG đổi.
+  — `icon` = bảng tra công khai: người đã đăng ký xem được phòng (remote view) mà không lộ pid.
   — GHI lúc JOIN (apiClaim transaction). Chốt CỨNG chống trùng. delete = admin only.
+  — RULES create (3 nhánh):
+    1. `isAdmin()`;
+    2. HOẶC `hasOnly(['at'])` — giữ cho FE cũ, phase B sẽ bỏ;
+    3. HOẶC `hasOnly(['at','icon'])` + `icon` là string + `getAfter(teams/{icon}).count == before + 1`
+       (cùng transaction với tăng count).
+  — Flag `DEDUP_STORE_ICON` (config.js, mặc định false): chỉ bật SAU khi deploy rules; backfill bằng
+    `backend/scripts/backfill-dedup-icon.js` (xem [[api-layer]]).
+  — Tên khác người thật sự (Hùng/Hưng, Lệ Vân A/Lê Văn A) đăng ký được độc lập. Lý do bỏ fold đối xứng: ADR [[0002-cross-device-lookup]].
 
 reg_keys/{empId_hashed}   — ĐẶT-CHỖ TIỀN-JOIN (2026-06-04)
   at: timestamp         — giữ MSNV NGAY khi điền form (trước cả khi join) để KHÔNG tạo signup thứ 2 cùng mã.
   — key = _dedupKey(MSNV) (giống dedup_keys); doc chỉ { at } (KHÔNG chứa pid → không lộ token).
-  — GET: public (cổng vào + transaction đọc). LIST: admin. CREATE: hasOnly(['at']). UPDATE: false.
+  — GET: public (cổng vào + transaction đọc). LIST: admin. CREATE: hasOnly(['at']) hoặc hasOnly(['profiled']).
+    UPDATE: chỉ `affectedKeys().hasOnly(['profiled'])` && `profiled == true` (gắn cờ, không đụng `at`).
   — DELETE: if true (chủ tự nhả khi đổi/sửa MSNV — typo-recovery; stakes thấp, chốt cứng là dedup_keys).
   — "Chỗ của mình" theo dõi bằng localStorage reservedKey, KHÔNG ở trong doc. Xem apiRegReserve [[api-layer]].
 
@@ -107,6 +122,10 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 
 ## Registry & event-list (config docs ngoài namespace)
 - `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.
+  **Ngoại lệ theo domain:** `EVENT_ID_BY_HOST` (fe/js/config/config.js) — domain có trong map dùng sự kiện
+  cố định, KHÔNG đọc config/active (app.js bước 1). Hiện: `hm-tam-wf.github.io` (GitHub Pages) → `event-demo`
+  (bản demo, dữ liệu riêng; tạo 2026-11-10 bằng `backend/scripts/clone-event.js --with-allowlist` từ
+  mini-outing-2026: chép meta/config + allowlist, KHÔNG chép đăng ký). Admin vẫn badge "đang mở" theo config/active.
 - `config/eventList = { ids:[...] }` — **registry liệt kê mọi sự kiện** (admin dashboard dùng,
   KHÔNG dùng collectionGroup). Tạo sự kiện = `arrayUnion`; **xóa sự kiện = `arrayRemove`**
   (quên ⇒ "ghost row" hiện `?/?`). Cả hai nằm dưới `match /config/{doc}` (write: isAdmin).

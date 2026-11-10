@@ -108,6 +108,14 @@ Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm t
 - ⚠️ Sửa sự kiện đang chạy KHÔNG live trên trang công khai — xem [[ui-pipeline]] (config
   reload-only). Success message nhắc admin/người dùng phải tải lại trang.
 
+## Seed & un-join (2026-11-10)
+- **Seed** (`seedTeams` trong `fe/admin.html`, và `backend/scripts/tnt-import.js`): ghi `k1 = _dedupKey` `{at, icon}`
+  + `M = "m~" + F` (tên có dấu, mỗi M 1 lần). Trùng k1 ⇒ báo CONFLICT, KHÔNG ghi đè (xem [[0002-cross-device-lookup]], [[firestore-schema]]).
+- **Un-join 1 người phải xoá:** `members/{pid}`, `signups/{pid}`, `dedup_keys/k1`, `reg_keys`, và gỡ tên khỏi `teams/{icon}`
+  (count-1 + bỏ khỏi `names`, trong transaction). Doc `M` CHỈ xoá khi không còn người có dấu nào khác cùng `_foldKey`
+  (M giữ chỗ cho bản không dấu). Thiếu 1 bước ⇒ người đó vẫn bị chặn.
+- ⚠️ Admin panel **chưa có nút un-join 1 người**. "Bỏ chặn" (`#btnUnblock`) chỉ xoá `reg_keys`, không gỡ đăng ký đã join.
+
 ## Danh sách cho phép (allowlist) — đã có
 - [[allowlist]] — tab riêng "Danh sách cho phép": import SheetJS (CSV/XLSX), bảng tìm kiếm,
   tải CSV, toggle `allowlistMode` theo sự kiện. Tái dùng `xlsx-0.20.3` (CDN) cũng dùng cho export.

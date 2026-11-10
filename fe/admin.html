@@ -363,6 +363,8 @@
   // Chuẩn hoá khóa chống trùng — GIỐNG HỆT _dedupKey trong js/data/api.js (trim + UPPER + bỏ khoảng trắng)
   // để admin phát hiện trùng đúng theo cách backend đã/đang chặn.
   const _dedupKey = v => String(v == null ? "" : v).normalize("NFC").trim().toUpperCase().replace(/\s+/g, "");
+  // Khoá fold (bỏ dấu + hoa/thường + khoảng trắng) — GIỐNG _foldKey trong js/data/api.js. Seed đội ghi thêm doc dedup_keys theo khoá này.
+  const _foldKey = v => String(v == null ? "" : v).normalize("NFD").replace(new RegExp("[" + String.fromCharCode(768) + "-" + String.fromCharCode(879) + "]", "g"), "").replace(/đ/g, "d").replace(/Đ/g, "D").trim().replace(/\s+/g, "").toUpperCase();
   // Icon cảnh báo (SVG → luôn hiển thị, không phụ thuộc font emoji).
   const dupIconSvg = () =>
     "<svg viewBox='0 0 24 24' width='20' height='20' aria-hidden='true' fill='none'>" +
@@ -1937,15 +1939,19 @@
         const ts = FV.serverTimestamp();
         const groups = {};            // iconEmoji -> [{key,raw,name}]
         const unmapped = new Set();   // giá trị team không map được (vd "5" khi chỉ có 4 icon, hay chữ)
+        const conflicts = [];         // 2 người seed TRÙNG khoá dedup (_dedupKey): người sau bị BỎ, KHÔNG ghi đè
+        const seenKey = new Map();    // key -> tên người đã seed trước
         for (const it of items){
           if (!it.team) continue;
           const n = parseInt(String(it.team).trim(), 10);
           const def = (!isNaN(n) && n>=1 && n<=icons.length) ? icons[n-1] : null;
           if (!def || !def.icon){ unmapped.add(it.team); continue; }
+          if (seenKey.has(it.key)){ conflicts.push(`"${it.name||it.raw||it.key}" trùng khoá với "${seenKey.get(it.key)}"`); continue; }
+          seenKey.set(it.key, it.name||it.raw||it.key);
           (groups[def.icon] = groups[def.icon] || []).push({ key:it.key, raw:it.raw, name:it.name });
         }
         const iconList = Object.keys(groups);
-        if (!iconList.length) return { seeded:0, perTeam:{}, unmapped:[...unmapped], capacity:Number(cfg.capacity)||0 };
+        if (!iconList.length) return { seeded:0, perTeam:{}, unmapped:[...unmapped], conflicts, capacity:Number(cfg.capacity)||0 };
 
         // 1) Capacity đủ chứa đội đông nhất (CHỈ tăng — an toàn, không đẩy ai ra; xem firestore-schema).
         const maxGroup = Math.max(...iconList.map(ic=>groups[ic].length));
@@ -1965,23 +1971,26 @@
           if (names.length>1) await ref.set({ icon:ic, count:names.length, names });
         }
 
-        // 3) members + dedup_keys + signups (mỗi người 3 ghi; lô ≤120 người = 360 op ≤ 400/lô).
+        // 3) members + dedup_keys (k1; tên CÓ dấu ghi thêm "m~"+fold, 1 lần/khoá) + signups (mỗi người ≤4 ghi; lô ≤100 người = 400 op ≤ 500/lô).
         const all = [];
         for (const ic of iconList) for (const p of groups[ic]) all.push({ ...p, icon:ic });
-        let seeded = 0;
-        for (let i=0;i<all.length;i+=120){
+        let seeded = 0; const mSeen = new Set();
+        for (let i=0;i<all.length;i+=100){
           const batch = db.batch();
-          all.slice(i,i+120).forEach(p=>{
+          all.slice(i,i+100).forEach(p=>{
             const pid = 'seed_'+p.key;
             batch.set(db.collection('events').doc(eid).collection('members').doc(pid), { icon:p.icon, at:ts });
-            batch.set(db.collection('events').doc(eid).collection('dedup_keys').doc(p.key), { at:ts });
+            batch.set(db.collection('events').doc(eid).collection('dedup_keys').doc(p.key), { at:ts, icon:p.icon });   // icon (tên đội, không PII) ⇒ máy khác tra ra phòng
+            // Khoá bất đối xứng (khớp apiClaim): tên CÓ dấu (k1 ≠ fold) ghi thêm M="m~"+fold, CHỈ 1 lần/khoá (doc có sẵn ⇒ rules update:false chặn ghi đè).
+            const fk = _foldKey(p.raw||p.key);
+            if (fk && fk !== p.key && !mSeen.has(fk)){ mSeen.add(fk); batch.set(db.collection('events').doc(eid).collection('dedup_keys').doc('m~'+fk), { at:ts, icon:p.icon }); }
             batch.set(db.collection('events').doc(eid).collection('signups').doc(pid),
               { name:p.name, [dedupField]:p.raw||p.key, playerId:pid, icon:p.icon, at:ts });
           });
           await batch.commit();
-          seeded += Math.min(120, all.length-i);
+          seeded += Math.min(100, all.length-i);
         }
-        return { seeded, perTeam, unmapped:[...unmapped], capacity };
+        return { seeded, perTeam, unmapped:[...unmapped], conflicts, capacity };
       },
     };
 
@@ -2171,6 +2180,7 @@
           const brk = Object.entries(res.perTeam).map(([ic,n])=>`${ic} ${n}`).join(' · ') || '—';
           let msg = `Đã nạp ${cur.parsed.items.length} định danh · chia ${res.seeded} người vào đội (${brk}) · capacity = ${res.capacity}.`;
           if (res.unmapped.length) msg += ` ⚠ Bỏ qua giá trị team không map được: ${res.unmapped.join(', ')}.`;
+          if (res.conflicts && res.conflicts.length) msg += ` ⚠ CONFLICT (bỏ qua, không ghi đè): ${res.conflicts.join('; ')}.`;
           showResult(msg);
           el.file.value=''; cur.parsed=null; el.col.hidden = true; el.seedWrap.hidden = true; el.seedTeams.checked = false;
           syncSeedButtons();

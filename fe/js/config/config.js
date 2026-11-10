@@ -16,6 +16,13 @@ const DEFAULT_DEDUP_FIELD = "employeeId";
 //     Ở chế độ firebase: giá trị thực được đọc từ config/active trên Firestore khi khởi động.
 //     Giá trị dưới đây là DỰ PHÒNG cho chế độ demo/sheet hoặc khi Firestore lỗi.
 const DEFAULT_EVENT_ID = "su-kien-2026-q2";
+// ➊d Domain → sự kiện CỐ ĐỊNH (bỏ qua config/active). GitHub Pages = bản demo chạy dữ liệu riêng (event-demo),
+//     KHÔNG đụng sự kiện thật đang mở trên Firebase Hosting. Domain không có trong map ⇒ đọc config/active như cũ.
+const EVENT_ID_BY_HOST = { "hm-tam-wf.github.io": "event-demo" };
+function hostEventId(host) {
+  const id = Object.prototype.hasOwnProperty.call(EVENT_ID_BY_HOST, host) ? EVENT_ID_BY_HOST[host] : "";
+  return typeof id === "string" ? id.trim() : "";
+}
 
 // ➋ Sĩ số tối đa mỗi đội. Ở chế độ firebase: đọc từ events/{id}/meta/config trên Firestore.
 const DEFAULT_CAPACITY = 10;
@@ -44,7 +51,12 @@ const POLL_MS = 3000; // chu kỳ đồng bộ (ms) — chỉ dùng ở chế đ
 let SCRIPT_URL  = DEFAULT_SCRIPT_URL;
 let FIELDS      = DEFAULT_FIELDS;
 let DEDUP_FIELD = DEFAULT_DEDUP_FIELD;
-let EVENT_ID    = DEFAULT_EVENT_ID;
+// Ghi thêm `icon` (tên đội, KHÔNG phải PII) vào dedup_keys/{khoá} lúc join → cho phép "xem đăng ký của tôi"
+// trên thiết bị khác (tra theo họ tên → biết đội/phòng). CHỈ BẬT SAU KHI đã deploy firestore.rules mới:
+// rules cũ chỉ cho phép hasOnly(['at']) → ghi {at, icon} sẽ bị TỪ CHỐI ⇒ HỎNG join.
+// 2026-11-10: đã deploy rules mới + chạy backfill-dedup-icon.js --apply ⇒ bật.
+let DEDUP_STORE_ICON = true;
+let EVENT_ID   = DEFAULT_EVENT_ID;
 let CAPACITY    = DEFAULT_CAPACITY;
 let ICONS       = DEFAULT_ICONS;
 let CAPS        = {};  // sĩ số RIÊNG theo từng đội (emoji → số). Trống/không có ⇒ đội đó dùng CAPACITY chung.
@@ -138,6 +150,23 @@ const STRINGS = {
       title: "This code has already joined",
       body:  (label) => `The <b>${label}</b> you entered has already been used to join a ${UE.one} — possibly on <b>another device or browser</b>. Each code joins <b>only once</b>.<br>If this was you, reopen on the device where you registered.`,
       btn:   "Enter a different code",
+    },
+    lookup: {   // màn "xem đăng ký của tôi" (đã đăng ký ở thiết bị khác → hiện đội/phòng + bạn cùng phòng, không cho chọn lại)
+      title:     "You're already registered",
+      room:      "Room",
+      roommates: "Roommates",
+      note:      "Registered on another device — each person can only pick once.",
+      notMe:     "Not me / enter a different name",
+      error:     "Couldn't look up your registration. Please check your connection and try again.",
+      asciiTaken: (name, room) => `A registration with the accent-free name "<b>${name}</b>" already exists (${room}). If that's you, that's your room; if not, please contact the organizers.`,
+      ambiguous:  "Several people with similar names have already registered — please type your <b>full name WITH accents</b>.",
+      asNote:     (name) => `Already registered under the name "<b>${name}</b>" — if that's not you, type your exact full name with accents or contact the organizers.`,
+      softTitle:  "Is this you?",   // hộp xác nhận: không phân biệt được "gõ thiếu dấu" với "tên thật ít dấu hơn" ⇒ phải hỏi
+      softAsk1:   (name, room) => `Someone with a very similar name is already registered: <b>${name}</b> (${room}). Is that you?`,
+      softAskN:   "Several people with very similar names are already registered. Which one are you?",
+      softYes:    (name) => `Yes, I'm ${name}`,
+      softOpt:    (name, room) => `${name} (${room})`,
+      softNo:     (typed) => `No, I'm ${typed}`,
     },
     allow: {
       title: "Code not on the list",
@@ -233,6 +262,23 @@ const STRINGS = {
       title: "Mã này đã tham gia rồi",
       body:  (label) => `<b>${label}</b> bạn nhập đã được dùng để tham gia một ${UV.one} — <b>có thể ở thiết bị hoặc trình duyệt khác</b>. Mỗi mã chỉ tham gia <b>một lần</b>.<br>Nếu là bạn, hãy mở lại trên thiết bị đã đăng ký.`,
       btn:   "Nhập mã khác",
+    },
+    lookup: {   // màn "xem đăng ký của tôi" (đã đăng ký ở thiết bị khác → hiện đội/phòng + bạn cùng phòng, không cho chọn lại)
+      title:     "Bạn đã đăng ký",
+      room:      "Phòng",
+      roommates: "Bạn cùng phòng",
+      note:      "Đã đăng ký trên thiết bị khác — mỗi người chỉ chọn 1 lần.",
+      notMe:     "Không phải tôi / nhập tên khác",
+      error:     "Không tra cứu được đăng ký của bạn. Kiểm tra kết nối rồi thử lại nhé.",
+      asciiTaken: (name, room) => `Đã có đăng ký với tên viết không dấu "<b>${name}</b>" (${room}). Nếu đó là bạn thì đây là phòng của bạn; nếu không, liên hệ BTC.`,
+      ambiguous:  "Có nhiều người tên gần giống đã đăng ký — hãy gõ họ tên <b>ĐẦY ĐỦ DẤU</b>.",
+      asNote:     (name) => `Đã đăng ký dưới tên "<b>${name}</b>" — nếu không phải bạn, hãy gõ đúng họ tên đầy đủ dấu hoặc liên hệ BTC.`,
+      softTitle:  "Bạn có phải là người này?",   // hộp xác nhận: không phân biệt được "gõ thiếu dấu" với "tên thật ít dấu hơn" ⇒ phải hỏi
+      softAsk1:   (name, room) => `Đã có người tên rất giống đăng ký: <b>${name}</b> (${room}). Đó có phải là bạn không?`,
+      softAskN:   "Đã có nhiều người tên rất giống đăng ký. Bạn là ai trong số này?",
+      softYes:    (name) => `Đúng, tôi là ${name}`,
+      softOpt:    (name, room) => `${name} (${room})`,
+      softNo:     (typed) => `Không, tôi là ${typed}`,
     },
     allow: {
       title: "Mã không có trong danh sách",

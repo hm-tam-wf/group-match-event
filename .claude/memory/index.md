@@ -22,6 +22,7 @@
 ## Decisions (ADRs)
 - [[0000-template]] — template cho mỗi quyết định kiến trúc
 - [[0001-gender-rooms-from-allowlist]] — phân phòng Nam/Nữ: giới lấy từ Danh sách cho phép (không tự chọn), khoá ở client, không đổi rules
+- [[0002-cross-device-lookup]] — 1 người = 1 phòng trên mọi thiết bị: `dedup_keys` mang `icon`, so tên bất đối xứng (k1 + `m~fold` cho tên có dấu; hộp xác nhận gõ thiếu dấu), remote view, go-live order
 
 ---
 
