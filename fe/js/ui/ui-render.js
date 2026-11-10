@@ -96,6 +96,18 @@ function closeProfileModal(callback) {
 
 // Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
 // với token mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
+// Chuyển trang mượt mà khi quay lại trang chủ / trang travel (tránh giật và che màn hình bên trong)
+function _travelSmoothBack() {
+  document.body.style.transition = "opacity 0.16s ease-out";
+  document.body.style.opacity = "0";
+  setTimeout(() => {
+    const fromTravel = document.referrer && (document.referrer.includes("travel") || document.referrer.endsWith("/"));
+    if (fromTravel) window.location.href = document.referrer;
+    else if (window.history.length > 1) window.history.back();
+    else window.location.href = "travel.html";
+  }, 150);
+}
+
 function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
   const canCancel = profileValid();
@@ -246,7 +258,26 @@ function showProfileModal() {
   };
 
   $("pmSave").onclick = save;
-  if (canCancel) $("pmCancel").onclick = () => { editing = false; closeProfileModal(() => renderProfile()); };
+  if (canCancel) $("pmCancel").onclick = (e) => {
+    if (e) e.preventDefault();
+    editing = false;
+    const wasBlocked = dupBlocked || allowBlocked;
+    dupBlocked = false;
+    allowBlocked = false;
+    if (wasBlocked && !myIcon) {
+      me.fields = {};
+      saveMe();
+    }
+    const fromTravel = document.referrer && (document.referrer.includes("travel") || document.referrer.endsWith("/"));
+    if (fromTravel || !myIcon || wasBlocked) {
+      _travelSmoothBack();
+      return;
+    }
+    closeProfileModal(() => {
+      renderProfile();
+      renderStateIfChanged(true);
+    });
+  };
   // CHỦ ĐÍCH: không gắn sự kiện click nền / Esc → popup không thể bỏ qua khi chưa hợp lệ.
 
   FIELDS.forEach(f => {
@@ -282,10 +313,20 @@ function showDupBlockedModal() {
       <div class="mic">🔒</div>
       <h3>${TEXT.dup.title}</h3>
       <p>${TEXT.dup.body(esc(fieldLabel))}</p>
-      <div class="row"><button class="confirm" id="dupBack">${TEXT.dup.btn}</button></div>
+      <div class="row">
+        <button class="cancel" id="dupCancel">${(TEXT.profile && TEXT.profile.back) || "Quay lại"}</button>
+        <button class="confirm" id="dupBack">${TEXT.dup.btn}</button>
+      </div>
     </div>`;
   document.body.appendChild(modalBgEl);
   $("dupBack").onclick = () => { dismissModal(modalBgEl, () => { editing = true; renderProfile(); }); };
+  $("dupCancel").onclick = (e) => {
+    if (e) e.preventDefault();
+    dupBlocked = false;
+    allowBlocked = false;
+    if (!myIcon) { me.fields = {}; saveMe(); }
+    _travelSmoothBack();
+  };
 }
 
 function closeDupBlockedModal() {
@@ -306,10 +347,20 @@ function showAllowBlockedModal() {
       <div class="mic">🔒</div>
       <h3>${TEXT.allow.title}</h3>
       <p>${TEXT.allow.body(esc(fieldLabel))}</p>
-      <div class="row"><button class="confirm" id="allowBack">${TEXT.allow.btn}</button></div>
+      <div class="row">
+        <button class="cancel" id="allowCancel">${(TEXT.profile && TEXT.profile.back) || "Quay lại"}</button>
+        <button class="confirm" id="allowBack">${TEXT.allow.btn}</button>
+      </div>
     </div>`;
   document.body.appendChild(modalBgEl);
   $("allowBack").onclick = () => { dismissModal(modalBgEl, () => { editing = true; renderProfile(); }); };
+  $("allowCancel").onclick = (e) => {
+    if (e) e.preventDefault();
+    allowBlocked = false;
+    dupBlocked = false;
+    if (!myIcon) { me.fields = {}; saveMe(); }
+    _travelSmoothBack();
+  };
 }
 
 function closeAllowBlockedModal() {

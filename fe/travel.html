@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chuyến Đi Công Ty — TNT Mini Outing 2026</title>
+  <meta name="description" content="Thông tin lịch trình, lưu ý, dress code và phương tiện di chuyển chuyến đi công ty TNT Mini Outing 2026." />
+  <meta property="og:title" content="TNT Mini Outing 2026 — Lịch Trình Chuyến Đi" />
+  <meta property="og:description" content="Xem chi tiết lịch trình 3N2Đ tại Phan Thiết, lưu ý trang phục và chọn phòng nghỉ." />
+
+  <!-- Google Fonts: Baloo 2 + Nunito (Kế thừa từ hệ thống chung) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Core Tokens & Design System -->
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/themes.css">
+
+  <!-- Theme Tech + TNT Variant (Kế thừa trọn vẹn màu sắc, bóng, glow, background KV) -->
+  <link rel="stylesheet" href="themes/tech/tech.css">
+  <link rel="stylesheet" href="themes/tech/variants/tnt/tnt.css">
+
+  <!-- Scoped Styles cho trang Travel -->
+  <link rel="stylesheet" href="travel/travel.css">
+
+  <!-- Cài đặt theme trước khi render (0 FOUC) -->
+  <script src="js/config/theme.js"></script>
+
+  <!-- Bỏ qua màn hình loading khi quay lại trang (chỉ chạy animation entrance) -->
+  <script>
+    try {
+      if (sessionStorage.getItem('travel_loaded') === '1' || (document.referrer && (document.referrer.includes('index') || document.referrer.endsWith('/')))) {
+        document.documentElement.classList.add('skip-travel-loader', 'return-visit');
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+
+  <!-- 1. LOADING SCREEN (≤ 2.0s, tự ẩn, tôn trọng reduced-motion) -->
+  <div id="travelLoader" class="travel-loader" role="status" aria-live="polite">
+    <div class="loader-card">
+      <div class="loader-icon-wrap">
+        <div class="loader-ring"></div>
+        <span class="loader-plane">✈️</span>
+      </div>
+      <div class="loader-brand">TNT TRAVEL 2026</div>
+      <div class="loader-status" id="loaderStatus">Đang khởi tạo hành trình...</div>
+      <div class="loader-bar-wrap">
+        <div class="loader-bar" id="loaderBar"></div>
+      </div>
+      <div class="loader-percent" id="loaderPercent">0%</div>
+    </div>
+  </div>
+
+  <!-- 2. NỘI DUNG CHÍNH (MAIN WRAPPER) -->
+  <div class="wrap travel-page">
+    
+    <!-- Logo TNT (Kế thừa hiển thị tự động qua rules CSS của tnt.css) -->
+    <div class="tech-logo-only">
+      <div class="logo-wrap">
+        <img src="themes/tech/img/LOGO.png" alt="TNT Logo" class="logo-icon">
+        <span class="logo-text">TNT</span>
+      </div>
+    </div>
+
+    <!-- Hero Section (Tiêu đề, Ngày, Địa điểm, 2 nút CTA) -->
+    <header class="travel-hero" id="heroContainer">
+      <div class="hero-anim-1">
+        <span class="hero-pill-badge">✨ COMPANY TRIP 2026</span>
+      </div>
+      <div class="hero-anim-2">
+        <h1>TRẠM NGHỈ DƯỠNG TNT</h1>
+      </div>
+      <div class="hero-anim-3">
+        <p class="hero-tagline">Hành Trình Bứt Phá — Gắn Kết &amp; Tái Tạo Năng Lượng</p>
+      </div>
+      <div class="hero-meta-grid hero-anim-4">
+        <div class="meta-chip">
+          <span class="chip-icon">📅</span>
+          <span>15.04 – 17.04.2026 (3 Ngày 2 Đêm)</span>
+        </div>
+        <div class="meta-chip">
+          <span class="chip-icon">📍</span>
+          <span>Phan Thiết — Mũi Né</span>
+        </div>
+        <div class="meta-chip">
+          <span class="chip-icon">🏖️</span>
+          <span>Centara Mirage Resort Mui Ne</span>
+        </div>
+      </div>
+      <div class="hero-cta-group hero-anim-5">
+        <a href="#schedule" class="cta-btn btn-schedule" id="btnCtaSchedule">
+          <span class="btn-ic">🗓️</span>
+          <span>Full lịch trình</span>
+        </a>
+        <a href="index.html" class="cta-btn btn-rooms" id="btnCtaRooms">
+          <span class="btn-ic">🛏️</span>
+          <span>Chọn phòng</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Sticky Navigation Bar (Nhảy mượt giữa 4 khối) -->
+    <div class="schedule-nav-wrapper" id="schedule">
+      <nav class="schedule-nav-container" id="scheduleNavList" aria-label="Điều hướng lịch trình">
+        <a href="#sec-timeline" class="nav-anchor-tab active" data-target="sec-timeline">
+          <span>🗓️</span>
+          <span>Lịch trình tổng</span>
+        </a>
+        <a href="#sec-notes" class="nav-anchor-tab" data-target="sec-notes">
+          <span>📌</span>
+          <span>Lưu ý chuyến đi</span>
+        </a>
+        <a href="#sec-dresscode" class="nav-anchor-tab" data-target="sec-dresscode">
+          <span>👕</span>
+          <span>Lưu ý trang phục</span>
+        </a>
+        <a href="#sec-transport" class="nav-anchor-tab" data-target="sec-transport">
+          <span>🚌</span>
+          <span>Thông tin di chuyển</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- 4 Khối Nội Dung Lịch Trình Chi Tiết -->
+    <main id="scheduleContent">
+      <!-- Khối 1: Lịch trình tổng -->
+      <section class="travel-section" id="sec-timeline">
+        <div class="sec-head">
+          <div class="sec-icon-wrap">🗓️</div>
+          <h2>Lịch Trình Chi Tiết</h2>
+          <div class="sec-divider"></div>
+        </div>
+        <div id="sec-timeline-content"></div>
+      </section>
+
+      <!-- Khối 2: Lưu ý chuyến đi -->
+      <section class="travel-section" id="sec-notes">
+        <div class="sec-head">
+          <div class="sec-icon-wrap">📌</div>
+          <h2>Lưu Ý Chuyến Đi</h2>
+          <div class="sec-divider"></div>
+        </div>
+        <div id="sec-notes-content"></div>
+      </section>
+
+      <!-- Khối 3: Lưu ý trang phục -->
+      <section class="travel-section" id="sec-dresscode">
+        <div class="sec-head">
+          <div class="sec-icon-wrap">👕</div>
+          <h2>Lưu Ý Trang Phục</h2>
+          <div class="sec-divider"></div>
+        </div>
+        <div id="sec-dresscode-content"></div>
+      </section>
+
+      <!-- Khối 4: Thông tin di chuyển & liên hệ -->
+      <section class="travel-section" id="sec-transport">
+        <div class="sec-head">
+          <div class="sec-icon-wrap">🚌</div>
+          <h2>Thông Tin Di Chuyển & Liên Hệ</h2>
+          <div class="sec-divider"></div>
+        </div>
+        <div id="sec-transport-content"></div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="travel-footer">
+      <p class="footer-copy">© 2026 TNT Company Trip • Trạm Nghỉ Dưỡng Mini Outing</p>
+      <p class="footer-sub">Hệ thống phân phòng &amp; cẩm nang du lịch nội bộ</p>
+    </footer>
+
+    <!-- Nút cuộn nhanh lên đầu trang (Floating Back-to-Top) -->
+    <button type="button" id="backToTopBtn" class="back-to-top-btn" aria-label="Lên đầu trang">
+      <span>▲</span>
+      <span>Đầu trang</span>
+    </button>
+  </div>
+
+  <!-- Nguồn dữ liệu tập trung & Controller logic -->
+  <script src="travel/data.js"></script>
+  <script src="travel/travel.js"></script>
+</body>
+</html>
