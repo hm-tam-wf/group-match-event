@@ -14,10 +14,14 @@ updated: 2026-11-10
 - Domain → sự kiện mặc định: `node backend/scripts/hosts.js [--set <domain>=<id> | --remove <domain>] [--apply]`
   (mặc định chỉ xem trước; ghi `config/hosts`). Link riêng mỗi sự kiện: `index.html?e=<id>` — xem [[event-profile]].
   ⚠ Lần đầu đưa bước 2 lên Pages: ghi `hm-tam-wf.github.io → event-demo` TRƯỚC khi push (code đã gỡ `EVENT_ID_BY_HOST`).
-- E2E với emulator: Firestore Emulator (project `demo-icon-picker`, cần Java; JRE portable chạy được) + puppeteer + Edge headless;
-  mỗi incognito context = 1 thiết bị. Static server vá `firebase-config.js`/`config.js` trong bộ nhớ để trỏ emulator, KHÔNG sửa repo. Kết quả hiện tại 46/46 PASS (xem [[0002-cross-device-lookup]]).
-  ⚠ Bộ E2E (lib/emu/layerA/layerB/run-suite, 71 case + bước 1 thêm S6b/S6c/BF1) CHƯA nằm trong repo — chỉ ở scratchpad của session
-  (mất khi dọn). Đưa vào repo (`tests/e2e`) + CI là việc giai đoạn 4 của lộ trình tái sử dụng.
+- **Test: `npm test`** (sau `npm ci`) = 5 suite trong `tests/`: unit (FE thật trong Node vm), rules, scripts (script backend thật),
+  admin (Firebase giả qua CDP), e2e (thiết bị Node `a*` + trình duyệt thật `b*`) — tất cả trên Firestore Emulator project
+  `demo-icon-picker`, KHÔNG chạm production. Chạy lẻ: `npm run test:unit|test:rules|test:scripts|test:admin|test:e2e`.
+  Cần Java 21+ (`JAVA_HOME`), Edge/Chrome (tự dò hoặc `TEST_BROWSER`), firebase-tools đúng bản `package.json → config.firebaseTools`.
+  Cổng = `TEST_PORT_BASE` + offset (mặc định 21000 ⇒ 21080…); chạy song song nhiều đợt ⇒ mỗi đợt một base.
+  Thêm case = thêm 1 file `tests/<suite>/cases/<tên>.js` (runner tự nhận) — hướng dẫn: [TESTING.md](../../documentation/TESTING.md).
+  CI: `.github/workflows/ci.yml` (PR + push master); deploy production theo tag `v*`: `deploy.yml` + [DEPLOY.md](../../documentation/DEPLOY.md).
+  2026-11-10: unit 69 · rules 3 · scripts 22 · admin 10 · e2e 62 — PASS hết (gồm case bước 2).
 - Deploy (SONG SONG 2 hosting, cùng serve `fe/`, cùng Firestore project `icon-picker`):
   - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → https://pickyourgroup.web.app (site `pickyourgroup`, không build step). Site cũ `pickyoursquad-faraday.web.app` redirect 301 sang đây.
     **Chỉ chạy trang sự kiện** (user quyết định 2026-11-10): `ignore` bỏ `admin.html` + `assets/admin.css` khỏi deploy, `redirects` đưa `/admin.html`, `/admin` → 301 sang admin trên GitHub Pages. Admin CHỈ chạy trên GitHub Pages. Không phải lớp bảo mật — dữ liệu vẫn do Firestore rules (UID admin) bảo vệ.

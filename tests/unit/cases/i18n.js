@@ -13,7 +13,9 @@ module.exports = {
       URLSearchParams, console,
       location: { search: '', hostname: 'x' },
       localStorage: { getItem() { return null; }, setItem() {} },
-      document: { documentElement: { lang: '', setAttribute() {}, getAttribute() { return null; } } },
+      // đủ API mà theme.js (hasAttribute) + profile.js (removeAttribute, style) dùng lúc nạp
+      document: { documentElement: { lang: '', setAttribute() {}, getAttribute() { return null; }, hasAttribute() { return false; },
+        removeAttribute() {}, style: { setProperty() {}, removeProperty() {}, getPropertyValue() { return ''; } } } },
     });
     t.runScripts(ctx, ORDER.slice(0, 1));
     // theme.js của repo cũ hơn chưa khai ACTIVE_VARIANT ⇒ mới stub; đã khai (const/let) thì KHÔNG stub (tránh khai trùng).
