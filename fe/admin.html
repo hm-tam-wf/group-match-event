@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- UI admin riêng (dashboard tối) — KHÔNG dùng theme/biến thể sự kiện của trang công khai. -->
 <link rel="stylesheet" href="assets/admin.css">
+<link rel="stylesheet" href="assets/admin-home.css">
 </head>
 <body class="admin">
 
@@ -59,6 +60,8 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4-6"/></svg><span class="tab-txt">Đăng ký</span></button>
       <button class="tab" data-tab="tab-allowlist" data-title="Danh sách cho phép" data-sub="Chỉ người có tên trong danh sách mới được tham gia">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span class="tab-txt tab-long">Danh sách cho phép</span><span class="tab-short" aria-hidden="true">Cho phép</span></button>
+      <button class="tab" data-tab="tabHome" data-title="Trang thông tin" data-sub="Soạn trang home của sự kiện: lịch trình, lưu ý, trang phục, di chuyển">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span class="tab-txt tab-long">Trang thông tin</span><span class="tab-short" aria-hidden="true">Home</span></button>
       <button class="tab" data-tab="tabAdmins" data-title="Quản trị viên" data-sub="Ai được vào trang quản trị — thêm hoặc gỡ theo UID">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 11-4.7"/><path d="M18 13.5v7M14.5 17h7"/></svg><span class="tab-txt">Quản trị</span></button>
     </nav>
@@ -237,6 +240,13 @@
           <div class="empty-state al-empty" id="alEmpty" hidden>Chưa có ai trong danh sách. Nạp file ở khung "Nhập từ Excel".</div>
         </div>
       </div>
+    </section>
+    <!-- ── TRANG: Trang thông tin (trang home của sự kiện — js/admin/home-editor.js) ── -->
+    <section id="tabHome" class="tab-panel" aria-label="Trang thông tin">
+      <div class="panel toolbar">
+        <label class="field field-inline grow"><span>Sự kiện</span><select id="homeEvent"></select></label>
+      </div>
+      <div id="homeEditorMount"><p class="hint">Chọn sự kiện để soạn trang thông tin.</p></div>
     </section>
 
     <!-- ── TRANG: Quản trị viên — admins/{uid}; UID gốc khai trong firestore.rules (isRootAdmin) ── -->
@@ -613,6 +623,7 @@
   // Nơi khác (GitHub Pages, localhost) admin nằm cạnh index.html ⇒ link tương đối.
   const EVENT_SITE = { adminHost: /^pickyourgroup-admin\.(web\.app|firebaseapp\.com)$/, url: "https://pickyourgroup.web.app/" };
   const eventSiteBase = () => EVENT_SITE.adminHost.test(location.hostname) ? EVENT_SITE.url : "";
+  window.eventSiteBase = eventSiteBase;   // HOOK trình soạn trang home (script riêng cuối body) mở xem trước đúng site sự kiện
   const eventLink = id => eventSiteBase() + EVENT_PAGE + "?e=" + encodeURIComponent(id);
   const homeLinkOf = id => HOME_PAGE + "?e=" + id;   // giá trị lưu vào profile.homeUrl (tương đối, cùng site với trang sự kiện)
 
@@ -3668,6 +3679,42 @@
   // Khởi tạo: mở form ở chế độ "Tạo sự kiện mới" + seed sẵn field mặc định (name + employeeId)
   // ngay khi tải trang. Gọi ở CUỐI IIFE để EMP_ID_RE + các hàm sync đã khởi tạo xong (tránh TDZ).
   resetForm();
+})();
+</script>
+<!-- Trình soạn trang home: danh sách sự kiện lấy từ dropdown trang Đăng ký (#sigSelect) -->
+<script src="js/home/home-schema.js"></script>
+<script src="js/home/home-sheets.js"></script>
+<script src="js/admin/home-editor.js"></script>
+<script>
+(function () {
+  "use strict";
+  var tab = document.querySelector('.tab[data-tab="tabHome"]');
+  var sel = document.getElementById("homeEvent"), box = document.getElementById("homeEditorMount");
+  if (!tab || !sel || !box || !window.HomeEditor || typeof db === "undefined" || !db) return;
+  var cur = "";
+  function syncEvents() {
+    var src = document.getElementById("sigSelect");
+    var keep = sel.value || cur;
+    sel.innerHTML = src ? src.innerHTML : "";
+    if (keep) sel.value = keep;
+    if (!sel.value && src) sel.value = src.value;   // mặc định = sự kiện đang chọn ở trang Đăng ký (sự kiện đang mở)
+  }
+  function open(eid) {
+    cur = eid;
+    if (!eid) { HomeEditor.unmount(); box.innerHTML = '<p class="hint">Chọn sự kiện để soạn trang thông tin.</p>'; return; }
+    // site admin riêng không có home.html ⇒ xem trước mở trên site sự kiện (eventSiteBase của admin; nơi khác = link tương đối)
+    var previewBase = typeof window.eventSiteBase === "function" ? window.eventSiteBase() : "";
+    HomeEditor.mount(box, { db: db, eventId: eid, previewBase: previewBase }).catch(function (e) {
+      box.innerHTML = '<p class="err"></p>';
+      box.firstChild.textContent = "Không mở được trình soạn: " + e.message;
+    });
+  }
+  tab.addEventListener("click", function () { syncEvents(); if (sel.value !== cur) open(sel.value); });
+  sel.addEventListener("change", function () {
+    if (sel.value === cur) return;
+    if (HomeEditor.isDirty() && !window.confirm("Trang thông tin còn thay đổi chưa lưu. Bỏ thay đổi để chuyển sự kiện?")) { sel.value = cur; return; }
+    open(sel.value);
+  });
 })();
 </script>
 </body>

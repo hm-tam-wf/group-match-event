@@ -99,7 +99,11 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
    update = `count + 1` (≤ `capFor(icon)`), `names` = tên cũ + ĐÚNG 1 tên nối cuối (`names[0:n] == cũ`), không đổi/thêm field khác.
    Tên = chuỗi 1..120 (`okName`; FE chặn sớm ở `NAME_MAX_LEN = 80`, ui-utils.js). Admin bỏ qua hết (seed vượt `caps`, gỡ người, reset).
    Trước đó ai cũng set count/names tuỳ ý: reset đội về 0 ⇒ vượt sĩ số; phần tử không phải chuỗi ⇒ render chết trên mọi máy.
-2. **Admin UID hardcoded:** `function isAdmin() { return request.auth.uid in ['UID1', 'UID2'] }`
+2. **Admin (từ bước 3A, 2026-11-11):** `isAdmin() = isRootAdmin() || (request.auth != null && exists(admins/$(uid)))`; UID gốc
+   hardcode trong `isRootAdmin()`. `match /admins/{uid}`: read/delete admin; create admin, `uid != người ghi`, chỉ
+   `{note≤200, addedBy == người ghi, at == request.time}`; update false. 3A cũng mở `members`/`dedup_keys` **update: isAdmin()**
+   (Chuyển phòng) và vá teams: đội rỗng (`names` size 0) bỏ so tiền tố — `names[0:0]` làm rules báo lỗi index ⇒ chặn nhầm.
+   ⚠ Các thay đổi này CHƯA deploy (production = rules ffe57d7) — tests/rules có case S3A-1/2/3.
 3. **1-person-1-team:** KHÔNG dùng `getAfter()` (rules KHÔNG có) — ép phía CLIENT bằng transactional read
    `members/{pid}` trong `apiClaim` (đọc trước, abort `ALREADY` nếu tồn tại). **`pid` theo TỪNG TRÌNH DUYỆT**
    (`me.id="u"+random`) ⇒ guard này **KHÔNG liên kết 2 browser**. Liên kết cross-browser (1 MSNV = 1 đội) **chỉ**

@@ -138,9 +138,10 @@ node backend/scripts/home-import.js --event <eventId> --file <file.json|file.xls
 Mặc định chỉ đọc: validate, kiểm sự kiện có `meta/config`, in tóm tắt + danh sách đường dẫn thay đổi so với bản đang có.
 `--apply` mới ghi rồi đọc lại để đối chiếu. Mẫu TNT: `--file backend/seed/home-tnt.json`.
 
-## 7. Gắn trình soạn vào `admin.html` (HOOK — chèn nguyên văn khi tích hợp)
-Thêm tab thứ 5 ⇒ thanh tab đáy mobile của `admin.css` (đang `repeat(4,…)`) được `admin-home.css` chia lại theo số tab
-(`.nav:has(> .tab[data-tab="tabHome"])`, chỉ ≤640px) — nên chuyển rule này vào `admin.css` khi tích hợp.
+## 7. Gắn trình soạn vào `admin.html` (HOOK — ĐÃ CHÈN khi tích hợp 2026-11-11; giữ đây làm tài liệu)
+Thanh tab đáy mobile của `admin.css` chia cột theo SỐ TAB THỰC TẾ (`grid-auto-flow: column`) ⇒ thêm tab không phải sửa CSS.
+Xem trước trang home: HOOK 4 truyền `previewBase = window.eventSiteBase()` (admin.html) ⇒ trên site admin riêng
+(`pickyourgroup-admin`, không có `home.html`) nút xem trước mở trên site sự kiện; nơi khác là link tương đối.
 
 **HOOK 1** — trong `<head>`, ngay sau `<link rel="stylesheet" href="assets/admin.css">`:
 ```html
@@ -187,7 +188,9 @@ Thêm tab thứ 5 ⇒ thanh tab đáy mobile của `admin.css` (đang `repeat(4,
   function open(eid) {
     cur = eid;
     if (!eid) { HomeEditor.unmount(); box.innerHTML = '<p class="hint">Chọn sự kiện để soạn trang thông tin.</p>'; return; }
-    HomeEditor.mount(box, { db: db, eventId: eid }).catch(function (e) {
+    // site admin riêng không có home.html ⇒ xem trước mở trên site sự kiện (eventSiteBase của admin; nơi khác = link tương đối)
+    var previewBase = typeof window.eventSiteBase === "function" ? window.eventSiteBase() : "";
+    HomeEditor.mount(box, { db: db, eventId: eid, previewBase: previewBase }).catch(function (e) {
       box.innerHTML = '<p class="err"></p>';
       box.firstChild.textContent = "Không mở được trình soạn: " + e.message;
     });

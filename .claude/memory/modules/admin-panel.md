@@ -14,9 +14,27 @@ updated: 2026-06-04
 và redirect 301 `/admin.html` sang Pages — xem [[conventions]] §Deploy.
 
 ## Auth flow
-Firebase Authentication (email/password). UIDs được hardcode trong `firestore.rules`:
-- Thêm/xoá admin = sửa rules file + publish lên Firebase Console (manual)
-- **Gotcha:** Có 2 admin UIDs. Nếu tạo lại tài khoản Firebase = UID thay đổi = phải cập nhật rules
+Firebase Authentication (email/password). **Từ bước 3A (2026-11-11):** admin = UID GỐC hardcode (`isRootAdmin()` trong rules,
+khớp `ROOT_ADMIN_UIDS` trong admin.html — đổi thì sửa CẢ HAI) **hoặc** có doc `admins/{uid}` (tab "Quản trị viên": thêm theo UID,
+gỡ; không ai tự thêm mình; UID gốc không gỡ được). Cần DEPLOY rules mới thì tab này + "Chuyển phòng" mới chạy.
+- **Gotcha:** tạo lại tài khoản Firebase = UID đổi ⇒ admin theo dữ liệu: thêm lại doc; admin gốc: sửa rules + admin.html.
+
+## Tính năng bước 3A + 3B (2026-11-11) — xem documentation/ADMIN.md, HOME-TEMPLATE.md
+- Form sự kiện 2 pane, tab **Nhận diện** soạn `meta/config.profile` ([[event-profile]]): tạo mới ghi `NEW_EVENT_PROFILE`; sửa chỉ
+  `update({profile})` khi đã đụng tab; "logo mặc định của skin" = KHÔNG ghi brand; ô gợi ý chữ lấy `VARIANT_COPY[variant][lang]`
+  rồi `STRINGS` (admin nạp themes/tech/strings.js + variants/tnt/strings.js — thêm biến thể ⇒ thêm `<script>` ở admin.html).
+- **Nạp "Nhân sự + Phòng"** từ 1 file mẫu xlsx (thay tnt-import.js); "Xoá cũ & nạp mới" ghi xong mới xoá. **Nhân bản** kèm
+  allowlist + profile + (tuỳ chọn) meta/home, homeUrl `home.html?e=<gốc>` trỏ sang ID mới.
+- **Thao tác từng người** (tab Đăng ký): chuyển phòng / gỡ / bỏ chặn / xoá — mỗi việc 1 transaction; `m~` chỉ xoá khi không
+  còn ai cùng gốc (đọc danh sách TRƯỚC transaction ⇒ khe đua rất nhỏ); người cuối rời phòng ⇒ xoá hẳn doc đội.
+- **Kiểm tra trước khi Mở** (lỗi ⇒ chặn + nút "Sửa sự kiện") + cảnh báo đổi/bỏ ô kiểm tra trùng.
+- Tab **Trang thông tin** (3B, `js/admin/home-editor.js` + `assets/admin-home.css`, HOOK cuối body): soạn `meta/home`, Excel/JSON;
+  xem trước dùng `window.eventSiteBase()`.
+- **Site admin riêng** `pickyourgroup-admin` (firebase.json; predeploy `backend/scripts/build-admin-site.js` chép admin.html +
+  file nó tham chiếu → `hosting-admin/`, gitignored). `EVENT_SITE`/`eventSiteBase()` (admin.html): trên domain admin, link xem
+  trước trỏ https://pickyourgroup.web.app/. CHƯA tạo site — thứ tự lệnh ở ADMIN.md; KHÔNG deploy hosting:pickyourgroup trước.
+- UI helper: `confirmModal` nhận `list`/`select`; `actionSheet`. Gotcha test: đổi tab bằng View Transition ⇒ lớp phủ nuốt
+  click ~300ms; thanh tab đáy mobile chia cột theo số tab (`grid-auto-flow: column`).
 
 ## Export
 - `export.js` — Node.js script local, dùng `firebase-admin` SDK

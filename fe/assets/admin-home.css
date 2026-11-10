@@ -88,9 +88,7 @@
 .he-load-err { gap: 10px; }
 
 @media (max-width: 640px) {
-  /* Thanh tab đáy của admin.css chia cứng repeat(4,…): thêm tab "Trang thông tin" (HOOK 2) ⇒ tab thứ 5 rớt hàng.
-     Chỉ áp khi có tab này; chia đều theo số tab thực tế. (Nên chuyển vào admin.css khi tích hợp.) */
-  .nav:has(> .tab[data-tab="tabHome"]) { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  /* (thanh tab đáy chia theo số tab thực tế đã nằm trong admin.css) */
   .he-bar { position: static; }   /* 3 hàng nút — dính trên cùng sẽ che mất nửa màn hình khi cuộn */
   .he-actions { width: 100%; }
   .he-actions button { flex: 1 1 auto; }

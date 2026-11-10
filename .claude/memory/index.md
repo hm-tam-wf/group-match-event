@@ -10,9 +10,10 @@
 ## Modules
 - [[api-layer]] — 3 backends (firebase/sheet/demo), apiState/apiClaim/apiSubscribe
 - [[ui-pipeline]] — script loading order (sacred!), render pipeline, animation
-- [[admin-panel]] — Firebase Auth, export CSV, hardcoded UID gotcha; UI dashboard tối: sidebar, 4 trang, drawer form
+- [[admin-panel]] — Firebase Auth + admin theo dữ liệu (`admins/{uid}`, UID gốc cứng); UI dashboard tối (sidebar, 6 trang, drawer form 2 pane); Nhận diện, nạp Nhân sự+Phòng, thao tác từng người, kiểm tra trước khi mở, site admin riêng (chưa deploy)
 - [[firestore-schema]] — collections, security rules, capacity sync gotcha
 - [[allowlist]] — danh sách MSNV được phép join: import Excel/CSV, toggle/sự kiện, cổng chặn client (mirror dedup); cột Giới tính → phân phòng Nam/Nữ
+- [[home-template]] — trang home dùng chung `home.html?e=` đọc `meta/home` (thay travel.html tĩnh), editor tab "Trang thông tin" trong admin, seed TNT + home-import.js
 - [[event-profile]] — hồ sơ sự kiện `meta/config.profile` (skin/ngôn ngữ/logo/câu chữ/homeUrl/introMs, thiếu key = cũ) + chọn sự kiện `?e=` > `config/hosts` > `config/active`; hosts.js; rollout config/hosts trước push
 
 ## UI & components

@@ -34,7 +34,8 @@ module.exports = {
     await t.page.setViewport({ width: 390, height: 844 });   // không bật isMobile (puppeteer sẽ reload trang)
     await t.sleep(400);
     const row = await t.ev(`(() => { const tabs = [...document.querySelectorAll('.nav .tab')]; return { n: tabs.length, tops: [...new Set(tabs.map(x => Math.round(x.getBoundingClientRect().top)))].length }; })()`);
-    ok('home-hook: mobile 390px — thanh tab đáy đủ 5 tab trên 1 hàng', row && row.n === 5 && row.tops === 1, row);
+    // admin có thể có thêm tab (vd Quản trị của 3A) ⇒ kiểm MỌI tab nằm trên 1 hàng, không đếm cứng
+    ok('home-hook: mobile 390px — mọi tab của thanh đáy (gồm Trang thông tin) nằm trên 1 hàng', row && row.n >= 5 && row.tops === 1, row);
     await t.page.setViewport({ width: 1440, height: 900 });
 
     // Đổi sự kiện khi còn thay đổi chưa lưu: confirm lần 1 = Huỷ, lần 2 = Đồng ý.

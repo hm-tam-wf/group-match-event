@@ -702,7 +702,8 @@ button.is-loading::before{content:"";width:14px;height:14px;border-radius:50%;bo
   /* ↑ bỏ backdrop-filter: nó tạo containing block cho con position:fixed ⇒ .nav sẽ dính đáy .side thay vì đáy màn hình */
   .side-foot .btn-txt,.topbar .btn-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* chữ còn cho screen reader */
   .side-foot .btn-block,#btnRefresh{width:44px;min-height:44px;padding:0}
-  .nav{position:fixed;left:0;right:0;bottom:0;z-index:60;order:0;flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
+  /* chia đều theo SỐ TAB THỰC TẾ (grid-auto-flow) — thêm/bớt tab không phải sửa số cột */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:60;order:0;flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line-2);border-radius:0;
     background:rgba(9,11,22,.96);overflow:visible}
   .tab{flex-direction:column;justify-content:center;gap:4px;min-height:56px;padding:6px 2px;font-size:11.5px;font-weight:600;line-height:1.15}

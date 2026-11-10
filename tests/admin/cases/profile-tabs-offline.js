@@ -7,8 +7,10 @@ module.exports = {
     const { ev, waitFor, ok, sleep } = t;
     await t.navigate(t.url('tab=events'));
     await waitFor(`document.getElementById('tabEvents').classList.contains('active') && !!document.querySelector('#evListWrap [data-action="edit"]')`, 10000);
-    ok('M1 thanh điều hướng có 5 trang (thêm Quản trị)', (await ev(`[...document.querySelectorAll('.tab')].map(b => b.dataset.tab).join(',')`)) === 'tabDash,tabEvents,tabSignups,tab-allowlist,tabAdmins',
-      await ev(`[...document.querySelectorAll('.tab')].map(b => b.dataset.tab)`));
+    // các trang BẮT BUỘC (gồm Quản trị); admin có thể có thêm trang khác (vd Trang thông tin của trình soạn home)
+    const navTabs = await ev(`[...document.querySelectorAll('.tab')].map(b => b.dataset.tab)`);
+    ok('M1 thanh điều hướng có đủ các trang (gồm Quản trị)', Array.isArray(navTabs)
+      && ['tabDash', 'tabEvents', 'tabSignups', 'tab-allowlist', 'tabAdmins'].every(id => navTabs.includes(id)), navTabs);
 
     // ── Tạo sự kiện mới: tab Nhận diện mặc định = NEW_EVENT_PROFILE (config.js) ──
     await ev(`document.getElementById('btnNew').click()`);
