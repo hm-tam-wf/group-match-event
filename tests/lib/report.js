@@ -25,7 +25,8 @@ function createReport(suite) {
     },
     // File case ném lỗi giữa chừng ⇒ 1 dòng FAIL (suite vẫn chạy tiếp các file sau).
     crash(file, err) {
-      const msg = (err && err.stack) || String(err);
+      const cause = err && err.cause ? NL + 'cause: ' + ((err.cause && (err.cause.stack || err.cause.message)) || String(err.cause)) : '';
+      const msg = ((err && err.stack) || String(err)) + cause;
       results.push({ id: file, name: 'CRASH', pass: false, actual: msg });
       console.log('FAIL ' + file + ' CRASH' + NL + '   ' + msg.split(NL).slice(0, 8).join(NL + '   '));
     },

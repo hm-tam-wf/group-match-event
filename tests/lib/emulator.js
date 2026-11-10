@@ -14,7 +14,16 @@ const isWin = process.platform === 'win32';
 
 let child = null, logStream = null, logTail = '';
 
+const HTTP_PROBE_TIMEOUT_MS = 2000;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Sẵn sàng = emulator TRẢ LỜI HTTP. Chỉ kiểm TCP là SAI: firebase-tools mở listener tạm trên chính cổng này để kiểm
+// cổng còn trống trước khi spawn Java ⇒ poll TCP trúng khe đó tưởng emulator đã lên (fetch sau đó "fetch failed").
+async function httpReady(port) {
+  try {
+    const r = await fetch(`http://${C.EMU_HOST}:${port}/`, { signal: AbortSignal.timeout(HTTP_PROBE_TIMEOUT_MS) });
+    return r.status < 500;
+  } catch (e) { return false; }
+}
 const portOpen = port => new Promise(res => {
   const s = net.connect(port, C.EMU_HOST);
   s.once('connect', () => { s.destroy(); res(true); });
@@ -94,7 +103,7 @@ async function start(label = 'tests') {
     (async () => {
       const t0 = Date.now();
       while (!done && Date.now() - t0 < START_TIMEOUT_MS) {
-        if (await portOpen(C.ports.firestore)) return finish();
+        if (await httpReady(C.ports.firestore)) return finish();
         await sleep(POLL_MS);
       }
       finish(new Error(`Emulator không lên sau ${START_TIMEOUT_MS / 1000}s. Log: ${path.join(dir, 'emulator.log')}\n${logTail}`));
