@@ -158,8 +158,7 @@ clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
 - **Tra cứu có dấu/không dấu:** tên có dấu: k1 ⇒ remote view; không k1 mà có F ⇒ chặn + thông báo "đã có đăng ký tên không dấu '<x>' (phòng X), nếu không phải bạn thì liên hệ BTC".
   Tên không dấu: k1 ⇒ remote view; không k1 mà có M ⇒ đếm ứng viên `_foldKey` trong `teams[*].names`: đúng 1 ⇒ remote view; ≥2 ⇒ yêu cầu gõ đủ dấu, chặn; 0 ⇒ chặn.
   FE: `rvResolve`/`resolveReg`. `apiState(fresh)` đọc `get({source:'server'})` để kiểm chứng phòng.
-- **Flag `DEDUP_STORE_ICON`** (`fe/js/config/config.js`, mặc định **false**): bật ghi `icon` + fold key khi join.
-  Chỉ bật SAU khi deploy rules mới và backfill (thứ tự go-live bên dưới).
+- **Flag `DEDUP_STORE_ICON` — ĐÃ BỎ 2026-11-10:** FE luôn ghi `{at, icon}` (k1 + M); rules không còn nhận `{at}` trần (phase B).
 - **Backfill `backend/scripts/backfill-dedup-icon.js`**: dry-run mặc định; `--apply` thêm `icon` vào `k1` cũ và tạo
   `M` (`create()`) cho tên có dấu. CONFLICT khi tên có dấu có `F` trùng `k1` của một người không dấu khác.
   Quét TOÀN BỘ `dedup_keys` (không dựa members/signups). Có chế độ emulator (`FIRESTORE_EMULATOR_HOST`).
@@ -176,12 +175,17 @@ clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
   giả/cũ). Init chỉ vào remote view khi `members/{pid}` = null. "Không phải tôi" xoá profile để nhập tên khác.
 - **Edge cases đã audit:** (a) mất localStorage/đổi máy ⇒ remote view; (b) biến thể dấu ⇒ k1/F/M chặn đúng, tên khác người (Hùng/Hưng) không bị chặn nhầm; (c) race cross-tab/
   cross-device ⇒ transaction tuần tự, đúng 1 thành công (Lê ∥ Le x10 ⇒ 1 thắng; Hùng ∥ Hưng x10 ⇒ cả 2 thắng); (d) retry sau commit mơ hồ ⇒ ALREADY+icon;
-  (e) pre-check fail-open vẫn bị transaction chặn; (f) rules mở (tạo dedup_keys rác, delete reg_keys/signups mở) ⇒ hoãn phase B.
+  (e) pre-check fail-open vẫn bị transaction chặn; (f) rules mở ⇒ phase B làm 2026-11-10: bỏ `{at}`, teams chỉ +1/nối 1 tên,
+  `signups/seed_*` chỉ admin (còn mở: `reg_keys` create/delete — chốt mềm, admin "Bỏ chặn" gỡ được).
 - **Test:** E2E Firestore Emulator (project `demo-icon-picker`, cần Java/JRE portable), puppeteer + Edge headless, mỗi
   incognito context = 1 thiết bị. **71/71 PASS.** Static server vá `firebase-config.js`/`config.js` trong bộ nhớ.
 
-## apiSubscribe()
-Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).
+## apiSubscribe(onChange, onError) — nối lại khi lỗi (2026-11-10)
+Wrap `onSnapshot` cho `teams`. `onChange(teams, {fromCache})`; teams dựng bằng `_teamsFromSnap` (dùng chung với `apiState`): khoá theo
+**doc id** (không theo field `icon` — doc lạ tự khai icon trùng không đè được đội thật), `names` chỉ giữ chuỗi, `count` không phải số ⇒ 0.
+Listener LỖI (quota `resource-exhausted`, rules, sự cố) ⇒ Firestore NGẮT hẳn, không tự nối ⇒ gọi `onError` + đăng ký lại backoff
+2s→30s (`SUB_RETRY_BASE_MS/MAX_MS`). Trước đây lỗi bị nuốt ⇒ số đứng im không ai biết. app.js: toast cố định `toast.liveLost` tới khi
+có snapshot server (`toast.liveBack`); snapshot RỖNG từ cache bị bỏ qua (tránh self-heal xoá nhầm myIcon). Trả hàm huỷ (dừng cả vòng nối lại).
 
 ## apiMyMembership() — self-heal đồng bộ myIcon ↔ members/{pid} (2026-06-18, nâng 2 CHIỀU 2026-06-19)
 Đọc `members/{pid}` (get:true). Trả `{icon}` nếu CÒN trong đội; **`null`** nếu KHÔNG còn; **`undefined`** nếu

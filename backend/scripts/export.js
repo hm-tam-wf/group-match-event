@@ -1,5 +1,8 @@
-// export.js — Xuat danh sach dang ky tu Firestore "signups" ra CSV (mo bang Excel / Google Sheets).
-// Chay: `node export.js`  (hoac `npm run export`).
+// export.js — Xuat danh sach dang ky cua MOT su kien (events/<id>/signups) ra CSV (mo bang Excel / Google Sheets).
+// Chay: `node export.js [--event <id>]`  (hoac `npm run export -- --event <id>`).
+//   Khong co --event -> xuat su kien DANG MO (config/active.eventId).
+// Cot lay theo CAU HINH su kien (meta/config.fields), ten doi theo meta/config.icons -> dung cho moi su kien, khong hardcode.
+// (Truoc 2026-11-10 script doc collection "signups" o goc — schema cu, du lieu da chuyen vao events/<id>/ -> file ra rong.)
 // firebase-admin DUNG quyen admin -> BO QUA security rules, nen doc duoc collection da khoa read.
 // CommonJS (package.json khong co "type":"module").
 
@@ -9,27 +12,11 @@ const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 
-// ── Map emoji DOI -> ten tieng Viet. Khong co trong map thi dung lai chinh emoji. ──
-const ICON_NAMES = {
-  '🦊': 'Cáo',
-  '🐉': 'Rồng',
-  '🦅': 'Đại Bàng',
-  '🦁': 'Sư Tử',
-  '🐢': 'Rùa',
-  '🦈': 'Cá Mập',
-  '🐬': 'Cá Heo',
-  '🐺': 'Sói',
-  '🐙': 'Bạch Tuộc',
-  '🦄': 'Kỳ Lân',
-};
+const PROJECT_ID = 'icon-picker';   // mac dinh; uu tien project_id trong service account key
 
-// Tieu de cot CSV (dung thu tu yeu cau).
-const HEADERS = ['STT', 'Thời gian', 'Họ tên', 'Email', 'SĐT', 'Đội', 'Icon', 'PlayerID'];
-
-const PROJECT_ID = 'icon-picker';
-
-// ── Phan tich tham so dong lenh: --key <path>, --out <path> (khong phu thuoc thu tu). ──
+// ── Phan tich tham so dong lenh: --key <path>, --out <path>, --event <id> (khong phu thuoc thu tu). ──
 // Ho tro ca dang `--key=<path>`. Token `--` la khong nhan dien -> bao loi than thien.
+const VALUE_FLAGS = ['--key', '--out', '--event'];
 function parseArgs(argv) {
   const args = {};
   // Bat dau tu index 2: bo qua "node" va duong dan script.
@@ -44,14 +31,14 @@ function parseArgs(argv) {
       token = token.slice(0, eq);
     }
 
-    if (token === '--key' || token === '--out') {
-      const key = token === '--key' ? 'key' : 'out';
+    if (VALUE_FLAGS.includes(token)) {
+      const key = token.slice(2);
       let value = inlineValue;
       if (value === undefined) {
         value = argv[i + 1];
         // Co flag nhung thieu gia tri (hoac gia tri lai la mot flag khac) -> bao loi ngay.
         if (value === undefined || value.startsWith('--')) {
-          throw new Error(`Thiếu giá trị cho tham số ${token}. Ví dụ: ${token} <đường-dẫn>`);
+          throw new Error(`Thiếu giá trị cho tham số ${token}. Ví dụ: ${token} <giá-trị>`);
         }
         i++; // bo qua gia tri vua doc o vi tri ke tiep
       }
@@ -59,7 +46,7 @@ function parseArgs(argv) {
     } else if (token.startsWith('--')) {
       // Token `--xxx` khong nhan dien -> bao loi thay vi am tham bo qua (tranh go nham --ouput, v.v.).
       throw new Error(
-        `Tham số không hợp lệ: ${token}. Các tham số hợp lệ: --key <đường-dẫn-key.json>, --out <đường-dẫn-file.csv>`
+        `Tham số không hợp lệ: ${token}. Các tham số hợp lệ: --event <id-sự-kiện>, --key <đường-dẫn-key.json>, --out <đường-dẫn-file.csv>`
       );
     }
     // Cac token khac (khong co tien to --) thi bo qua.
@@ -195,9 +182,31 @@ function csvRow(values) {
   return values.map(csvCell).join(',') + '\r\n';
 }
 
-// ── Doc toan bo doc trong "signups" va sap xep theo `at` tang dan; at null/thieu -> cuoi cung. ──
-async function fetchSignups(db) {
-  const snap = await db.collection('signups').get();
+// ── Su kien can xuat: --event <id>; khong co thi lay su kien DANG MO (config/active.eventId). ──
+async function resolveEventId(db, args) {
+  if (args.event) return String(args.event).trim();
+  const snap = await db.collection('config').doc('active').get();
+  const id = snap.exists ? String((snap.data() || {}).eventId || '').trim() : '';
+  if (!id) throw new Error('Không có sự kiện đang mở (config/active trống). Chỉ định rõ: --event <id-sự-kiện>');
+  return id;
+}
+
+// ── Cau hinh su kien: fields (cot du lieu, dung thu tu admin cau hinh) + ten doi theo icon. ──
+async function loadEventConfig(db, eventId) {
+  const snap = await db.collection('events').doc(eventId).collection('meta').doc('config').get();
+  if (!snap.exists) throw new Error(`Không tìm thấy sự kiện "${eventId}" (thiếu events/${eventId}/meta/config).`);
+  const c = snap.data() || {};
+  const fields = Array.isArray(c.fields) ? c.fields.filter((f) => f && f.key) : [];
+  const teamNames = {};
+  (Array.isArray(c.icons) ? c.icons : []).forEach((g) => {
+    if (g && g.icon) teamNames[g.icon] = g.name || g.icon;
+  });
+  return { title: c.title || eventId, fields, teamNames };
+}
+
+// ── Doc toan bo signups cua su kien, sap xep theo `at` tang dan; at null/thieu -> cuoi cung. ──
+async function fetchSignups(db, eventId) {
+  const snap = await db.collection('events').doc(eventId).collection('signups').get();
 
   const rows = snap.docs.map((doc) => {
     const d = doc.data() || {};
@@ -208,12 +217,9 @@ async function fetchSignups(db) {
       date = d.at.toDate();
     }
     return {
-      id: doc.id,
+      data: d, //   toan bo field ho so (cot lay theo cau hinh su kien)
       playerId: d.playerId != null ? d.playerId : doc.id,
-      icon: d.icon != null ? d.icon : '',
-      name: d.name != null ? d.name : '',
-      email: d.email != null ? d.email : '',
-      phone: d.phone != null ? d.phone : '',
+      icon: d.icon != null ? String(d.icon) : '',
       date, // Date hoac null
     };
   });
@@ -229,37 +235,36 @@ async function fetchSignups(db) {
   return rows;
 }
 
-// ── Tao chuoi CSV hoan chinh (co BOM). ──
-function buildCsv(rows) {
+// ── Tao chuoi CSV hoan chinh (co BOM). Cot: STT | Thoi gian | <cac field cua su kien> | Doi | Icon | PlayerID ──
+function buildCsv(rows, cfg) {
+  const headers = ['STT', 'Thời gian', ...cfg.fields.map((f) => f.label || f.key), 'Đội', 'Icon', 'PlayerID'];
   let out = '﻿'; // BOM UTF-8 de Excel hien dung dau tieng Viet.
-  out += csvRow(HEADERS);
+  out += csvRow(headers);
   rows.forEach((r, idx) => {
-    const team = ICON_NAMES[r.icon] || r.icon; // ten doi; fallback emoji.
-    const timeCell = r.date ? formatVN(r.date) : ''; // thieu `at` -> de trong.
     out += csvRow([
-      idx + 1, //   STT (1-based)
-      timeCell, //  Thoi gian
-      r.name, //    Ho ten
-      r.email, //   Email
-      r.phone, //   SDT (giu dang text qua viec boc nhay kep)
-      team, //      Doi
-      r.icon, //    Icon (emoji)
-      r.playerId, // PlayerID
+      idx + 1, //                                                   STT (1-based)
+      r.date ? formatVN(r.date) : '', //                            Thoi gian (thieu `at` -> de trong)
+      ...cfg.fields.map((f) => (r.data[f.key] != null ? r.data[f.key] : '')),
+      r.icon ? cfg.teamNames[r.icon] || r.icon : '', //             Doi (chua chon doi -> de trong)
+      r.icon, //                                                    Icon
+      r.playerId, //                                                PlayerID
     ]);
   });
   return out;
 }
 
-// ── Ten file mac dinh: signups-YYYYMMDD-HHmmss.csv (theo gio VN). ──
-function defaultOutName() {
+// ── Ten file mac dinh: <id-su-kien>-YYYYMMDD-HHmmss.csv (theo gio VN). ──
+function defaultOutName(eventId) {
   const p = vnParts(new Date());
   const hh = p.hour === '24' ? '00' : p.hour;
-  return `signups-${p.year}${p.month}${p.day}-${hh}${p.minute}${p.second}.csv`;
+  const safeId = String(eventId).replace(/[^A-Za-z0-9._-]/g, '_');
+  return `${safeId}-${p.year}${p.month}${p.day}-${hh}${p.minute}${p.second}.csv`;
 }
 
 // ── In tom tat ra console (tieng Viet). ──
-function printSummary(rows, outPath) {
+function printSummary(rows, outPath, cfg, eventId) {
   console.log('');
+  console.log(`📋 Sự kiện: ${cfg.title} (${eventId})`);
   if (rows.length === 0) {
     console.log('📭 Chưa có ai đăng ký.');
   } else {
@@ -268,7 +273,7 @@ function printSummary(rows, outPath) {
     // Dem theo doi.
     const counts = new Map();
     for (const r of rows) {
-      const team = ICON_NAMES[r.icon] || r.icon || '(không rõ)';
+      const team = r.icon ? cfg.teamNames[r.icon] || r.icon : '(chưa chọn đội)';
       counts.set(team, (counts.get(team) || 0) + 1);
     }
     // Sap xep giam dan theo so luong.
@@ -280,7 +285,7 @@ function printSummary(rows, outPath) {
   }
   console.log('');
   console.log(`📄 Đã ghi file: ${outPath}`);
-  console.log('   Mẹo: SĐT có số 0 đầu hoặc dãy số dài có thể bị Excel định dạng lại.');
+  console.log('   Mẹo: mã/SĐT có số 0 đầu hoặc dãy số dài có thể bị Excel định dạng lại.');
   console.log('   Để giữ nguyên dạng text, hãy mở bằng Google Sheets (File → Import) hoặc dùng Data → Import của Excel.');
   console.log('');
 }
@@ -295,23 +300,25 @@ async function main() {
   // 2) Khoi tao firebase-admin.
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    projectId: PROJECT_ID,
+    projectId: serviceAccount.project_id || PROJECT_ID,
   });
   const db = admin.firestore();
 
-  // 3) Doc + sap xep du lieu.
-  const rows = await fetchSignups(db);
+  // 3) Xac dinh su kien + cau hinh, doc + sap xep du lieu.
+  const eventId = await resolveEventId(db, args);
+  const cfg = await loadEventConfig(db, eventId);
+  const rows = await fetchSignups(db, eventId);
 
   // 4-5) Tao noi dung CSV.
-  const csv = buildCsv(rows);
+  const csv = buildCsv(rows, cfg);
 
   // 6) Xac dinh duong dan file ra & ghi (utf8).
-  const outArg = args.out ? args.out : defaultOutName();
+  const outArg = args.out ? args.out : defaultOutName(eventId);
   const outPath = path.resolve(process.cwd(), outArg);
   fs.writeFileSync(outPath, csv, 'utf8');
 
   // 7) In tom tat.
-  printSummary(rows, outPath);
+  printSummary(rows, outPath, cfg, eventId);
 }
 
 main().catch((err) => {
@@ -319,7 +326,7 @@ main().catch((err) => {
   console.error('❌ Lỗi khi xuất dữ liệu:');
   console.error(`   ${err && err.message ? err.message : err}`);
   console.error('');
-  console.error('   Gợi ý: kiểm tra kết nối mạng và quyền của service account (Cloud Datastore/Firestore Viewer).');
+  console.error('   Gợi ý: kiểm tra kết nối mạng, ID sự kiện (--event) và quyền của service account (Cloud Datastore/Firestore Viewer).');
   // 8) Bao loi qua process.exitCode (khong goi process.exit de stream kip flush).
   process.exitCode = 1;
 });

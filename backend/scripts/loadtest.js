@@ -66,6 +66,12 @@ if (CLEANUP_ONLY && !OVERRIDE_ID) {
   console.error('Cu phap: node loadtest.js --cleanup-only loadtest-<timestamp>');
   process.exit(1);
 }
+// --cleanup-only XOA SACH events/<id> (ca meta/config) -> chi nhan dung namespace test do script tao (loadtest-<so>).
+// Go nham ID su kien that se bi TU CHOI thay vi xoa du lieu that.
+if (CLEANUP_ONLY && !/^loadtest-\d+$/.test(OVERRIDE_ID)) {
+  console.error(`Tu choi: --cleanup-only chi nhan ID dang loadtest-<so> (nhan duoc "${OVERRIDE_ID}").`);
+  process.exit(1);
+}
 
 const EVENT_ID = CLEANUP_ONLY ? OVERRIDE_ID : `loadtest-${Date.now()}`;
 

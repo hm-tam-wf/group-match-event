@@ -244,7 +244,7 @@ function renderProfile() {
     const metaBits = FIELDS.filter(f => f.key !== "name").map(f => me.fields[f.key]).concat(myGender).filter(Boolean).join("  ·  ");
     profileBoxEl.innerHTML = `
       <div class="summary">
-        <div class="ava" style="background:${myIcon ? byEmoji[myIcon].color : 'var(--accent)'}">${initial(me.fields.name)}</div>
+        <div class="ava" style="background:${(myIcon && byEmoji[myIcon] && byEmoji[myIcon].color) || 'var(--accent)'}">${initial(me.fields.name)}</div>
         <div class="s-txt">
           <span class="nm">${esc(me.fields.name) || TEXT.grid.player}</span>
           <span class="meta">${esc(metaBits)}</span>
@@ -267,20 +267,35 @@ function closeProfileModal(callback) {
   else if (callback) callback();
 }
 
-// Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
-// với token mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
+// "Trang chủ" để quay về = referrer CÙNG ORIGIN là trang travel/home hoặc gốc site. Trước đây mọi referrer kết thúc bằng "/"
+// (vd https://www.facebook.com/) cũng bị coi là trang chủ ⇒ bấm Huỷ đưa người chơi sang site khác.
+function _homeReferrer() {
+  try {
+    if (!document.referrer) return "";
+    const u = new URL(document.referrer);
+    if (u.origin !== location.origin) return "";
+    return (u.pathname.includes("travel") || u.pathname.endsWith("/")) ? u.href : "";
+  } catch (e) { return ""; }
+}
 // Chuyển trang mượt mà khi quay lại trang chủ / trang travel (tránh giật và che màn hình bên trong)
 function _travelSmoothBack() {
   document.body.style.transition = "opacity 0.16s ease-out";
   document.body.style.opacity = "0";
   setTimeout(() => {
-    const fromTravel = document.referrer && (document.referrer.includes("travel") || document.referrer.endsWith("/"));
-    if (fromTravel) window.location.href = document.referrer;
+    const home = _homeReferrer();
+    if (home) window.location.href = home;
     else if (window.history.length > 1) window.history.back();
     else window.location.href = "travel.html";
   }, 150);
 }
+// Bấm Back sau khi _travelSmoothBack rời trang ⇒ trình duyệt KHÔI PHỤC trang từ bfcache nguyên trạng, kể cả opacity 0
+// ⇒ trang trắng xoá. Trả lại hiển thị khi trang được khôi phục.
+window.addEventListener("pageshow", e => {
+  if (e.persisted) { document.body.style.opacity = ""; document.body.style.transition = ""; }
+});
 
+// Popup nhập thông tin. canCancel = đang SỬA thông tin đã hợp lệ (cho phép quay lại);
+// với token mới (chưa hợp lệ) thì KHÔNG có nút huỷ và KHÔNG đóng bằng click nền/Esc.
 function showProfileModal() {
   if ($("profileModal")) return;          // tránh mở chồng
   const canCancel = profileValid();
@@ -483,7 +498,7 @@ function showProfileModal() {
       me.fields = {};
       saveMe();
     }
-    const fromTravel = document.referrer && (document.referrer.includes("travel") || document.referrer.endsWith("/"));
+    const fromTravel = !!_homeReferrer();
     if (fromTravel || !myIcon || wasBlocked) {
       _travelSmoothBack();
       return;
@@ -681,7 +696,9 @@ function renderState() {
   // banner đội của mình
   const bannerWrapEl = $("bannerWrap");
   if (myIcon) {
-    const iconDef = byEmoji[myIcon];
+    // myIcon (từ localStorage / server) có thể KHÔNG còn trong cấu hình (admin đổi icon, doc tra cứu sai) ⇒ dựng tạm
+    // từ chính icon để vẫn hiện banner thay vì ném TypeError làm hỏng cả trang.
+    const iconDef = byEmoji[myIcon] || { icon: myIcon, name: myIcon, color: "var(--accent)" };
     if (inRemoteView()) {
       // Xem đăng ký (đã chọn ở thiết bị khác): banner "Bạn đã đăng ký" + khối phòng/team + bạn cùng phòng.
       // Chỉ hiện tên người cùng phòng (đã công khai ở teams) — không PII nào khác ngoài tên vừa nhập.

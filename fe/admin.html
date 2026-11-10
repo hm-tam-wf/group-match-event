@@ -121,9 +121,9 @@
 
         <aside class="panel side-panel" id="unblockRow">
           <div class="panel-head"><h2>Bỏ chặn mã</h2></div>
-          <p class="hint">Mở khoá cổng cho 1 MSNV đang bị giữ chỗ lúc điền form. Mã đã ở trong một đội vẫn không chọn lại được.</p>
-          <label class="field"><span>MSNV</span>
-            <input id="unblockCode" type="text" placeholder="vd 22011463" autocomplete="off" /></label>
+          <p class="hint">Mở khoá cho 1 người bị báo "đã đăng ký" dù chưa vào đội nào (mã bị giữ chỗ, khoá chống trùng còn sót). Người đã ở trong một đội vẫn không chọn được đội khác.</p>
+          <label class="field"><span>MSNV hoặc họ tên</span>
+            <input id="unblockCode" type="text" placeholder="vd 22011463 hoặc Nguyễn Văn A" autocomplete="off" /></label>
           <button id="btnUnblock" class="btn-ghost btn-block" type="button">Bỏ chặn</button>
           <p id="unblockMsg" class="hint" role="status"></p>
         </aside>
@@ -1691,29 +1691,56 @@
     loadSignups(eid);
   });
   $("btnExcel").addEventListener("click", exportExcel);
+  // Đổi sự kiện ở dropdown ⇒ tải luôn, để bảng (và file Xuất) luôn khớp sự kiện đang chọn. Trước đây phải bấm Tải:
+  // đổi dropdown rồi bấm Xuất ⇒ file mang tên sự kiện mới nhưng chứa dữ liệu sự kiện cũ.
+  $("sigSelect").addEventListener("change", () => { const eid = $("sigSelect").value; if (eid) loadSignups(eid); });
 
-  // Bỏ chặn 1 MSNV = MỞ KHÓA CỔNG: chỉ xóa khóa giữ chỗ reg_keys (hold lúc điền form), GIỮ dedup_keys (khóa
-  // khi đã JOIN đội). Hệ quả: mã CHƯA chọn đội → qua cổng, vào chọn được; mã ĐÃ ở 1 đội → dedup_keys vẫn chặn,
-  // KHÔNG cho chọn lại (chống join 2 đội). key chuẩn hoá GIỐNG app (_dedupKey).
+  // Bỏ chặn 1 mã (giá trị field chống trùng: MSNV hoặc họ tên), key chuẩn hoá GIỐNG app (_dedupKey):
+  //  1) LUÔN xoá khoá giữ chỗ reg_keys (hold lúc điền form) ⇒ mở cổng.
+  //  2) Xoá thêm khoá chống trùng dedup_keys/{key} NẾU người này CHƯA ở đội nào (không có hồ sơ cùng mã đã gắn đội,
+  //     và — khi chống trùng theo tên — tên không có trong danh sách đội nào). Đó là khoá MỒ CÔI: bị chiếm trước,
+  //     join dở, dữ liệu cũ — trước đây chỉ gỡ được bằng script hoặc Xóa dữ liệu cả sự kiện. Đã ở đội ⇒ GIỮ (chống join 2 đội).
+  //     KHÔNG xoá doc "m~<không dấu>": doc đó dùng CHUNG cho mọi tên có dấu cùng gốc không dấu; người này gõ đúng dấu là vào được.
   $("btnUnblock").addEventListener("click", async () => {
     const eid = $("sigSelect").value;
     const raw = $("unblockCode").value.trim();
     const msg = $("unblockMsg");
     msg.textContent = "";
     if (!eid) { msg.style.color = "var(--err)"; msg.textContent = "Hãy chọn sự kiện ở trên."; return; }
-    if (!raw) { msg.style.color = "var(--err)"; msg.textContent = "Nhập MSNV cần bỏ chặn."; return; }
+    if (!raw) { msg.style.color = "var(--err)"; msg.textContent = "Nhập mã (MSNV hoặc họ tên) cần bỏ chặn."; return; }
     const key = _dedupKey(raw);
     const ok = await confirmModal({
       title: "Bỏ chặn mã này?",
-      message: `Sẽ mở khóa cổng cho "${raw}" trong sự kiện "${eid}" (xóa khóa giữ chỗ). Nếu mã CHƯA chọn đội → tải lại là vào được & chọn đội. Nếu ĐÃ ở 1 đội rồi → vẫn bị chặn, KHÔNG cho chọn lại.`,
+      message: `Mở khóa "${raw}" trong sự kiện "${eid}". Nếu người này CHƯA ở đội nào: gỡ cả khóa chống trùng, tải lại trang là chọn được đội. Nếu ĐÃ ở một đội: chỉ mở cổng, vẫn không cho chọn đội thứ hai.`,
       confirmText: "Bỏ chặn", danger: true,
     });
     if (!ok) return;
     $("btnUnblock").disabled = true;
     try {
-      await db.collection("events").doc(eid).collection("reg_keys").doc(key).delete();   // chỉ xóa hold giữ chỗ; GIỮ dedup_keys (đã join thì vẫn chặn chọn lại)
+      const evRef = db.collection("events").doc(eid);
+      const [cfgSnap, sigSnap, teamSnap, dedupSnap] = await Promise.all([
+        evRef.collection("meta").doc("config").get(),
+        evRef.collection("signups").get(),
+        evRef.collection("teams").get(),
+        evRef.collection("dedup_keys").doc(key).get(),
+      ]);
+      const cfgData = cfgSnap.exists ? cfgSnap.data() : {};
+      const field = String(cfgData.dedupField || "");
+      const nameOf = ic => String(((cfgData.icons || []).find(g => g && g.icon === ic) || {}).name || ic);
+      const joinedSig = field ? sigSnap.docs.map(d => d.data()).find(s => s && s.icon && _dedupKey(s[field]) === key) : null;
+      const inTeam = field === "name"
+        ? teamSnap.docs.find(d => (Array.isArray(d.data().names) ? d.data().names : []).some(n => _dedupKey(n) === key))
+        : null;
+      const joinedIcon = joinedSig ? joinedSig.icon : (inTeam ? inTeam.id : "");
+      await evRef.collection("reg_keys").doc(key).delete();
+      const freeDedup = dedupSnap.exists && !joinedIcon;
+      if (freeDedup) await evRef.collection("dedup_keys").doc(key).delete();
       msg.style.color = "var(--ok)";
-      msg.textContent = `Đã mở khóa cổng cho "${raw}" (key: ${key}). Chưa chọn đội → tải lại vào được; đã ở đội → vẫn chặn chọn lại.`;
+      msg.textContent = joinedIcon
+        ? `Đã mở cổng cho "${raw}". Người này đang ở ${nameOf(joinedIcon)} nên vẫn không chọn được đội khác.`
+        : freeDedup
+          ? `Đã gỡ khóa cho "${raw}" (cả khóa chống trùng). Tải lại trang là chọn được đội.`
+          : `Đã mở cổng cho "${raw}". Tải lại trang là chọn được đội.`;
       $("unblockCode").value = "";
     } catch (err) {
       msg.style.color = "var(--err)";
@@ -1725,7 +1752,9 @@
 
   // Tải lại đúng sự kiện đang xem (nút Tải dữ liệu, sau Bỏ chặn) → giữ bảng cũ, thay tại chỗ; đổi sự kiện → skeleton.
   let sigShownEid = "";
+  let sigLoadSeq = 0;   // đổi sự kiện nhanh liên tiếp ⇒ chỉ lần tải MỚI NHẤT được vẽ (lần cũ về sau bị bỏ)
   async function loadSignups(eid) {
+    const seq = ++sigLoadSeq;
     $("loadErr").textContent = "";
     const reload = sigShownEid === eid;
     if (!reload) $("tbody").innerHTML = skelRows(6, Math.max(4, $("thead").querySelectorAll("th").length || 5));
@@ -1735,6 +1764,7 @@
         db.collection("events").doc(eid).collection("signups").get(),
         db.collection("events").doc(eid).collection("meta").doc("config").get()
       ]);
+      if (seq !== sigLoadSeq) return;
       sigFields = cfgSnap.exists && Array.isArray(cfgSnap.data().fields)
         ? cfgSnap.data().fields
         : (typeof FIELDS !== "undefined" ? FIELDS : []);
@@ -1746,7 +1776,8 @@
       icArr.forEach(g => { sigIcons[g.icon] = g; });
       sigIconOrder = icArr.map(g => g.icon);
 
-      const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
+      // String(): signups.icon do client ghi — dữ liệu sai kiểu không được làm .localeCompare ném lỗi (bảng trống).
+      const teamName  = ic => String((sigIcons[ic] && sigIcons[ic].name) || ic || "—");
       const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
 
       sigRows = sigSnap.docs.map(d => d.data());
@@ -1758,6 +1789,7 @@
       renderSigTable(eid, teamLabel, !reload);
       sigShownEid = eid;
     } catch (err) {
+      if (seq !== sigLoadSeq) return;
       sigShownEid = "";
       sigRows = []; sigFields = []; sigDedupField = "";
       $("thead").innerHTML = "";
@@ -1770,7 +1802,7 @@
         ? "Tài khoản này chưa có quyền xem. Dán UID vào mảng admin trong firestore.rules rồi Publish lại."
         : "Lỗi tải dữ liệu: " + msg;
     } finally {
-      busy($("tbody"), false);
+      if (seq === sigLoadSeq) busy($("tbody"), false);
     }
   }
 
@@ -1849,7 +1881,7 @@
 
   function exportExcel() {
     if (!sigRows.length) { $("loadErr").textContent = "Chưa có dữ liệu để xuất."; return; }
-    const teamName  = ic => (sigIcons[ic] && sigIcons[ic].name) || ic || "—";
+    const teamName  = ic => String((sigIcons[ic] && sigIcons[ic].name) || ic || "—");
     const teamLabel = ic => { const nm = teamName(ic); return (ic && !nm.includes(ic)) ? ic + " " + nm : nm; };  // bỏ tiền tố icon nếu đã nằm trong tên (icon "1" + "Squad 1" → "Squad 1"); giữ "🦊 Cáo"
     // Tên dạng "Phòng 1 · Team 1" ⇒ tách 2 cột Phòng | Team (dễ lọc theo team). Sự kiện không có Team giữ cột "Đội" như cũ.
     const splitTeam = nm => { const m = /^(.*?)\s*·\s*((?:team|nhóm)\b.*)$/i.exec(String(nm || "")); return m ? [m[1], m[2]] : [String(nm || ""), ""]; };
@@ -1875,7 +1907,7 @@
     ws["!cols"] = headers.map(h => ({ wch: h === "STT" ? 5 : (h === "Phòng" || h === "Team" ? 12 : 26) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "signups");
-    const eid = $("sigSelect").value || "signups";
+    const eid = sigShownEid || "signups";   // tên file = sự kiện của DỮ LIỆU đang hiển thị (không phải giá trị dropdown)
     XLSX.writeFile(wb, eid + ".xlsx");
   }
 

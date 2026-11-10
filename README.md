@@ -92,7 +92,7 @@ URL: **https://hm-tam-wf.github.io/group-match-event/**
 
 ## Xuất danh sách đăng ký
 
-Xem [EXPORT.md](documentation/EXPORT.md): `npm install` rồi `npm run export` (đọc collection `signups` qua `firebase-admin`).
+Xem [EXPORT.md](documentation/EXPORT.md): `npm install` rồi `npm run export` (đọc `events/<id>/signups` của sự kiện đang mở qua `firebase-admin`; sự kiện khác: `npm run export -- --event <id>`). Cách nhanh hơn: admin → Đăng ký → Xuất Excel.
 
 ## Thay đổi sĩ số đội (CAPACITY)
 

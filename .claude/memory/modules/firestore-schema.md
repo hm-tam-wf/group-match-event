@@ -29,13 +29,11 @@ dedup_keys/{key}      — ADR [[0002-cross-device-lookup]] (2026-11-10)
     ghi k1, ghi M khi M chưa có. Rules KHÔNG đổi.
   — `icon` = bảng tra công khai: người đã đăng ký xem được phòng (remote view) mà không lộ pid.
   — GHI lúc JOIN (apiClaim transaction). Chốt CỨNG chống trùng. delete = admin only.
-  — RULES create (3 nhánh):
-    1. `isAdmin()`;
-    2. HOẶC `hasOnly(['at'])` — giữ cho FE cũ, phase B sẽ bỏ;
-    3. HOẶC `hasOnly(['at','icon'])` + `icon` là string + `getAfter(teams/{icon}).count == before + 1`
-       (cùng transaction với tăng count).
-  — Flag `DEDUP_STORE_ICON` (config.js, mặc định false): chỉ bật SAU khi deploy rules; backfill bằng
-    `backend/scripts/backfill-dedup-icon.js` (xem [[api-layer]]).
+  — RULES create (2 nhánh, phase B 2026-11-10): 1. `isAdmin()`; 2. HOẶC `hasOnly(['at','icon'])` + `icon` là string +
+    `getAfter(teams/{icon}).count == before + 1` (cùng transaction với tăng count). Nhánh `{at}` trần (FE cũ) ĐÃ BỎ: ai cũng
+    tạo được ⇒ khoá trước mã/tên người khác. Cờ `DEDUP_STORE_ICON` cũng BỎ — FE luôn ghi `{at, icon}`; doc `{at}` cũ vẫn đọc
+    được (icon=null). ⚠ Rules chỉ có hiệu lực sau `firebase deploy --only firestore:rules`.
+  — Backfill (đã chạy 2026-11-10): `backend/scripts/backfill-dedup-icon.js` (xem [[api-layer]]).
   — Tên khác người thật sự (Hùng/Hưng, Lệ Vân A/Lê Văn A) đăng ký được độc lập. Lý do bỏ fold đối xứng: ADR [[0002-cross-device-lookup]].
 
 reg_keys/{empId_hashed}   — ĐẶT-CHỖ TIỀN-JOIN (2026-06-04)
@@ -97,7 +95,10 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 - (config còn có `subtitle`, `dedupField`, `blockDup`, `allowlistMode` — xem [[api-layer]], [[allowlist]].)
 
 ## Security rules — critical points
-1. **Capacity check:** `teams/{icon}.count < cap()` — `cap()` đọc `meta/config.capacity`
+1. **teams (siết 2026-11-10):** client CHỈ "thêm 1 người": create = đúng `{icon, count:1, names:[1 tên]}` với `icon == doc id`;
+   update = `count + 1` (≤ `capFor(icon)`), `names` = tên cũ + ĐÚNG 1 tên nối cuối (`names[0:n] == cũ`), không đổi/thêm field khác.
+   Tên = chuỗi 1..120 (`okName`; FE chặn sớm ở `NAME_MAX_LEN = 80`, ui-utils.js). Admin bỏ qua hết (seed vượt `caps`, gỡ người, reset).
+   Trước đó ai cũng set count/names tuỳ ý: reset đội về 0 ⇒ vượt sĩ số; phần tử không phải chuỗi ⇒ render chết trên mọi máy.
 2. **Admin UID hardcoded:** `function isAdmin() { return request.auth.uid in ['UID1', 'UID2'] }`
 3. **1-person-1-team:** KHÔNG dùng `getAfter()` (rules KHÔNG có) — ép phía CLIENT bằng transactional read
    `members/{pid}` trong `apiClaim` (đọc trước, abort `ALREADY` nếu tồn tại). **`pid` theo TỪNG TRÌNH DUYỆT**
@@ -108,13 +109,12 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
    thêm `list: if isAdmin()` (admin cần liệt kê khi clear). **`signups` delete xem điểm 7.**
 5. **collectionGroup meta read (từ 2026-06-03):** `match /{path=**}/meta/{doc} { allow read: if isAdmin() }`
    để dashboard liệt kê mọi sự kiện. (Trước đây note ghi "không có collectionGroup" — đã đổi.)
-6. **signups update (từ 2026-06-03):** `allow update: if request.resource.data.playerId == resource.data.playerId`.
-   Cần để: (a) gắn `icon` khi join (transaction `set` merge), (b) người dùng sửa lại hồ sơ của chính
-   mình. Đánh đổi: bản ghi PII KHÔNG còn bất biến — rủi ro thấp vì pid là token ngẫu nhiên & signups khoá đọc.
-7. **signups delete = `if true` (từ 2026-06-03):** cho chủ bản ghi TỰ DỌN signup trùng của mình khi
-   đụng độ pre-join (xem `apiRemoveProfile` trong [[api-layer]]). An toàn vì signups KHOÁ ĐỌC + pid là
-   token ngẫu nhiên → chỉ chủ (biết pid của mình) xoá được, không enumerate/đoán pid người khác.
-   Admin vẫn xoá được (`if true` bao trùm). Client `apiRemoveProfile` chỉ gọi với `me.id`.
+6. **signups update (từ 2026-06-03):** client chỉ khi GIỮ NGUYÊN playerId. Cần để: (a) gắn `icon` khi join (transaction
+   `set` merge), (b) người dùng sửa lại hồ sơ của chính mình. Từ 2026-11-10: create phải có `playerId == pid`; `icon` (nếu có)
+   phải là chuỗi (admin sắp bảng theo nó — số/object từng làm `.localeCompare` ném lỗi ⇒ bảng Đăng ký trống). Admin bỏ qua.
+7. **signups delete (từ 2026-06-03):** chủ bản ghi TỰ DỌN signup trùng của mình khi đụng độ pre-join (`apiRemoveProfile`,
+   chỉ gọi với `me.id`) — an toàn vì signups KHOÁ ĐỌC + pid ngẫu nhiên. NGOẠI LỆ (2026-11-10): doc `seed_*` (người được admin
+   XẾP SẴN — `seedTeams`/`tnt-import.js`, pid TẤT ĐỊNH `seed_<khoá>` ⇒ đoán được) chỉ admin được create/update/delete.
 8. **reg_keys delete = `if true` (từ 2026-06-04):** đặt-chỗ tiền-join (xem điểm collection ở trên +
    `apiRegReserve` [[api-layer]]). delete mở để chủ TỰ NHẢ chỗ khi đổi/sửa MSNV (typo) — không để mã
    người khác bị khoá vĩnh viễn. Stakes thấp: reg_keys chỉ là chốt MỀM tiền-join, xoá chỉ "mở lại" mã

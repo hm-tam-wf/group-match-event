@@ -23,14 +23,17 @@ let allowBlocked = false; // true khi bật allowlist & MSNV KHÔNG trong danh s
 let myGender = "";        // "Nam"|"Nữ"|"" — giới tính theo DANH SÁCH CHO PHÉP (chỉ khi ALLOWLIST_GENDERCHECK).
                           // CHỈ ở RAM: đọc lại từ server mỗi lần tải trang (init) / lưu hồ sơ (save) ⇒ admin sửa file là có hiệu lực.
 
-const initial      = s => (s || "?").trim().charAt(0).toUpperCase();
-const firstName    = s => { const p = (s || "").trim().split(/\s+/); return p[p.length - 1] || s || ""; };
+// Dữ liệu teams[*].names đến từ server — có thể KHÔNG phải chuỗi (doc cũ/hỏng). Ép về chuỗi để render không ném
+// TypeError làm chết cả lưới trên mọi máy. Chuỗi & giá trị rỗng (null/undefined/""/0/false) giữ đúng hành vi cũ.
+const _str         = s => typeof s === "string" ? s : (s ? String(s) : "");
+const initial      = s => (_str(s).trim() || "?").charAt(0).toUpperCase();
+const firstName    = s => { const t = _str(s).trim(); const p = t.split(/\s+/); return p[p.length - 1] || t; };
 const profileComplete = () => FIELDS.every(f => !f.required || (me.fields[f.key] || "").trim());
 // HỢP LỆ để tham gia: mọi field qua được fieldError (bắt buộc đủ VÀ đúng định dạng, không chỉ khác rỗng).
 // Dùng làm CỔNG vào lưới chọn đội — thông tin chưa đúng/đủ thì giữ ở popup, KHÔNG cho vào trang.
 const profileValid = () => FIELDS.every(f => !fieldError(f, me.fields[f.key]));
 const labelOf = key => (FIELDS.find(f => f.key === key) || {}).label || key;
-const esc = s => (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const esc = s => _str(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 let toastTimer;
 const TOAST_HIDE_MS = 2400;   // thời gian tự ẩn toast (ms) khi không sticky
@@ -44,9 +47,14 @@ function toast(msg, sticky) {
 }
 
 function validEmployeeId(v) { return /^[A-Za-z0-9]{3,20}$/.test((v || "").trim()); }
-// Tên hợp lệ: ≥2 ký tự VÀ có ít nhất 1 chữ cái (gồm chữ có dấu tiếng Việt qua \p{L}) → chặn tên rác
-// kiểu "123", "!!!", chuỗi chỉ số/ký hiệu/khoảng trắng. Ô "Họ và tên" thực tế luôn ≥2 ký tự.
-function validName(v) { v = (v || "").trim(); return v.length >= 2 && /\p{L}/u.test(v); }
+// Tên hợp lệ: 2..NAME_MAX_LEN ký tự VÀ có ít nhất 1 chữ cái (gồm chữ có dấu tiếng Việt qua \p{L}) → chặn tên rác
+// kiểu "123", "!!!", chuỗi chỉ số/ký hiệu/khoảng trắng. Chặn thêm "/" và dạng "__x__": khi chống trùng theo TÊN, khoá
+// dedup = tên chuẩn hoá làm doc id Firestore ⇒ 2 dạng này làm transaction lỗi (join hỏng, báo sai "mạng đông").
+const NAME_MAX_LEN = 80;   // rules teams cho tới 120 (okName trong backend/firestore.rules) — FE chặn sớm, rộng tay cho rules
+function validName(v) {
+  v = (v || "").trim();
+  return v.length >= 2 && v.length <= NAME_MAX_LEN && /\p{L}/u.test(v) && !v.includes("/") && !/^__.*__$/.test(v);
+}
 function fieldError(f, v) {
   v = (v || "").trim();
   // Field "name" là hợp đồng BẮT BUỘC của app (apiClaim + ui-render dùng me.fields.name làm tên hiển thị)

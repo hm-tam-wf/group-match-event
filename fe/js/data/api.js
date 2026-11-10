@@ -267,12 +267,19 @@ async function apiAllowlistInfo(value) {
 // Tiện ích boolean cho cổng vào lúc tải trang (chỉ cần biết được/không) — tái dùng apiAllowlistInfo.
 async function apiAllowlistAllowed(value) { return (await apiAllowlistInfo(value)).allowed; }
 
+// Snapshot teams → { icon: {count, names} }. Khoá theo DOC ID (= icon: mọi nơi ghi đều dùng doc(icon), rules ép khi tạo)
+// chứ KHÔNG theo field `icon` trong doc ⇒ doc lạ tự khai icon trùng không đè được đội thật. Dữ liệu sai kiểu bị lọc:
+// names chỉ giữ phần tử chuỗi, count không phải số ⇒ 0 (một doc hỏng không làm chết render trên mọi máy).
+function _teamFromDoc(d) {
+  const v = d.data() || {};
+  return { count: Number.isFinite(v.count) ? v.count : 0, names: Array.isArray(v.names) ? v.names.filter(n => typeof n === "string") : [] };
+}
+function _teamsFromSnap(snap) { const teams = {}; snap.forEach(d => { teams[d.id] = _teamFromDoc(d); }); return teams; }
+
 async function apiState(fresh) {
   if (MODE === MODE_FIREBASE) {
     const snap  = await col(COL.TEAMS).get(fresh ? { source: "server" } : undefined);   // fresh=true: bắt buộc đọc từ SERVER (không lấy cache/listener trễ) — dùng để kiểm chứng trước khi chặn
-    const teams = {};
-    snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; });
-    return teams;
+    return _teamsFromSnap(snap);
   }
   if (MODE === MODE_SHEET) {
     const response = await fetch(SCRIPT_URL + "?action=state", { method: "GET" });
@@ -393,8 +400,8 @@ async function apiClaim(payload) {
         allowRef ? tx.get(allowRef) : Promise.resolve(null),
       ]);
       // full/already/dup/notAllowed là kết quả TRẢ VỀ (không ném) → vòng retry bên dưới KHÔNG lặp lại chúng.
-      // Trả kèm `icon` (đội đã vào) từ snapshot ĐÃ ĐỌC để UI hiện thẳng đội/phòng — không thêm read. DUP: chỉ có
-      // khi dedup_keys được ghi với DEDUP_STORE_ICON (doc cũ chỉ {at} ⇒ null).
+      // Trả kèm `icon` (đội đã vào) từ snapshot ĐÃ ĐỌC để UI hiện thẳng đội/phòng — không thêm read. DUP: icon = null
+      // nếu doc dedup cũ chỉ có {at} (ghi trước 2026-11-10, chưa backfill).
       if (pid && memberSnap.exists)   return { ok: false, reason: REASON.ALREADY, icon: (memberSnap.data() || {}).icon || null };   // 1 người chỉ 1 đội
       if (plan) {
         // Trùng bất đối xứng (xem _dedupPlan): không dấu ⇒ k1 | M ; có dấu ⇒ k1 | F. Trả kèm `hit` để FE biết nhánh nào (rvResolve).
@@ -426,7 +433,9 @@ async function apiClaim(payload) {
       const at = firebase.firestore.FieldValue.serverTimestamp();
       tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
       tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
-      const dedupDoc = DEDUP_STORE_ICON ? { at, icon } : { at };                 // guard: tồn-tại (+ tên đội khi bật cờ; icon không phải PII)
+      // guard: tồn-tại + tên đội (bảng tra "đã đăng ký phòng nào", icon không phải PII). Rules CHỈ nhận {at, icon} đi kèm
+      // một lượt join thật (nhánh {at} đã bỏ 2026-11-10 — cờ DEDUP_STORE_ICON cũ cũng bỏ, luôn ghi icon).
+      const dedupDoc = { at, icon };
       if (dedupRef) tx.set(dedupRef, dedupDoc);
       // M chỉ do tên CÓ dấu ghi, và CHỈ khi chưa có (rules update:false ⇒ set lên doc sẵn có bị từ chối). Hai tên có dấu cùng F
       // ("Hùng"/"Hưng") đua nhau tạo M: tx thua retry, thấy M đã có ⇒ bỏ qua ghi M ⇒ cả hai đều thành công.
@@ -499,12 +508,25 @@ async function apiClaim(payload) {
 
 // Realtime: server tự ĐẨY thay đổi của các đội cho mọi client → bỏ hẳn poll 3s (rẻ + tức thì).
 // Mỗi đội = 1 doc nhỏ; 500 client cùng nghe vẫn nhẹ vì chỉ truyền phần thay đổi.
+// Listener gặp LỖI (hết quota `resource-exhausted`, rules, sự cố server) thì Firestore NGẮT hẳn, không tự nối lại ⇒ báo
+// onError(err) để UI hiện trạng thái + tự đăng ký lại với backoff 2s → 30s. Snapshot kế tiếp = đã hồi phục.
+// onChange(teams, meta): meta.fromCache = snapshot dựng từ cache (chưa xác nhận với server, vd mất mạng lúc mở trang).
+const SUB_RETRY_BASE_MS = 2000, SUB_RETRY_MAX_MS = 30000;
 let _unsubTeams = null;
-function apiSubscribe(onChange) {
+function apiSubscribe(onChange, onError) {
   if (MODE !== MODE_FIREBASE) return null;       // sheet/demo vẫn dùng poll như cũ
-  _unsubTeams = col(COL.TEAMS).onSnapshot(
-    snap => { const teams = {}; snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; }); onChange(teams); },
-    _err => { /* mạng trục trặc → giữ state cũ; vòng poll dự phòng sẽ tự đồng bộ lại */ }
-  );
-  return () => { if (_unsubTeams) _unsubTeams(); };
+  let attempt = 0, stopped = false, retryTimer = null;
+  const start = () => {
+    if (stopped) return;
+    _unsubTeams = col(COL.TEAMS).onSnapshot(
+      snap => { attempt = 0; onChange(_teamsFromSnap(snap), { fromCache: !!(snap.metadata && snap.metadata.fromCache) }); },
+      err => {
+        _unsubTeams = null;
+        if (onError) { try { onError(err); } catch (e) { /* lỗi ở UI không được chặn vòng nối lại */ } }
+        retryTimer = setTimeout(start, Math.min(SUB_RETRY_MAX_MS, SUB_RETRY_BASE_MS * 2 ** attempt++));
+      }
+    );
+  };
+  start();
+  return () => { stopped = true; clearTimeout(retryTimer); if (_unsubTeams) _unsubTeams(); };
 }

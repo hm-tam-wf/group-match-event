@@ -51,11 +51,7 @@ const POLL_MS = 3000; // chu kỳ đồng bộ (ms) — chỉ dùng ở chế đ
 let SCRIPT_URL  = DEFAULT_SCRIPT_URL;
 let FIELDS      = DEFAULT_FIELDS;
 let DEDUP_FIELD = DEFAULT_DEDUP_FIELD;
-// Ghi thêm `icon` (tên đội, KHÔNG phải PII) vào dedup_keys/{khoá} lúc join → cho phép "xem đăng ký của tôi"
-// trên thiết bị khác (tra theo họ tên → biết đội/phòng). CHỈ BẬT SAU KHI đã deploy firestore.rules mới:
-// rules cũ chỉ cho phép hasOnly(['at']) → ghi {at, icon} sẽ bị TỪ CHỐI ⇒ HỎNG join.
-// 2026-11-10: đã deploy rules mới + chạy backfill-dedup-icon.js --apply ⇒ bật.
-let DEDUP_STORE_ICON = true;
+// (Cờ DEDUP_STORE_ICON đã BỎ 2026-11-10: dedup_keys luôn ghi {at, icon} — rules không còn nhận {at} trần.)
 let EVENT_ID   = DEFAULT_EVENT_ID;
 let CAPACITY    = DEFAULT_CAPACITY;
 let ICONS       = DEFAULT_ICONS;
@@ -223,6 +219,8 @@ const STRINGS = {
       network:        "The network's a bit busy — couldn't join. Please try again.",
       checkingResult: "Checking the result…",
       genderMismatch: (gender) => `This ${UE.one} is for ${gender} only.`,
+      liveLost:       "Live updates paused — reconnecting… (counts may be out of date)",
+      liveBack:       "Reconnected — counts are live again.",
     },
     validate: {
       required:   "Required",
@@ -334,6 +332,8 @@ const STRINGS = {
       network:        "Mạng hơi đông, chưa tham gia được. Bạn thử lại nhé.",
       checkingResult: "Đang kiểm tra kết quả…",
       genderMismatch: (gender) => `${_cap(UV.one)} này chỉ dành cho ${gender}.`,
+      liveLost:       "Mất kết nối cập nhật trực tiếp — đang thử lại… (số liệu có thể chưa mới)",
+      liveBack:       "Đã kết nối lại — số liệu cập nhật trực tiếp.",
     },
     validate: {
       required:   "Bắt buộc nhập",

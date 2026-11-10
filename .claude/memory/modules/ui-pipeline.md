@@ -66,6 +66,12 @@ Trang công khai chỉ realtime ở **`teams`** (`apiSubscribe` → `onSnapshot`
 - `renderModal()` — confirm modal trước khi join
 - `renderJoinCelebration()` — confetti + popup chúc mừng sau khi join thành công
 - `renderProfileSummary()` — hiển thị thông tin người đã join (từ localStorage)
+- `_travelSmoothBack()` (nút Huỷ/Quay lại → trang travel/home, code Antigravity 72b5506): làm mờ `body` rồi rời trang. GOTCHA đã sửa
+  2026-11-10: (1) bấm Back của trình duyệt ⇒ bfcache khôi phục trang NGUYÊN TRẠNG kể cả `opacity:0` ⇒ trắng xoá (verified live) —
+  listener `pageshow` (`e.persisted`) trả lại opacity; (2) chỉ tin referrer CÙNG origin (`_homeReferrer`) — trước đó mọi referrer kết
+  thúc bằng "/" (facebook.com/) bị coi là "trang chủ". Vẫn áp cho MỌI event (fallback `travel.html`) ⇒ giai đoạn 2: `homeUrl` per-event.
+- `esc`/`initial`/`firstName` (ui-utils.js) ép kiểu qua `_str()` — `teams[*].names` từ server có thể không phải chuỗi; trước đây 1 phần
+  tử sai kiểu làm `renderState` ném TypeError trên MỌI máy. `myIcon` không còn trong ICONS ⇒ banner dựng tạm từ icon (không ném lỗi).
 
 ### Hai khu lưới trong `renderState()` (ui-render.js)
 1. **`#grid` "còn chỗ"** — đội `count < CAPACITY` (tile để JOIN, có cap-bar + avatar chips).

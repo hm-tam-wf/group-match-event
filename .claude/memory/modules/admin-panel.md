@@ -93,11 +93,13 @@ Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm t
 - **Xóa dữ liệu** (`clearEvent`→`clearEventData`): xóa hết `signups/members/dedup_keys/teams`
   (PHẢI có teams để count về 0), GIỮ `meta/config`. `deleteAll` lặp batch ≤400, có chặn vô hạn
   (200 vòng) phòng sự kiện đang chạy nhận đăng ký liên tục.
-- **Bỏ chặn 1 MSNV = mở khóa cổng** (2026-06-18, tab "Xem đăng ký", `#btnUnblock`): ô nhập MSNV → xóa CHỈ
-  `reg_keys/<key>` (hold giữ chỗ lúc điền form), **GIỮ `dedup_keys/<key>`** (khóa khi đã JOIN). key =
-  `_dedupKey(raw)` (chuẩn hoá GIỐNG app). Hệ quả: mã CHƯA chọn đội → qua cổng, vào chọn đội được; mã ĐÃ ở 1 đội →
-  dedup_keys vẫn chặn → KHÔNG cho chọn lại (chống join 2 đội). Phân biệt chặn allowlist (bỏ chặn loại đó = thêm mã
-  vào allowlist [[allowlist]]).
+- **Bỏ chặn 1 mã** (tab Đăng ký, `#btnUnblock`; mã = giá trị field chống trùng: MSNV hoặc họ tên): key = `_dedupKey(raw)`
+  (chuẩn hoá GIỐNG app). LUÔN xoá `reg_keys/<key>` (hold lúc điền form). Từ 2026-11-10 xoá THÊM `dedup_keys/<key>` nếu người đó
+  CHƯA ở đội nào (không có signup cùng mã đã gắn `icon`; chống trùng theo tên thì tên cũng không nằm trong `teams[*].names`) =
+  khoá MỒ CÔI (bị chiếm trước, join dở) — trước đây chỉ gỡ được bằng script/Xóa dữ liệu. Đã ở đội ⇒ GIỮ (chống join 2 đội).
+  KHÔNG xoá doc `m~<fold>` (dùng chung cho mọi tên có dấu cùng gốc). Chặn allowlist là chuyện khác: thêm mã vào [[allowlist]].
+- **Xuất Excel = đúng sự kiện đang HIỂN THỊ** (2026-11-10): tên file lấy `sigShownEid` (không phải giá trị dropdown); đổi dropdown
+  ⇒ tự `loadSignups`; `sigLoadSeq` bỏ kết quả của lần tải cũ về sau. Trước đây đổi dropdown rồi Xuất ⇒ tên event B, dữ liệu event A.
 - **Xóa sự kiện** (`deleteEvent`): chỉ khi KHÔNG đang chạy & `signups` rỗng (limit(1).empty).
   Batch: `arrayRemove` id khỏi `config/eventList` **+** delete `meta/config` (quên arrayRemove
   ⇒ ghost row). Có nhánh "gỡ mục hỏng" cho id thiếu meta/config.
@@ -116,7 +118,8 @@ Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm t
 - **Un-join 1 người phải xoá:** `members/{pid}`, `signups/{pid}`, `dedup_keys/k1`, `reg_keys`, và gỡ tên khỏi `teams/{icon}`
   (count-1 + bỏ khỏi `names`, trong transaction). Doc `M` CHỈ xoá khi không còn người có dấu nào khác cùng `_foldKey`
   (M giữ chỗ cho bản không dấu). Thiếu 1 bước ⇒ người đó vẫn bị chặn.
-- ⚠️ Admin panel **chưa có nút un-join 1 người**. "Bỏ chặn" (`#btnUnblock`) chỉ xoá `reg_keys`, không gỡ đăng ký đã join.
+- ⚠️ Admin panel **chưa có nút un-join 1 người**. "Bỏ chặn" (`#btnUnblock`) gỡ `reg_keys` + `dedup_keys` mồ côi (người CHƯA ở
+  đội), KHÔNG gỡ đăng ký đã join. Rules cho admin sửa `teams` tự do (2026-11-10) nên un-join từ admin không bị rules chặn.
 
 ## Danh sách cho phép (allowlist) — đã có
 - [[allowlist]] — tab riêng "Danh sách cho phép": import SheetJS (CSV/XLSX), bảng tìm kiếm,

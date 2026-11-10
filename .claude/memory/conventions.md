@@ -13,6 +13,8 @@ updated: 2026-11-10
 - Load test: `node backend/scripts/loadtest.js` (500 concurrent signups)
 - E2E với emulator: Firestore Emulator (project `demo-icon-picker`, cần Java; JRE portable chạy được) + puppeteer + Edge headless;
   mỗi incognito context = 1 thiết bị. Static server vá `firebase-config.js`/`config.js` trong bộ nhớ để trỏ emulator, KHÔNG sửa repo. Kết quả hiện tại 46/46 PASS (xem [[0002-cross-device-lookup]]).
+  ⚠ Bộ E2E (lib/emu/layerA/layerB/run-suite, 71 case + bước 1 thêm S6b/S6c/BF1) CHƯA nằm trong repo — chỉ ở scratchpad của session
+  (mất khi dọn). Đưa vào repo (`tests/e2e`) + CI là việc giai đoạn 4 của lộ trình tái sử dụng.
 - Deploy (SONG SONG 2 hosting, cùng serve `fe/`, cùng Firestore project `icon-picker`):
   - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → https://pickyourgroup.web.app (site `pickyourgroup`, không build step). Site cũ `pickyoursquad-faraday.web.app` redirect 301 sang đây.
     **Chỉ chạy trang sự kiện** (user quyết định 2026-11-10): `ignore` bỏ `admin.html` + `assets/admin.css` khỏi deploy, `redirects` đưa `/admin.html`, `/admin` → 301 sang admin trên GitHub Pages. Admin CHỈ chạy trên GitHub Pages. Không phải lớp bảo mật — dữ liệu vẫn do Firestore rules (UID admin) bảo vệ.
@@ -34,6 +36,8 @@ updated: 2026-11-10
   - `REASON.*` (api.js) — mã lý do apiClaim/apiReg* trả về (`dup/full/already/notAllowed/...`)
   - `SK.*` (storage.js) — khoá localStorage tầng app (`me/claims/reservedKey/allowlistMode/allowlist`)
   - Magic number UI: `AVATAR_PREVIEW_MAX/CONFETTI_COUNT/RESIZE_DEBOUNCE_MS` (ui-render.js), `TOAST_HIDE_MS` (ui-utils.js)
+  - `NAME_MAX_LEN = 80` (ui-utils.js, `validName`) ↔ `okName` ≤120 trong `backend/firestore.rules` (teams): rules PHẢI ≥ FE (rules
+    không đọc được hằng JS) — đổi một bên thì kiểm bên kia. `SUB_RETRY_BASE_MS/MAX_MS` (api.js), `MAX_TIMER_MS` (app.js, trần int32 setTimeout).
   - **CONTRACT** (giữ VALUE cố định): tên field/collection Firestore, khoá localStorage, prefix `linhthu:`,
     CSS id/class HTML tham chiếu — đổi tên là migration, KHÔNG phải refactor. Chỉ được gom về hằng, không đổi value.
   - `admin.html` có bản copy literal RIÊNG (inline JS, không share global) — sửa đồng bộ thủ công nếu đổi.

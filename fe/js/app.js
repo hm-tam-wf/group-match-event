@@ -249,9 +249,21 @@ async function init() {
   renderProfile();         // token mới → bật popup; đã thông tin → tóm tắt / banner; trùng MSNV → modal chặn
   await refresh(true);
   if (MODE === MODE_FIREBASE && typeof apiSubscribe === "function") {
-    // realtime: server tự ĐẨY thay đổi của các đội → KHÔNG poll. onSnapshot tự kết nối lại
-    // và đồng bộ khi online trở lại, nên rẻ nhất mà vẫn tức thì.
-    apiSubscribe(teams => { if (busy) return; state = teams; stateLoaded = true; renderStateIfChanged(false); });
+    // realtime: server tự ĐẨY thay đổi của các đội → KHÔNG poll. Mất mạng ngắn: onSnapshot tự đồng bộ lại.
+    // Listener LỖI hẳn (hết quota, rules…): apiSubscribe báo lỗi + tự đăng ký lại ⇒ toast cố định tới khi hồi phục,
+    // để người chơi biết số liệu có thể đang cũ (trước đây lỗi bị nuốt: số đứng im mà không ai biết).
+    let liveLost = false;
+    apiSubscribe((teams, meta) => {
+      const fromCache = !!(meta && meta.fromCache);
+      // Snapshot RỖNG dựng từ cache (mất mạng lúc mở trang, chưa nhận dữ liệu server) KHÔNG có nghĩa "mọi đội rỗng"
+      // ⇒ bỏ qua, tránh self-heal ở renderState (count===0 ⇒ myIcon=null) xoá nhầm đội của người đã tham gia.
+      if (fromCache && !Object.keys(teams).length) return;
+      if (liveLost && !fromCache) { liveLost = false; if (!busy) toast(TEXT.toast.liveBack); }
+      if (busy) return;
+      state = teams; stateLoaded = true; renderStateIfChanged(false);
+    }, () => {
+      if (!liveLost) { liveLost = true; toast(TEXT.toast.liveLost, true); }
+    });
   } else {
     setInterval(() => { if (!busy) refresh(); }, POLL_MS); // poll ngầm 3s (sheet/demo)
   }
@@ -280,6 +292,14 @@ async function init() {
 // (đếm ngược → tự vào lưới khi tới giờ mở; tự khoá khi tới giờ đóng). Chốt CỨNG ở rules (request.time).
 let _cdTimer = null, _closeTimer = null;
 let _eventTitle = "", _eventSubtitle = "";
+// setTimeout lưu độ trễ bằng int32 (tối đa ~24,8 ngày) — lớn hơn thì trình duyệt chạy NGAY ⇒ màn "đã kết thúc" hiện sai
+// khi closeAt còn xa. ⇒ hẹn từng chặng ≤ MAX_TIMER_MS, mỗi lần thức dậy tính lại thời gian còn lại.
+const MAX_TIMER_MS = 2147483647;
+function armCloseTimer() {
+  const left = CLOSE_AT - Date.now();
+  if (left <= 0) { showClosedScreen(); return; }
+  _closeTimer = setTimeout(armCloseTimer, Math.min(left + 250, MAX_TIMER_MS));
+}
 
 function _fmtDateTime(ms) {
   try {
@@ -348,11 +368,7 @@ async function goLiveNow() {
     if (appError) { appError.hidden = false; appError.innerHTML = TEXT.boot.errLoad; }
     return;
   }
-  if (CLOSE_AT) {
-    const left = CLOSE_AT - Date.now();
-    if (left <= 0) showClosedScreen();
-    else _closeTimer = setTimeout(showClosedScreen, left + 250);
-  }
+  if (CLOSE_AT) armCloseTimer();
 }
 
 function showClosedScreen() {

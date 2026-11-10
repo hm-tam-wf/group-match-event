@@ -38,16 +38,31 @@ service cloud.firestore {
         allow write: if isAdmin();        // write gồm cả delete -> admin xoá được khi xoá event
       }
 
+      // teams: client CHỈ được "thêm đúng 1 người": tạo đội mới với 1 tên, hoặc count +1 và NỐI đúng 1 tên vào CUỐI
+      // danh sách (không xoá/sửa/đảo tên cũ, không đổi icon, không thêm field) — chặn reset đội về 0 / chèn dữ liệu rác.
+      // Seed, gỡ người, sửa tay là việc của admin (bỏ qua mọi ràng buộc, kể cả sĩ số riêng `caps` khi seed).
+      // Tên = chuỗi 1..120 ký tự; FE chặn sớm ở NAME_MAX_LEN = 80 (fe/js/ui/ui-utils.js) — rules để rộng hơn vì cách đếm ký tự khác nhau.
       match /teams/{icon} {
+        function okName(n) { return n is string && n.size() >= 1 && n.size() <= 120; }
         allow read: if true;
-        allow create: if exists(/databases/$(database)/documents/events/$(eventId)/meta/config)
-                      && request.resource.data.count == 1
-                      && request.resource.data.names.size() == 1
-                      && (inWindow() || isAdmin());                 // ngoài giờ mở/đóng ⇒ chặn join (admin seed bypass)
-        allow update: if request.resource.data.icon == resource.data.icon
-                      && request.resource.data.count <= capFor(icon)
-                      && request.resource.data.names.size() == request.resource.data.count
-                      && (inWindow() || isAdmin());                 // ngoài giờ mở/đóng ⇒ chặn join (admin seed bypass)
+        allow create: if isAdmin()
+                      || (exists(/databases/$(database)/documents/events/$(eventId)/meta/config)
+                          && request.resource.data.keys().hasOnly(['icon', 'count', 'names'])
+                          && request.resource.data.icon == icon
+                          && request.resource.data.count == 1
+                          && request.resource.data.names is list
+                          && request.resource.data.names.size() == 1
+                          && okName(request.resource.data.names[0])
+                          && inWindow());                   // ngoài giờ mở/đóng ⇒ chặn join
+        allow update: if isAdmin()
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'names'])
+                          && request.resource.data.count == resource.data.count + 1
+                          && request.resource.data.count <= capFor(icon)
+                          && request.resource.data.names is list
+                          && request.resource.data.names.size() == request.resource.data.count
+                          && request.resource.data.names[0:resource.data.names.size()] == resource.data.names
+                          && okName(request.resource.data.names[request.resource.data.names.size() - 1])
+                          && inWindow());
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
@@ -63,12 +78,11 @@ service cloud.firestore {
       // bảng tra cứu cross-device KHÔNG PII: từ key biết đội đã chọn để máy khác hiện lại phòng/team.
       // Có `icon` ⇒ phải đi cùng một lượt join THẬT: count của teams/{icon} SAU transaction đúng bằng
       // count hiện tại + 1 (doc chưa có ⇒ coi như 0) ⇒ không ghi icon tuỳ ý khi không join.
-      // Nhánh {at} (không icon) giữ lại để tương thích FE cũ — phase B sẽ bỏ.
+      // Nhánh {at} (không icon, cho FE cũ) ĐÃ BỎ 2026-11-10 (phase B): ai cũng tạo được {at} ⇒ khoá trước mã/tên người khác.
       match /dedup_keys/{key} {
         allow get:    if true;
         allow list:   if isAdmin();       // <-- cần để admin liệt kê khi clear
         allow create: if isAdmin()
-                      || request.resource.data.keys().hasOnly(['at'])
                       || (request.resource.data.keys().hasOnly(['at', 'icon'])
                           && request.resource.data.icon is string
                           && getAfter(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon)).data.count
@@ -105,16 +119,20 @@ service cloud.firestore {
         allow write: if isAdmin();        // admin import từ Excel; client không ghi
       }
 
+      // signups: client ghi/xoá hồ sơ CỦA CHÍNH MÌNH — an toàn nhờ signups KHOÁ ĐỌC + pid là token ngẫu nhiên ("u…")
+      // nên không ai enumerate/đoán được pid người khác. NGOẠI LỆ: người được admin XẾP SẴN có pid TẤT ĐỊNH
+      // "seed_<khoá>" (admin seedTeams + backend/scripts/tnt-import.js — để seed lại không nhân bản) ⇒ đoán được ⇒
+      // chỉ admin được ghi/xoá doc seed_*. `icon` (nếu có) phải là chuỗi: admin sắp xếp/hiển thị bảng theo nó.
       match /signups/{pid} {
+        function ownDoc()  { return !pid.matches('seed_.*'); }
+        function okShape() { return !('icon' in request.resource.data) || request.resource.data.icon is string; }
         allow read:   if isAdmin();       // (list/count cho admin)
-        allow create: if true;            // ghi hồ sơ NGAY khi điền xong (kể cả CHƯA chọn đội)
-        // update: gắn đội khi join / sửa lại hồ sơ của chính mình. Chỉ cho khi GIỮ NGUYÊN playerId
-        // (không đổi danh tính bản ghi). pid là token ngẫu nhiên, signups khoá đọc → không enumerate được.
-        allow update: if request.resource.data.playerId == resource.data.playerId;
-        // delete tự do: chủ bản ghi TỰ DỌN signup trùng của mình khi MSNV hoá ra đã có người join
-        // (đụng độ pre-join). An toàn: signups KHOÁ ĐỌC + pid là token ngẫu nhiên → chỉ chủ (biết
-        // pid của chính mình) mới xoá được, không ai enumerate/đoán pid người khác. Admin vẫn xoá được.
-        allow delete: if true;
+        // create: ghi hồ sơ NGAY khi điền xong (kể cả CHƯA chọn đội); playerId phải đúng pid của doc.
+        allow create: if isAdmin() || (ownDoc() && request.resource.data.playerId == pid && okShape());
+        // update: gắn đội khi join / sửa lại hồ sơ của chính mình — GIỮ NGUYÊN playerId (không đổi danh tính bản ghi).
+        allow update: if isAdmin() || (ownDoc() && request.resource.data.playerId == resource.data.playerId && okShape());
+        // delete: chủ bản ghi TỰ DỌN signup trùng của mình khi MSNV hoá ra đã có người join (đụng độ pre-join).
+        allow delete: if isAdmin() || ownDoc();
       }
     }
 
