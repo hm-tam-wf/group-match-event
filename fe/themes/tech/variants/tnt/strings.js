@@ -2,28 +2,18 @@
 //  BIẾN THỂ "tnt" của theme tech — COPY (chữ) cho sự kiện Mini Outing · TNT
 // ----------------------------------------------------------------------------
 //  Nguồn: file BTC "MINI MINI MINI.pdf" (chuỗi của PDF giữ NGUYÊN VĂN) + đề xuất cho chỗ PDF không nhắc
-//  (mọi "Squad/đội" → "phòng"). Chỉ chạy khi ACTIVE_VARIANT === "tnt" (theme.js: cờ DEFAULT_VARIANT
-//  hoặc ?variant=tnt) ⇒ INERT với mọi sự kiện khác.
+//  (mọi "Squad/đội" → "phòng"). CHỈ ĐĂNG KÝ bảng chữ (registerVariantCopy, config.js) — KHÔNG sửa STRINGS gốc.
+//  js/config/profile.js phủ bảng này lên bản sao của STRINGS khi hồ sơ sự kiện chọn variant "tnt"
+//  (hoặc hồ sơ không khai variant ⇒ DEFAULT_VARIANT trong theme.js, hoặc ?variant=tnt) ⇒ INERT với sự kiện khác.
+//  Ngôn ngữ mặc định của biến thể (tiếng Việt) khai ở AVAILABLE_VARIANTS (config.js: defaultLang "vi").
 //
-//  THỨ TỰ NẠP: ngay SAU themes/tech/strings.js (cần STRINGS.vi.tech), TRƯỚC firebase-config/ui-*/app.
-//  Làm 2 việc:
-//   1) Chuyển cả trang sang TIẾNG VIỆT (trừ khi URL chỉ định ?lang=en|vi): gán lại LANG/TEXT (config.js khai `let`).
-//   2) Ghi đè copy trong STRINGS.vi theo từng namespace (key không nhắc tới giữ nguyên bản gốc).
+//  THỨ TỰ NẠP: SAU config.js + themes/tech/strings.js, TRƯỚC js/config/profile.js.
+//  Ghi đè theo từng namespace (key không nhắc tới giữ nguyên bản gốc).
 //  QUY TẮC: key gốc là HÀM thì bản ghi đè cũng phải là HÀM (call site gọi TEXT.x.y(args)) — truyền string sẽ
 //  TypeError làm vỡ popup. Chuỗi còn được gán qua textContent (profile.start) phải là text thuần: "&" chứ không "&amp;".
 // ============================================================================
 (function () {
-  if (typeof STRINGS === "undefined" || typeof ACTIVE_VARIANT === "undefined" || ACTIVE_VARIANT !== "tnt") return;
-
-  // 1) Sự kiện này chạy tiếng Việt. ?lang=en|vi trên URL vẫn thắng (để test/so sánh).
-  try {
-    const langParam = new URLSearchParams(location.search).get("lang");
-    if (langParam !== "en" && langParam !== "vi") {
-      LANG = "vi";
-      TEXT = STRINGS.vi;
-      document.documentElement.lang = "vi";
-    }
-  } catch (e) {}
+  if (typeof registerVariantCopy !== "function") return;
 
   // Tên phòng do admin đặt có thể đã mở đầu bằng "Phòng" (vd "Phòng 101") → tránh "phòng Phòng 101".
   const hasRoomWord = (name) => /^phòng\s/i.test(String(name || "").trim());
@@ -84,5 +74,5 @@
       body: (label) => `<b>${label}</b> bạn nhập đã được dùng để chốt phòng — <b>có thể ở thiết bị hoặc trình duyệt khác</b>. Mỗi mã chỉ chốt <b>một lần</b>.<br>Nếu là bạn, hãy mở lại trên thiết bị đã đăng ký.`,
     },
   };
-  Object.keys(COPY).forEach(ns => { STRINGS.vi[ns] = Object.assign(STRINGS.vi[ns] || {}, COPY[ns]); });
+  registerVariantCopy("tnt", { vi: COPY });
 })();

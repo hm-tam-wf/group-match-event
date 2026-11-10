@@ -35,6 +35,22 @@ const profileValid = () => FIELDS.every(f => !fieldError(f, me.fields[f.key]));
 const labelOf = key => (FIELDS.find(f => f.key === key) || {}).label || key;
 const esc = s => _str(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
+// Khối logo theo hồ sơ sự kiện (BRAND do profile.js đặt; mặc định DEFAULT_BRAND) — dùng chung cho header,
+// popup định danh, màn đếm ngược, màn kết thúc. Markup giữ nguyên .tech-logo-only > .logo-wrap > img + span
+// (biến thể như tnt thay logo bằng CSS). Tên + logo đều rỗng ⇒ không vẽ.
+function brandLogoHtml(extraStyle) {
+  const b = (typeof BRAND !== "undefined" && BRAND) ? BRAND : DEFAULT_BRAND;
+  if (!b.name && !b.logoUrl) return "";
+  const img   = b.logoUrl ? `<img src="${esc(b.logoUrl)}" alt="${esc(b.logoAlt || b.name)}" class="logo-icon">` : "";
+  const text  = b.name ? `<span class="logo-text">${esc(b.name)}</span>` : "";
+  const style = extraStyle ? ` style="${esc(extraStyle)}"` : "";
+  return `<div class="tech-logo-only"${style}><div class="logo-wrap">${img}${text}</div></div>`;
+}
+function renderBrandSlot() {
+  const slot = document.getElementById("brandSlot");
+  if (slot) slot.innerHTML = brandLogoHtml();
+}
+
 let toastTimer;
 const TOAST_HIDE_MS = 2400;   // thời gian tự ẩn toast (ms) khi không sticky
 // sticky=true → giữ toast cho tới khi gọi toast() kế tiếp (dùng cho trạng thái "đang ghi nhận…").

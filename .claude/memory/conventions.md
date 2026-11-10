@@ -11,6 +11,9 @@ updated: 2026-11-10
 - Dev: `npx serve fe` hoặc VS Code Live Server trên `fe/index.html`
 - Export signups: `npm run export` (cần `serviceAccountKey.json`)
 - Load test: `node backend/scripts/loadtest.js` (500 concurrent signups)
+- Domain → sự kiện mặc định: `node backend/scripts/hosts.js [--set <domain>=<id> | --remove <domain>] [--apply]`
+  (mặc định chỉ xem trước; ghi `config/hosts`). Link riêng mỗi sự kiện: `index.html?e=<id>` — xem [[event-profile]].
+  ⚠ Lần đầu đưa bước 2 lên Pages: ghi `hm-tam-wf.github.io → event-demo` TRƯỚC khi push (code đã gỡ `EVENT_ID_BY_HOST`).
 - E2E với emulator: Firestore Emulator (project `demo-icon-picker`, cần Java; JRE portable chạy được) + puppeteer + Edge headless;
   mỗi incognito context = 1 thiết bị. Static server vá `firebase-config.js`/`config.js` trong bộ nhớ để trỏ emulator, KHÔNG sửa repo. Kết quả hiện tại 46/46 PASS (xem [[0002-cross-device-lookup]]).
   ⚠ Bộ E2E (lib/emu/layerA/layerB/run-suite, 71 case + bước 1 thêm S6b/S6c/BF1) CHƯA nằm trong repo — chỉ ở scratchpad của session
