@@ -2,7 +2,7 @@
 title: conventions
 tags: [meta]
 related: [[index]], [[architecture]]
-updated: 2026-06-03
+updated: 2026-11-10
 ---
 
 # Conventions
@@ -11,8 +11,10 @@ updated: 2026-06-03
 - Dev: `npx serve fe` hoặc VS Code Live Server trên `fe/index.html`
 - Export signups: `npm run export` (cần `serviceAccountKey.json`)
 - Load test: `node backend/scripts/loadtest.js` (500 concurrent signups)
+- E2E với emulator: Firestore Emulator (project `demo-icon-picker`, cần Java; JRE portable chạy được) + puppeteer + Edge headless;
+  mỗi incognito context = 1 thiết bị. Static server vá `firebase-config.js`/`config.js` trong bộ nhớ để trỏ emulator, KHÔNG sửa repo. Kết quả hiện tại 46/46 PASS (xem [[0002-cross-device-lookup]]).
 - Deploy (SONG SONG 2 hosting, cùng serve `fe/`, cùng Firestore project `icon-picker`):
-  - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → pickyoursquad-faraday.web.app (site `pickyoursquad-faraday`, không build step).
+  - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → https://pickyourgroup.web.app (site `pickyourgroup`, không build step). Site cũ `pickyoursquad-faraday.web.app` redirect 301 sang đây.
   - **GitHub Pages** (tự động): `.github/workflows/pages.yml` upload `fe/` làm artifact + `deploy-pages` mỗi khi push master đụng `fe/` → https://hm-tam-wf.github.io/group-match-event/. Cần 1 lần bật Settings → Pages → Source = GitHub Actions. Trang admin trên domain Pages cần thêm `hm-tam-wf.github.io` vào Firebase Auth → Authorized domains.
 
 ## Code style

@@ -2,8 +2,8 @@
 title: api-layer
 tags: [module]
 code: [fe/js/data/api.js, fe/js/config/config.js, fe/js/config/firebase-config.js]
-related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]], [[0001-gender-rooms-from-allowlist]]
-updated: 2026-09-29
+related: [[index]], [[architecture]], [[firestore-schema]], [[allowlist]], [[0001-gender-rooms-from-allowlist]], [[0002-cross-device-lookup]]
+updated: 2026-11-10
 ---
 
 # API Layer
@@ -147,6 +147,38 @@ clearEventData (admin.html) đã thêm `reg_keys` vào danh sách clear.
   (2026-06-17: "Xóa dữ liệu" = roster mới ⇒ buộc nhập lại MSNV, KHÔNG điền sẵn mã cũ — đổi từ hành vi "giữ fields
   khỏi gõ lại" trước đó), lưu epoch mới. Sau reset: máy re-sync như mới → `apiRegReserve` tạo khóa thật; nếu MSNV đã bị máy
   khác chiếm sau clear ⇒ bị chặn trùng đúng. Kết quả: đúng 1 signup/MSNV, hết dòng trùng "ma" sau khi Xóa dữ liệu.
+
+## Tra cứu xuyên thiết bị (ADR [[0002-cross-device-lookup]], 2026-11-10)
+- **`apiLookupRegistration(name)`** → `{found, icon, error?}`: đọc CẢ 2 key `dedup_keys` (raw `_dedupKey` + fold `_foldKey`).
+  Dùng cho cổng init: `found` + `icon` hợp lệ ⇒ remote view (xem `enterRemoteView`/`rvValid`/`verifiedIcon` trong app.js).
+- **`apiClaim`**: đọc `dedup_keys` TRƯỚC khi ghi theo `_dedupPlan` (k1 + M, hoặc k1 + F + M với tên có dấu; xem
+  [[firestore-schema]]). Trả `ALREADY` kèm `icon` từ `members` và `DUP` kèm `icon` từ `dedup_keys` ⇒ UI hiện đúng phòng khi retry sau commit mơ hồ (edge d).
+- **Helpers:** `_foldKey(s)` = `_normName` + bỏ khoảng trắng; `_dedupPlan(name)` → `{k1, F, ascii, M}` (`M = "m~" + F`,
+  chỉ ghi cho tên có dấu); `_mergeDedupSnaps(snaps)` gộp kết quả đọc thành 1 trạng thái (exists/icon).
+- **Tra cứu có dấu/không dấu:** tên có dấu: k1 ⇒ remote view; không k1 mà có F ⇒ chặn + thông báo "đã có đăng ký tên không dấu '<x>' (phòng X), nếu không phải bạn thì liên hệ BTC".
+  Tên không dấu: k1 ⇒ remote view; không k1 mà có M ⇒ đếm ứng viên `_foldKey` trong `teams[*].names`: đúng 1 ⇒ remote view; ≥2 ⇒ yêu cầu gõ đủ dấu, chặn; 0 ⇒ chặn.
+  FE: `rvResolve`/`resolveReg`. `apiState(fresh)` đọc `get({source:'server'})` để kiểm chứng phòng.
+- **Flag `DEDUP_STORE_ICON`** (`fe/js/config/config.js`, mặc định **false**): bật ghi `icon` + fold key khi join.
+  Chỉ bật SAU khi deploy rules mới và backfill (thứ tự go-live bên dưới).
+- **Backfill `backend/scripts/backfill-dedup-icon.js`**: dry-run mặc định; `--apply` thêm `icon` vào `k1` cũ và tạo
+  `M` (`create()`) cho tên có dấu. CONFLICT khi tên có dấu có `F` trùng `k1` của một người không dấu khác.
+  Quét TOÀN BỘ `dedup_keys` (không dựa members/signups). Có chế độ emulator (`FIRESTORE_EMULATOR_HOST`).
+  Dry-run production (mini-outing-2026, 2026-11-10): `dedup_keys` = 14, `M` sẽ tạo = 14, CONFLICT=0.
+- **Hộp xác nhận gõ thiếu dấu (không tự chặn):** `_markSubset(typed,cand) || _markSubset(cand,typed)` (api.js), nguồn `teams[*].names` từ server, loại tên trùng hệt k1.
+  `showSoftModal`/`softConfirm` (ui-render.js) hỏi "Bạn có phải là <Tên> (Phòng X)?"; nhiều ứng viên ⇒ mỗi người 1 nút + nút "Không, tôi là <tên gõ>".
+  Chọn ứng viên ⇒ `me.fields` về tên đã đăng ký, vào remote view (không reserve/claim); `apiRegRelease` xoá `reg_keys` của tên vừa gõ nếu máy này giữ.
+  Chọn "Không" ⇒ `me.softNo[_foldKey] = chữ ký tập ứng viên`, đăng ký bình thường; tập đổi thì hỏi lại; epoch reset xoá `softNo`.
+  Áp dụng init gate, popup save, `softClaimGate` trước `apiClaim`. `freshState` cache TTL `FRESH_STATE_TTL_MS = 3000`. Không phụ thuộc `DEDUP_STORE_ICON`; lỗi mạng ⇒ fail-open. CHỐT MỀM.
+- **Gotcha UI:** `.boot-loader` `z-index:100`, `.modal-bg` `z-index:50`. Modal `await` người dùng trong lúc `init()` còn chạy phải `fade-out` `#appLoading` trước, nếu không kẹt vĩnh viễn. E2E phải bấm chuột thật và kiểm `elementFromPoint`, không `evaluate(el.click())` (bỏ qua lớp phủ).
+- **Go-live:** deploy rules → `backfill --apply` → bật `DEDUP_STORE_ICON` + deploy hosting. Trước backfill, người gõ không
+  dấu vẫn lọt cổng.
+- **Remote view (FE):** chỉ hiện khi tên (so bằng `_foldKey`) nằm trong `teams[icon].names` và phòng không rỗng (chống icon
+  giả/cũ). Init chỉ vào remote view khi `members/{pid}` = null. "Không phải tôi" xoá profile để nhập tên khác.
+- **Edge cases đã audit:** (a) mất localStorage/đổi máy ⇒ remote view; (b) biến thể dấu ⇒ k1/F/M chặn đúng, tên khác người (Hùng/Hưng) không bị chặn nhầm; (c) race cross-tab/
+  cross-device ⇒ transaction tuần tự, đúng 1 thành công (Lê ∥ Le x10 ⇒ 1 thắng; Hùng ∥ Hưng x10 ⇒ cả 2 thắng); (d) retry sau commit mơ hồ ⇒ ALREADY+icon;
+  (e) pre-check fail-open vẫn bị transaction chặn; (f) rules mở (tạo dedup_keys rác, delete reg_keys/signups mở) ⇒ hoãn phase B.
+- **Test:** E2E Firestore Emulator (project `demo-icon-picker`, cần Java/JRE portable), puppeteer + Edge headless, mỗi
+  incognito context = 1 thiết bị. **71/71 PASS.** Static server vá `firebase-config.js`/`config.js` trong bộ nhớ.
 
 ## apiSubscribe()
 Wrap Firestore `onSnapshot` cho team collection. Trả về unsubscribe function (nhưng app không gọi lúc cleanup — SDK tự handle khi disconnect).

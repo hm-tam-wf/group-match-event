@@ -58,7 +58,7 @@ nên merge thêm namespace SAU khi config.js gán `TEXT` vẫn thấy được �
   nhau en/vi). `boot()` (app.js, đầu hàm — chạy cho MỌI mode) áp khi `data-theme="tech"`: **tab title
   (`document.title`) LUÔN theo brand**; **H1 lấy brand làm MẶC ĐỊNH** nhưng `cfg.title` (admin/Firestore,
   mode firebase) override H1 phía dưới ⇒ tên sự kiện admin thắng. Theme `default` → giữ HTML tĩnh
-  "Group Match" (tên CHUNG = repo group-match-event; hosting site = pickyoursquad-faraday). Brand cho theme khác =
+  "Group Match" (tên CHUNG = repo group-match-event; hosting site = pickyourgroup, site cũ pickyoursquad-faraday redirect 301). Brand cho theme khác =
   thêm `appTitle` vào namespace theme đó. admin.html KHÔNG nạp strings.js ⇒ tab admin giữ tĩnh "Admin — Group Match".
 - Parity en.tech vs vi.tech vẫn phải khớp (verified: 5 key 2 bên — `appTitle` tĩnh, `terminalLine2` = hàm `(title)=>…`).
   Cú pháp tách-file đã test bằng vm: **nối** config+strings.js thành 1 script (mô phỏng browser
