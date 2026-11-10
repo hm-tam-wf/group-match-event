@@ -59,10 +59,22 @@ service cloud.firestore {
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }
 
+      // dedup_keys: chốt CỨNG "mỗi người chỉ chọn 1 lần" (key = _dedupKey(tên/MSNV)). `icon` (tuỳ chọn) là
+      // bảng tra cứu cross-device KHÔNG PII: từ key biết đội đã chọn để máy khác hiện lại phòng/team.
+      // Có `icon` ⇒ phải đi cùng một lượt join THẬT: count của teams/{icon} SAU transaction đúng bằng
+      // count hiện tại + 1 (doc chưa có ⇒ coi như 0) ⇒ không ghi icon tuỳ ý khi không join.
+      // Nhánh {at} (không icon) giữ lại để tương thích FE cũ — phase B sẽ bỏ.
       match /dedup_keys/{key} {
         allow get:    if true;
         allow list:   if isAdmin();       // <-- cần để admin liệt kê khi clear
-        allow create: if request.resource.data.keys().hasOnly(['at']);
+        allow create: if isAdmin()
+                      || request.resource.data.keys().hasOnly(['at'])
+                      || (request.resource.data.keys().hasOnly(['at', 'icon'])
+                          && request.resource.data.icon is string
+                          && getAfter(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon)).data.count
+                             == (exists(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon))
+                                  ? get(/databases/$(database)/documents/events/$(eventId)/teams/$(request.resource.data.icon)).data.count
+                                  : 0) + 1);
         allow update: if false;
         allow delete: if isAdmin();       // <-- cần để clear / xoá
       }

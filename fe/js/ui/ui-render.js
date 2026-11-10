@@ -37,6 +37,179 @@ const AVATAR_PREVIEW_MAX = 5;     // số avatar hiện ở mỗi tile trước 
 const CONFETTI_COUNT     = 28;    // số mảnh confetti trong popup chúc mừng
 const RESIZE_DEBOUNCE_MS = 120;   // debounce tính lại số cột lưới khi resize cửa sổ
 
+// ── Chế độ "Xem đăng ký" xuyên thiết bị ─────────────────────────────────────
+// remoteView = TRUE khi máy này KHÔNG tự chọn đội: người dùng đã đăng ký ở thiết bị khác, nhập đúng họ tên
+// → tra dedup_keys ra icon (apiLookupRegistration) và hiện phòng/team + bạn cùng phòng thay cho lưới chọn.
+// Chỉ có nghĩa khi có myIcon (tự vô hiệu nếu myIcon bị self-heal gỡ) ⇒ luôn đọc qua inRemoteView().
+// KHÔNG ghi members/signups/reg_keys cho máy này (chỉ đọc) — danh tính pid ở máy này không phải thành viên.
+let remoteView = false;
+const inRemoteView = () => remoteView && !!myIcon;
+
+// icon hợp lệ từ kết quả lookup/claim: có icon VÀ icon đó còn trong ICONS (tránh sập byEmoji[...] khi sự kiện đổi icon).
+const lookupIcon = res => (res && res.icon && byEmoji[res.icon]) ? res.icon : null;
+
+// Lý do chặn ĐẶC BIỆT khi dupBlocked (null = thông báo "đã đăng ký" chung): {ascii:true,name,icon} | {ambiguous:true}.
+let dupNote = null;
+// Chặn chọn phòng (dupBlocked) kèm lý do từ kết quả rvResolve (mode asciiTaken / ambiguous / block / null).
+function blockDupWith(r) {
+  dupBlocked = true;
+  dupNote = !r ? null : r.mode === "asciiTaken" ? { ascii: true, name: r.name, icon: r.icon } : r.mode === "ambiguous" ? { ambiguous: true } : null;
+}
+
+// Đọc lại state teams từ SERVER (apiState(true) = get({source:"server"}), không lấy cache/listener trễ) để KIỂM CHỨNG phòng bằng dữ liệu
+// mới nhất. Kết quả được dùng lại trong `maxAgeMs` (mặc định FRESH_STATE_TTL_MS) để các cổng trong CÙNG 1 thao tác không đọc lặp; chỗ cần
+// tuyệt đối mới (vừa thua đua claim, revalidate remote view) truyền 0. Trả true nếu có state mới/đủ mới; lỗi mạng ⇒ false và giữ state cũ.
+const FRESH_STATE_TTL_MS = 3000;
+let _freshAt = 0;
+async function freshState(maxAgeMs = FRESH_STATE_TTL_MS) {
+  if (stateLoaded && maxAgeMs > 0 && Date.now() - _freshAt < maxAgeMs) return true;
+  try { state = await apiState(true); stateLoaded = true; _freshAt = Date.now(); return true; } catch (e) { return false; }
+}
+
+// CHỐT MỀM "gõ thiếu một phần dấu" (2 phòng cho 1 người): "Nguyễn Văn Hùng" đã đăng ký (k1 + M), cùng người gõ "Nguyen Văn Hùng" / "Nguyễn Văn Hung"
+// ⇒ k1 khác, F không có doc ⇒ transaction cho qua (và thứ tự ngược "Hung" rồi "Hùng" cũng vậy). KHÔNG thể phân biệt "gõ thiếu dấu" với "tên thật ít
+// dấu hơn" ("Thanh" vs "Thành", "Anh" vs "Ánh" là NGƯỜI KHÁC) ⇒ KHÔNG chặn cứng mà HỎI người dùng bằng hộp xác nhận. Ứng viên = tên đã đăng ký trong
+// teams[*].names (công khai, lấy từ server) mà 2 chiều _markSubset(typed,cand) || _markSubset(cand,typed) đúng và KHÔNG trùng hệt (trùng hệt đã có
+// đường k1). Chọn ứng viên ⇒ chuẩn hoá me.fields về TÊN ĐÃ ĐĂNG KÝ rồi vào remote view; chọn "Không" ⇒ nhớ (me.softNo) theo _foldKey(tên) + tập
+// ứng viên lúc đó, đi tiếp luồng thường (reserve + claim; chốt CỨNG của server vẫn áp dụng). Tập ứng viên đổi ⇒ hỏi lại.
+// LƯU Ý: chỉ là chốt MỀM phía client (gọi thẳng API vẫn vượt được); chặn gian lận chủ đích là việc của allowlist.
+function softCands(value) {
+  const k1 = _dedupKey(value);
+  if (!k1) return [];
+  const r = [];
+  for (const ic in state) if (byEmoji[ic]) (state[ic].names || []).forEach(n => { if (_dedupKey(n) !== k1 && (_markSubset(value, n) || _markSubset(n, value))) r.push({ icon: ic, name: n }); });
+  return r;
+}
+const softSig = cands => cands.map(c => _dedupKey(c.name)).sort().join("|");
+const roomBaseOf = icon => splitTeam((byEmoji[icon] || { name: "" }).name).base;
+
+// Hộp xác nhận (mobile-first, class sẵn có .modal-bg/.modal/.row/.confirm/.cancel; KHÔNG đóng được bằng nền/Esc). Trả Promise<index ứng viên | -1 = "Không">.
+function showSoftModal(typed, cands) {
+  return new Promise(resolve => {
+    // Modal có thể mở khi init() còn đang await (init gate): loader .boot-loader (z-index 100, chỉ fade-out ở cuối init) phủ kín, che modal (z-index 50)
+    // ⇒ không bấm được nút ⇒ init không bao giờ xong. Ẩn loader theo đúng cơ chế fade-out sẵn có (pointer-events:none; visibility:hidden) TRƯỚC khi mở.
+    const loaderEl = document.getElementById("appLoading");
+    if (loaderEl) loaderEl.classList.add("fade-out");
+    $("toast").classList.remove("show");   // dẹp toast "Đang ghi nhận…" dính (z-index 60, cao hơn modal) — giống showJoinedModal
+    const L = TEXT.lookup || {};
+    const modalBgEl = document.createElement("div");
+    modalBgEl.className = "modal-bg";
+    modalBgEl.id = "softConfirmModal";
+    const one = cands.length === 1;
+    const btns = cands.map((c, i) => `<button class="confirm" data-i="${i}" style="width:100%">${one ? esc(L.softYes(c.name)) : esc(L.softOpt(c.name, roomBaseOf(c.icon)))}</button>`).join("");
+    modalBgEl.innerHTML = `
+      <div class="modal">
+        <div class="mic">🤔</div>
+        <h3>${esc(L.softTitle)}</h3>
+        <p>${one ? L.softAsk1(esc(cands[0].name), esc(roomBaseOf(cands[0].icon))) : L.softAskN}</p>
+        <div class="row" style="flex-direction:column;gap:8px">${btns}<button class="cancel" id="softNo" style="width:100%">${esc(L.softNo(typed))}</button></div>
+      </div>`;
+    document.body.appendChild(modalBgEl);
+    modalBgEl.querySelectorAll("button[data-i]").forEach(b => { b.onclick = () => dismissModal(modalBgEl, () => resolve(+b.dataset.i)); });
+    $("softNo").onclick = () => dismissModal(modalBgEl, () => resolve(-1));
+  });
+}
+
+// Cổng mềm TRƯỚC claim/reserve. Trả null ⇒ đi luồng thường; {mode:"room", icon, name} ⇒ người dùng chọn 1 ứng viên (me.fields đã chuẩn hoá).
+// Chỉ khi dedup theo TÊN; state TỪ SERVER, lỗi mạng ⇒ fail-open. Không phụ thuộc cờ DEDUP_STORE_ICON (phòng lấy từ teams.names công khai).
+async function softConfirm() {
+  if (MODE !== MODE_FIREBASE || !BLOCK_DUP || DEDUP_FIELD !== "name") return null;
+  const typed = me.fields[DEDUP_FIELD] || "";
+  if (!_dedupKey(typed) || !(await freshState())) return null;
+  const cands = softCands(typed);
+  if (!cands.length) return null;
+  const fk = _foldKey(typed), sig = softSig(cands);
+  if (me.softNo && me.softNo[fk] === sig) return null;                    // đã chọn "Không" với ĐÚNG tập ứng viên này
+  const pick = await showSoftModal(typed, cands);
+  if (pick < 0) { me.softNo = Object.assign({}, me.softNo, { [fk]: sig }); await saveMe(); return null; }
+  me.fields[DEDUP_FIELD] = cands[pick].name;                              // chuẩn hoá về tên đã đăng ký ⇒ lần sau tra thẳng bằng k1
+  try { await apiRegRelease(typed); } catch (e) {}                         // nhả chỗ giữ cũ của tên gõ sai (nếu có) để không chặn người có tên thật
+  await saveMe();
+  return { mode: "room", icon: cands[pick].icon, name: cands[pick].name };
+}
+// Dùng ngay trước apiClaim ở doClaim: pid KHÔNG phải member (null) mà tên gần giống người đã đăng ký ⇒ hỏi; chọn ứng viên ⇒ kết quả DUP giả mang `soft`.
+async function softClaimGate() {
+  if (MODE !== MODE_FIREBASE || !BLOCK_DUP || !me.id || typeof apiMyMembership !== "function") return null;
+  if ((await apiMyMembership(me.id)) !== null) return null;       // member thật / không rõ ⇒ để apiClaim xử lý (ALREADY…)
+  const sg = await softConfirm();
+  return sg ? { ok: false, reason: REASON.DUP, soft: sg } : null;
+}
+
+// Xác định "người này đăng ký ở phòng nào" từ dữ liệu CÔNG KHAI teams[*].names (+ cờ doc dedup `hit` nếu có). Rules chỉ kiểm
+// teams/{icon}.count +1, KHÔNG gắn với key ⇒ icon trong dedup_keys có thể giả/lỗi thời, nên LUÔN đối chiếu tên trong names.
+// So BẤT ĐỐI XỨNG (xem _dedupPlan ở api.js): k1 = _dedupKey(N), F = _foldKey(N), ascii = (k1 === F).
+//   hit.k1            → phòng của tên có _dedupKey(name) === k1 (chính người này)          ⇒ {mode:"room", icon}
+//   N có dấu, hit.f   → có người đăng ký KHÔNG dấu (_dedupKey(name) === F), chưa chắc là bạn ⇒ {mode:"asciiTaken", icon, name}
+//   N không dấu, hit.m→ ứng viên (softCands) = tên CÓ dấu cùng chữ gốc: đúng 1 ⇒ room ; ≥2 ⇒ {mode:"ambiguous"} ; 0 ⇒ block
+//   còn lại           → {mode:"block"} (doc không khớp tên nào: icon giả / dữ liệu lệch)
+// hit=null (kiểm lại từ state, không có cờ doc): thử k1, không khớp thì thử các nhánh còn lại.
+// DEDUP_FIELD khác "name" (vd MSNV): names không chứa mã ⇒ chỉ kiểm hintIcon còn người.
+function rvResolve(value, hit, hintIcon) {
+  const k1 = _dedupKey(value), F = _foldKey(value);
+  if (!k1) return { mode: "block" };
+  const h = hit || { k1: true, f: true, m: true };
+  if (DEDUP_FIELD !== "name") {
+    return (h.k1 && hintIcon && byEmoji[hintIcon] && teamOf(hintIcon).count > 0) ? { mode: "room", icon: hintIcon } : { mode: "block" };
+  }
+  const all = pred => { const out = []; for (const ic in state) (state[ic].names || []).forEach(n => { if (pred(n)) out.push({ icon: ic, name: n }); }); return out; };
+  if (h.k1) {
+    const r = all(n => _dedupKey(n) === k1).filter(x => byEmoji[x.icon]);
+    if (r.length) return { mode: "room", icon: r[0].icon, name: r[0].name };
+    if (hit) return { mode: "block" };
+  }
+  if (k1 !== F) {                                   // tên CÓ dấu: người đăng ký không dấu cùng F
+    if (h.f) { const r = all(n => _dedupKey(n) === F).filter(x => byEmoji[x.icon]); if (r.length) return { mode: "asciiTaken", icon: r[0].icon, name: r[0].name }; }
+    return { mode: "block" };
+  }
+  if (h.m) {                                        // tên KHÔNG dấu: ứng viên = tên có dấu cùng chữ gốc (server DUP dù chọn gì ⇒ nhánh CỨNG)
+    const c = softCands(value);
+    if (c.length === 1) return { mode: "room", icon: c[0].icon, name: c[0].name };
+    if (c.length >= 2) return { mode: "ambiguous" };
+  }
+  return { mode: "block" };
+}
+
+// remote view hiện tại còn đúng không (state-only): phòng tra lại từ names phải đúng là myIcon.
+function rvValid(icon) {
+  const r = rvResolve(me.fields[DEDUP_FIELD] || "", null, icon);
+  return r.mode === "room" && r.icon === icon;
+}
+
+// Kết quả tra cứu/DUP (có icon + hit) → rvResolve bằng state TỪ SERVER. Không đọc được server ⇒ chỉ tạm tin khi doc k1 có icon hợp lệ
+// (renderState kiểm lại khi state về), còn lại block — không đoán phòng từ M/F.
+async function resolveReg(res) {
+  if (!lookupIcon(res)) return { mode: "block" };   // doc không có icon hợp lệ (join trước khi bật DEDUP_STORE_ICON / cờ tắt) ⇒ KHÔNG hiện phòng, chặn như cũ
+  const ok = await freshState(0);                   // vừa thua đua claim / vừa tra cứu: phải mới tuyệt đối
+  if (!ok) return (res && res.hit && res.hit.k1 && lookupIcon(res)) ? { mode: "room", icon: res.icon, tentative: true } : { mode: "block" };
+  return rvResolve(me.fields[DEDUP_FIELD] || "", (res && res.hit) || null, res && res.icon);
+}
+
+let _rvChecking = false;
+// renderState thấy remote view không còn khớp state cục bộ ⇒ KHÔNG đặt dupBlocked ngay (state có thể là snapshot cũ của listener):
+// đọc lại từ server rồi mới quyết. Không đọc được server ⇒ GIỮ remote view. Còn đúng ⇒ giữ; phòng đổi ⇒ chuyển; hết ⇒ thoát + chặn.
+async function revalidateRemoteView() {
+  if (_rvChecking) return;
+  _rvChecking = true;
+  try {
+    if (!(await freshState(0)) || !inRemoteView()) return;
+    if (rvValid(myIcon)) { renderStateIfChanged(false); return; }
+    const r = rvResolve(me.fields[DEDUP_FIELD] || "", null, null);
+    if (r.mode === "room") { myIcon = r.icon; await saveMe(); renderStateIfChanged(true); return; }   // admin chuyển phòng
+    myIcon = null; remoteView = false; blockDupWith(r); await saveMe();
+    renderProfile(); renderStateIfChanged(true);
+  } finally { _rvChecking = false; }
+}
+
+// Vào chế độ xem đăng ký với icon đã tra được. Chỉ cập nhật state cục bộ + lưu máy này; KHÔNG gọi API ghi.
+async function enterRemoteView(icon) {
+  myIcon = icon;
+  remoteView = true;
+  dupBlocked = false;     // người này ĐÃ đăng ký hợp lệ — không phải "trùng mã" cần chặn
+  dupNote = null;
+  allowBlocked = false;
+  await saveMe();
+}
+
 // ── Hồ sơ người chơi ───────────────────────────────────────────────
 // Đã có thông tin hợp lệ → thanh tóm tắt inline. Chưa có (token mới) → popup, không cho bỏ qua.
 function renderProfile() {
@@ -178,18 +351,60 @@ function showProfileModal() {
     // (Trước đây ghi data trước cổng → cố nhập lại đúng mã đã có vẫn lưu được hồ sơ trùng → bug.)
     const btn = $("pmSave");
     if (btn) { btn.disabled = true; btn.textContent = TEXT.profile.checking; }
-    let taken = false;
-    if (!myIcon && typeof apiDedupTaken === "function") {   // đã vào đội ⇒ mã dedup là của CHÍNH MÌNH, đừng tự coi là trùng rồi xoá hồ sơ
-      try { taken = await apiDedupTaken(me.fields[DEDUP_FIELD]); } catch (e) {}
+    let taken = false, looked = null;
+    if (!myIcon && BLOCK_DUP && DEDUP_FIELD && typeof apiLookupRegistration === "function") {   // đã vào đội ⇒ mã dedup là của CHÍNH MÌNH, đừng tự coi là trùng rồi xoá hồ sơ
+      // Tra cứu TRƯỚC reserve: reg_keys.profiled (apiRegReserve) sẽ chặn cả người đã join ở máy khác → phải biết họ là ai trước.
+      try { looked = await apiLookupRegistration(me.fields[DEDUP_FIELD]); } catch (e) {}
+      taken = !!(looked && looked.found);
     }
+    if (!looked || looked.error) {                          // lookup không có / lỗi mạng ⇒ luồng cũ (apiDedupTaken)
+      if (!myIcon && typeof apiDedupTaken === "function") {
+        try { taken = await apiDedupTaken(me.fields[DEDUP_FIELD]); } catch (e) {}
+      }
+    }
+    // Chốt MỀM gõ-thiếu-dấu (xem softConfirm): chưa có doc trùng nhưng tên gần giống 1 tên đã đăng ký ⇒ HỎI xác nhận (chọn ứng viên ⇒ remote view; "Không" ⇒ đi tiếp) TRƯỚC reserve/ghi hồ sơ.
+    let soft = null;
+    if (!taken && !myIcon && BLOCK_DUP && DEDUP_FIELD && !(looked && looked.error)) { try { soft = await softConfirm(); } catch (e) {} if (soft) taken = true; }
     if (btn) { btn.disabled = false; btn.textContent = TEXT.profile.start; }
+    // Máy này có phải MEMBER thật không? (members/{pid}) — chỉ khi server nói rõ null mới được vào remote view / dọn signup.
+    let mem;
+    if (taken && typeof apiMyMembership === "function") { try { mem = await apiMyMembership(me.id); } catch (e) {} }
+    const closeAfter = () => {
+      closeDupBlockedModal();
+      closeAllowBlockedModal();
+      closeProfileModal(() => {
+        renderProfile();
+        renderStateIfChanged(true);
+        toast((TEXT.lookup && TEXT.lookup.note) || TEXT.profile.saved);
+      });
+    };
+    if (taken && mem && mem.icon && byEmoji[mem.icon]) {
+      // pid máy này LÀ member thật (browser quên) — CHỈ khôi phục khi tên vừa gõ đúng là tên trong phòng của member này (không thì ghi
+      // me.fields của người KHÁC vào hồ sơ của pid này). Không khớp ⇒ giữ hành vi chặn bên dưới (không dọn signup vì mem ≠ null).
+      await freshState();
+      const typed = _dedupKey(me.fields.name || me.fields[DEDUP_FIELD] || "");
+      if (typed && teamOf(mem.icon).names.some(n => _dedupKey(n) === typed)) {
+        myIcon = mem.icon; remoteView = false; dupBlocked = false; dupNote = null; allowBlocked = false; await saveMe();
+        closeAfter();
+        return;
+      }
+    }
+    const rr = (taken && mem === null) ? (soft || await resolveReg(looked)) : null;
+    if (rr && rr.mode === "room") {
+      // Đã đăng ký ở thiết bị khác → vào chế độ XEM: không ghi hồ sơ, không đặt-chỗ, không cho chọn lại.
+      await enterRemoteView(rr.icon);
+      // Dọn signup mồ côi của pid máy này (nếu đã lỡ lưu ở phiên trước) — server đã xác nhận pid KHÔNG phải member (null).
+      try { if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); } catch (e) {}
+      closeAfter();
+      return;
+    }
     if (taken) {
-      dupBlocked = true;
-      if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn signup trùng nếu lỡ lưu ở phiên trước (lúc MSNV còn trống)
+      blockDupWith(rr);           // rr = asciiTaken / ambiguous ⇒ modal có thông báo riêng; còn lại thông báo chung
+      if (mem === null && typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);   // dọn signup trùng nếu lỡ lưu ở phiên trước (lúc MSNV còn trống) — chỉ khi chắc chắn không phải member
       renderProfile();            // dupBlocked && !myIcon && !editing → hiện modal chặn (KHÔNG ghi data)
       return;
     }
-    dupBlocked = false;
+    dupBlocked = false; dupNote = null;
 
     // CỔNG danh sách cho phép — SAU cổng dedup: MSNV không trong danh sách → chặn, KHÔNG ghi hồ sơ.
     // apiAllowlistInfo trả {allowed, name, gender}: name = tên đã đăng ký (để đối chiếu họ tên ngay bên dưới);
@@ -281,7 +496,8 @@ function showDupBlockedModal() {
     <div class="modal">
       <div class="mic">🔒</div>
       <h3>${TEXT.dup.title}</h3>
-      <p>${TEXT.dup.body(esc(fieldLabel))}</p>
+      <p>${dupNote && dupNote.ascii ? TEXT.lookup.asciiTaken(esc(dupNote.name), esc(splitTeam((byEmoji[dupNote.icon] || { name: "" }).name).base))
+          : dupNote && dupNote.ambiguous ? TEXT.lookup.ambiguous : TEXT.dup.body(esc(fieldLabel))}</p>
       <div class="row"><button class="confirm" id="dupBack">${TEXT.dup.btn}</button></div>
     </div>`;
   document.body.appendChild(modalBgEl);
@@ -401,18 +617,63 @@ window.addEventListener("resize", () => {
 function renderState() {
   // myIcon còn hợp lệ? Chỉ mở khoá khi ĐÃ tải được state thật từ server và đội đó thực sự rỗng
   // (tránh xoá nhầm khi state chưa tải xong / fetch lỗi lúc mới vào trang).
-  if (!_skipSelfHeal && stateLoaded && myIcon && teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
+  if (!_skipSelfHeal && stateLoaded && myIcon) {
+    if (inRemoteView()) {
+      // Remote view không còn khớp state cục bộ (phòng hết người / tên không còn trong names: admin un-join, icon giả, hoặc chỉ là snapshot cũ):
+      // đọc lại SERVER rồi mới thoát + chặn (revalidateRemoteView). Trong lúc chờ, myIcon vẫn đặt ⇒ canJoin=false ⇒ lưới KHÔNG mở lại
+      // (nếu mở: bấm join ⇒ DUP ⇒ vào lại remote view ⇒ lặp vô tận).
+      if (!rvValid(myIcon)) revalidateRemoteView();
+    } else if (teamOf(myIcon).count === 0) { myIcon = null; saveMe(); renderProfile(); }
+  }
 
   // banner đội của mình
   const bannerWrapEl = $("bannerWrap");
   if (myIcon) {
     const iconDef = byEmoji[myIcon];
-    bannerWrapEl.innerHTML = `<div class="banner" style="--c:${iconDef.color}">
+    if (inRemoteView()) {
+      // Xem đăng ký (đã chọn ở thiết bị khác): banner "Bạn đã đăng ký" + khối phòng/team + bạn cùng phòng.
+      // Chỉ hiện tên người cùng phòng (đã công khai ở teams) — không PII nào khác ngoài tên vừa nhập.
+      const L = TEXT.lookup || {};
+      const rvTeam = teamOf(myIcon);
+      let rvMe = false;
+      const rvRes = rvResolve(me.fields[DEDUP_FIELD] || me.fields.name || "", null, myIcon) || {};
+      const rvName = rvRes.name;
+      // Khớp qua tên KHÁC với tên vừa gõ (thiếu dấu / không dấu) ⇒ luôn kèm ghi chú, không để người dùng tưởng đó chắc chắn là mình.
+      const rvNote = (rvName && _dedupKey(rvName) !== _dedupKey(me.fields[DEDUP_FIELD] || me.fields.name || ""))
+        ? `<div class="bs" style="margin-top:6px">${(TEXT.lookup && TEXT.lookup.asNote) ? TEXT.lookup.asNote(esc(rvName)) : ""}</div>` : "";   // đúng TÊN đã đăng ký (so bất đối xứng, xem rvResolve): "Hùng" không tô nhầm "Hưng"
+      const mates = rvTeam.names.map((n, j) => {
+        const isMe = !rvMe && !!rvName && n === rvName;
+        if (isMe) rvMe = true;
+        return `<li class="${isMe ? "is-me" : ""}"><span class="no">${j + 1}</span>${esc(n || "—")}</li>`;
+      }).join("");
+      bannerWrapEl.innerHTML = `<div class="banner" style="--c:${iconDef.color}">
+          <span class="bi">${iconDef.icon}</span>
+          <div>
+            <div class="bt">${esc(L.title || "")}</div>
+            <div class="bs">${esc(L.note || "")}</div>
+            ${rvNote}
+          </div></div>
+        <div class="full-team mine" style="--c:${iconDef.color};margin-top:12px">
+          <div class="ft-head">
+            <span class="ti">${iconDef.icon}</span>
+            <div class="ft-meta"><div class="lab">${esc(L.room || "")}</div><div class="ft-name">${esc(splitTeam(iconDef.name).base)}</div>${teamTag(iconDef.name, "nm-team ft-team")}</div>
+            <span class="ft-badge">${rvTeam.count}/${capOf(myIcon)}</span>
+          </div>
+          <div style="font-weight:800;font-size:12.5px;color:var(--muted);margin:12px 0 6px">${esc(L.roommates || "")}</div>
+          <ol class="ft-list">${mates}</ol>
+        </div>
+        <button type="button" id="rvNotMe" style="margin-top:12px;width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;font:inherit;cursor:pointer">${esc(L.notMe || "Không phải tôi / nhập tên khác")}</button>`;
+      // Lối thoát: gõ nhầm / trùng tên người khác ⇒ thoát xem, nhập lại tên. Không mở lại quyền chọn (lookup cùng tên vẫn ra remote view).
+      // me.fields = {} ⇒ profileValid()=false ⇒ popup KHÔNG có nút Huỷ (canCancel) và lưới khoá (ready=false): nếu giữ hồ sơ cũ thì Huỷ ⇒ editing=false ⇒ lần render realtime kế tiếp mở lại 7 tile cho tên ĐÃ đăng ký.
+      $("rvNotMe").onclick = () => { remoteView = false; myIcon = null; me.fields = {}; editing = true; saveMe(); renderProfile(); renderState(); };
+    } else {
+      bannerWrapEl.innerHTML = `<div class="banner" style="--c:${iconDef.color}">
         <span class="bi">${iconDef.icon}</span>
         <div>
           <div class="bt">${TEXT.banner.title(iconDef.name)}</div>
           <div class="bs">${TEXT.banner.sub}</div>
         </div></div>`;
+    }
   } else {
     bannerWrapEl.innerHTML = "";
   }
@@ -438,7 +699,7 @@ function renderState() {
     const roomG   = roomGender(iconDef.icon);
     const gLocked = !myIcon && !!myGender && !!roomG && roomG !== myGender;
     if (!gLocked) openForMe++;
-    const canJoin = ready && !myIcon && !dupBlocked && !allowBlocked && !gLocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách / khác giới) mới được tham gia
+    const canJoin = ready && !myIcon && !inRemoteView() && !dupBlocked && !allowBlocked && !gLocked; // chưa có đội & không bị chặn (trùng / ngoài danh sách / khác giới) mới được tham gia
     const pct     = Math.round(team.count / cap * 100);
     const avatarChips = team.names.slice(0, AVATAR_PREVIEW_MAX).map(n => `<span class="mini">${esc(initial(n))}</span>`).join("")
                   + (team.count > AVATAR_PREVIEW_MAX ? `<span class="mini more">+${team.count - AVATAR_PREVIEW_MAX}</span>` : "")

@@ -11,6 +11,7 @@
 //   events/{EVENT_ID}/teams/{icon}     : { icon, count, names:[...] }      — CÔNG KHAI, chỉ TÊN (realtime)
 //   events/{EVENT_ID}/members/{pid}    : { icon, at }                      — guard 1-người-1-đội (đọc 1 doc, CẤM liệt kê)
 //   events/{EVENT_ID}/dedup_keys/{key} : { at }                           — guard chống trùng (theo DEDUP_FIELD, chỉ tồn-tại)
+//        (mỗi người 1 doc k1=_dedupKey; tên CÓ dấu ghi thêm "m~"+_foldKey nếu chưa có — chống trùng bất đối xứng, xem _dedupPlan)
 //   events/{EVENT_ID}/signups/{pid}    : { ...fields, playerId, icon?, at } — FULL hồ sơ MỌI người đã nhập thông tin
 //                                          (ghi ngay lúc điền xong, KHÔNG cần chọn đội; icon CHỈ có sau khi join). KHOÁ ĐỌC.
 // Sĩ số tối đa được ép thêm ở Security Rules (count <= CAPACITY) nên client gian lận cũng không vượt được.
@@ -59,17 +60,83 @@ function _normName(v) {
     .trim().replace(/\s+/g, " ").toUpperCase();
 }
 
+// Khoá "gấp" (fold): bỏ dấu + hoa/thường + bỏ khoảng trắng ("Lê Văn A" / "LE VAN A" → "LEVANA").
+// KHÔNG dùng để coi 2 tên CÓ dấu là cùng người ("Hùng"/"Hưng", "Lê"/"Lệ" gấp cùng khoá nhưng là người khác) — xem so BẤT ĐỐI XỨNG dưới.
+function _foldKey(v) { return _normName(v).replace(/\s+/g, ""); }
+
+// CHỐNG TRÙNG BẤT ĐỐI XỨNG theo tên (dedup_keys, giữ nguyên khoá cũ k1 = _dedupKey vì allowlist + dữ liệu production dùng nó):
+//   k1 = _dedupKey(N) (giữ dấu) ; F = _foldKey(N) ; ascii = (k1 === F) = N gõ KHÔNG dấu ; M = "m~" + F (namespace riêng, chỉ tên CÓ dấu ghi).
+//   Tiền tố "m~" có chữ thường ⇒ _dedupKey (luôn UPPER) KHÔNG BAO GIỜ trùng M: gõ "~Nguyen Van Hung" không chiếm được khoá M của "Hùng".
+//   N không dấu : coi là trùng nếu tồn tại k1 HOẶC M (đã có người tên-có-dấu gấp về F). Ghi k1.
+//   N có dấu    : coi là trùng nếu tồn tại k1 HOẶC F (F là k1 của 1 bản đăng ký KHÔNG dấu → coi cùng người). Ghi k1, và ghi M CHỈ KHI M chưa có.
+//   M tồn tại KHÔNG chặn tên có dấu ⇒ "Hùng" ≠ "Hưng", "Lê Văn A" ≠ "Lệ Vân A": cả hai đăng ký được.
+// MSNV (không dấu): k1 === F, thêm 1 read M (không bao giờ tồn tại) — vô hại.
+// Tên gõ THIẾU MỘT PHẦN dấu ("Nguyen Văn Hùng" khi đã có "Nguyễn Văn Hùng") KHÔNG có doc nào bắt (k1 khác, F không có) ⇒ chốt MỀM ở FE
+// dựa trên teams[*].names công khai (softCands/softConfirm + _markSubset, hộp xác nhận ở ui-render.js) — xem ghi chú ở đó.
+function _dedupPlan(v) {
+  const k1 = _dedupKey(v), F = _foldKey(v);
+  return { k1, F, ascii: k1 === F, M: F ? "m~" + F : "" };
+}
+// Các doc dedup_keys cần đọc để biết "đã có người trùng chưa" (không gồm M của tên có dấu). Trả {k1, other:{kind:"f"|"m", key}|null}.
+function _dedupReadKeys(v) {
+  const pl = _dedupPlan(v);
+  if (!pl.k1) return null;
+  if (pl.ascii) return { k1: pl.k1, other: pl.M ? { kind: "m", key: pl.M } : null };
+  return { k1: pl.k1, other: pl.F ? { kind: "f", key: pl.F } : null };
+}
+// Đọc doc dedup_keys cho 1 giá trị → { found, icon, hit:{k1,f,m} }. icon ưu tiên doc k1 (chính người này), rồi doc còn lại.
+async function _readDedup(v) {
+  const rk = _dedupReadKeys(v);
+  if (!rk) return { found: false, icon: null, hit: { k1: false, f: false, m: false } };
+  const [s1, s2] = await Promise.all([col(COL.DEDUP_KEYS).doc(rk.k1).get(), rk.other ? col(COL.DEDUP_KEYS).doc(rk.other.key).get() : Promise.resolve(null)]);
+  return _dedupResult(s1, s2, rk.other && rk.other.kind);
+}
+function _dedupResult(s1, s2, kind) {
+  const e1 = !!(s1 && s1.exists), e2 = !!(s2 && s2.exists);
+  const ic = sn => (sn && sn.exists ? ((sn.data() || {}).icon || null) : null);
+  return { found: e1 || e2, icon: ic(s1) || ic(s2) || null, hit: { k1: e1, f: kind === "f" && e2, m: kind === "m" && e2 } };
+}
+// Tách chuỗi (đã _dedupKey: NFC, HOA, bỏ khoảng trắng) thành từng chữ = {chữ gốc, tập dấu kết hợp U+0300..U+036F}. Đ/đ = gốc "D" + dấu "stroke" riêng
+// (NFD không tách được đ). Dùng cho _markSubset.
+function _markLetters(v) {
+  const out = [];
+  for (const ch of _dedupKey(v)) {
+    const d = ch.normalize("NFD");
+    const marks = new Set(Array.from(d).slice(1));
+    let base = Array.from(d)[0];
+    if (ch === "Đ") { base = "D"; marks.add("stroke"); }
+    out.push({ base, marks });
+  }
+  return out;
+}
+// typed có phải bản "gõ thiếu dấu" của cand không: cùng dãy chữ gốc (tức _foldKey bằng nhau) VÀ ở MỌI vị trí tập dấu của typed ⊆ tập dấu của cand.
+// "Nguyen Văn Hùng" ⊆ "Nguyễn Văn Hùng" ; "Nguyễn Văn Hưng" ⊄ "Nguyễn Văn Hùng" (u: móc ≠ huyền) ; "Dang" ⊆ "Đặng" ; "Đang" ⊄ "Dặng".
+function _markSubset(typed, cand) {
+  const a = _markLetters(typed), b = _markLetters(cand);
+  if (!a.length || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].base !== b[i].base) return false;
+    for (const m of a[i].marks) if (!b[i].marks.has(m)) return false;
+  }
+  return true;
+}
+// Demo (localStorage): 2 giá trị là CÙNG người? Cùng k1; hoặc cùng F mà một bên có dấu, một bên không dấu (bất đối xứng, như firebase).
+function _sameDedup(a, b) {
+  const pa = _dedupPlan(a), pb = _dedupPlan(b);
+  if (!pa.k1 || !pb.k1) return false;
+  if (pa.k1 === pb.k1) return true;
+  return pa.F === pb.F && pa.ascii !== pb.ascii;
+}
+
 // Kiểm tra NHANH một giá trị dedup (vd MSNV) ĐÃ được đăng ký chưa — để CHẶN NGAY ở cổng vào
 // (trước khi cho chọn đội), không đợi tới lúc claim. Chỉ đọc 1 doc dedup_keys (rules cho phép get).
 // Trả false khi: không bật chống trùng / không firebase / lỗi mạng → KHÔNG chặn nhầm
 // (transaction trong apiClaim vẫn là tuyến chặn cuối, an toàn trước tranh chấp).
 async function apiDedupTaken(value) {
   if (MODE !== MODE_FIREBASE || !BLOCK_DUP || !DEDUP_FIELD) return false;
-  const key = _dedupKey(value);
-  if (!key) return false;
+  if (!_dedupKey(value)) return false;
   try {
-    const snap = await col(COL.DEDUP_KEYS).doc(key).get();
-    return snap.exists;
+    return (await _readDedup(value)).found;       // k1 + (F nếu tên có dấu | M nếu tên không dấu) — xem _dedupPlan
   } catch (e) {
     return false;
   }
@@ -122,6 +189,18 @@ async function apiRegReserve(value) {
   }
 }
 
+// Nhả chỗ giữ tiền-join của CHÍNH MÌNH nếu đang giữ đúng khoá của `value` (xoá reg_keys/{key} + RESERVED_KEY). Dùng khi người dùng xác nhận
+// "tôi là <tên đã đăng ký>" ở hộp xác nhận tên gần giống: tên vừa gõ chỉ là bản gõ sai của người đã đăng ký, chỗ giữ cũ (profiled) không được
+// tiếp tục chặn người có tên thật đó ở apiRegReserve/apiRegTaken. Best-effort.
+async function apiRegRelease(value) {
+  if (MODE !== MODE_FIREBASE) return;
+  const key = _dedupKey(value);
+  if (!key) return;
+  if ((await sGet(SK.RESERVED_KEY, false)) !== key) return;
+  try { await col(COL.REG_KEYS).doc(key).delete(); } catch (e) {}
+  await sDel(SK.RESERVED_KEY, false);
+}
+
 // Cổng VÀO TRANG: MSNV đã có HỒ SƠ THẬT (profiled) của người KHÁC chưa? (chỗ của mình ⇒ không chặn; hold
 // "trần" {at} chưa profiled = đặt-chỗ bỏ dở ⇒ KHÔNG chặn — bịt "kẹt reg_keys"). Chỉ đọc 1 doc reg_keys.
 // Bịt lỗ "bị chặn ở save() rồi reload để vào lưới": người bị chặn không có reservedKey ⇒ vẫn bị chặn ở cổng.
@@ -136,6 +215,33 @@ async function apiRegTaken(value) {
     return snap.exists && (snap.data() || {}).profiled === true;   // chỉ chặn khi ĐÃ có hồ sơ thật (profiled)
   } catch (e) {
     return false;
+  }
+}
+
+// Tra cứu "đăng ký của tôi" xuyên thiết bị: từ giá trị dedup (họ tên/MSNV theo DEDUP_FIELD) → đội đã vào.
+// Firebase: đọc 1 doc dedup_keys/{khoá} (rules cho get). {found, icon}: icon = null nếu doc cũ chưa lưu icon
+// (join trước khi bật DEDUP_STORE_ICON → cần backfill). Lỗi mạng/rules ⇒ {found:false, error:true}.
+// Demo: suy ra từ claims cục bộ để harness chạy được. Sheet: không hỗ trợ ⇒ {found:false}.
+async function apiLookupRegistration(dedupVal) {
+  if (!_dedupKey(dedupVal)) return { found: false };
+  if (MODE === MODE_FIREBASE) {
+    try {
+      return await _readDedup(dedupVal);          // {found, icon, hit:{k1,f,m}} — FE kiểm chứng phòng bằng teams.names (rvResolve)
+    } catch (e) {
+      return { found: false, error: true };
+    }
+  }
+  if (MODE === MODE_SHEET || !DEDUP_FIELD) return { found: false };
+  try {
+    const obj = JSON.parse(await sGet(SK.CLAIMS, true) || "{}");
+    for (const ic in obj) {
+      for (const m of obj[ic]) {
+        if (_sameDedup(m[DEDUP_FIELD] || "", dedupVal)) return { found: true, icon: ic };   // demo: so bất đối xứng
+      }
+    }
+    return { found: false };
+  } catch (e) {
+    return { found: false, error: true };
   }
 }
 
@@ -161,9 +267,9 @@ async function apiAllowlistInfo(value) {
 // Tiện ích boolean cho cổng vào lúc tải trang (chỉ cần biết được/không) — tái dùng apiAllowlistInfo.
 async function apiAllowlistAllowed(value) { return (await apiAllowlistInfo(value)).allowed; }
 
-async function apiState() {
+async function apiState(fresh) {
   if (MODE === MODE_FIREBASE) {
-    const snap  = await col(COL.TEAMS).get();
+    const snap  = await col(COL.TEAMS).get(fresh ? { source: "server" } : undefined);   // fresh=true: bắt buộc đọc từ SERVER (không lấy cache/listener trễ) — dùng để kiểm chứng trước khi chặn
     const teams = {};
     snap.forEach(d => { const v = d.data(); teams[v.icon] = { count: v.count || 0, names: v.names || [] }; });
     return teams;
@@ -268,20 +374,34 @@ async function apiClaim(payload) {
       const teamRef   = col(COL.TEAMS).doc(icon);              // col() = events/{EVENT_ID}/<name>
       const memberRef = col(COL.MEMBERS).doc(pid);             // guard 1-người-1-đội (chỉ {icon})
       const signupRef = col(COL.SIGNUPS).doc(pid);             // full hồ sơ — KHOÁ đọc
-      const dedupRef  = dedupVal
-        ? col(COL.DEDUP_KEYS).doc(_dedupKey(dedupVal)) : null; // guard chống trùng (theo DEDUP_FIELD)
+      const plan      = dedupVal ? _dedupPlan(dedupVal) : null;
+      const dedupRef  = plan && plan.k1
+        ? col(COL.DEDUP_KEYS).doc(plan.k1) : null;             // guard chống trùng (theo DEDUP_FIELD)
+      const foldRef   = plan && plan.k1 && !plan.ascii && plan.F
+        ? col(COL.DEDUP_KEYS).doc(plan.F) : null;              // tên CÓ dấu: bản đăng ký KHÔNG dấu (k1 của nó == F) ⇒ coi là cùng người
+      const mRef      = plan && plan.k1 && plan.M
+        ? col(COL.DEDUP_KEYS).doc(plan.M) : null;              // "~F": tên có dấu GHI (nếu chưa có); tên không dấu ĐỌC để chặn
       const allowRef  = allowVal
         ? col(COL.ALLOWLIST).doc(_dedupKey(allowVal)) : null;  // danh sách cho phép (chỉ khi ALLOWLIST_MODE)
 
       // Firestore: mọi lệnh ĐỌC phải xong trước mọi lệnh GHI
-      const [teamSnap, memberSnap, dedupSnap, allowSnap] = await Promise.all([
+      const [teamSnap, memberSnap, dedupSnap, foldSnap, mSnap, allowSnap] = await Promise.all([
         tx.get(teamRef), tx.get(memberRef),
         dedupRef ? tx.get(dedupRef) : Promise.resolve(null),
+        foldRef  ? tx.get(foldRef)  : Promise.resolve(null),
+        mRef     ? tx.get(mRef)     : Promise.resolve(null),
         allowRef ? tx.get(allowRef) : Promise.resolve(null),
       ]);
       // full/already/dup/notAllowed là kết quả TRẢ VỀ (không ném) → vòng retry bên dưới KHÔNG lặp lại chúng.
-      if (pid && memberSnap.exists)   return { ok: false, reason: REASON.ALREADY };          // 1 người chỉ 1 đội
-      if (dedupSnap && dedupSnap.exists)    return { ok: false, reason: REASON.DUP };
+      // Trả kèm `icon` (đội đã vào) từ snapshot ĐÃ ĐỌC để UI hiện thẳng đội/phòng — không thêm read. DUP: chỉ có
+      // khi dedup_keys được ghi với DEDUP_STORE_ICON (doc cũ chỉ {at} ⇒ null).
+      if (pid && memberSnap.exists)   return { ok: false, reason: REASON.ALREADY, icon: (memberSnap.data() || {}).icon || null };   // 1 người chỉ 1 đội
+      if (plan) {
+        // Trùng bất đối xứng (xem _dedupPlan): không dấu ⇒ k1 | M ; có dấu ⇒ k1 | F. Trả kèm `hit` để FE biết nhánh nào (rvResolve).
+        const other = plan.ascii ? mSnap : foldSnap;
+        if ((dedupSnap && dedupSnap.exists) || (other && other.exists)) {
+          const r = _dedupResult(dedupSnap, other, plan.ascii ? "m" : "f"); return { ok: false, reason: REASON.DUP, icon: r.icon, hit: r.hit }; }
+      }
       if (allowRef && !allowSnap.exists) return { ok: false, reason: REASON.NOT_ALLOWED };   // ngoài danh sách cho phép
       // ĐỐI CHIẾU HỌ TÊN — dùng dữ liệu `allowSnap` ĐÃ ĐỌC ở trên (KHÔNG thêm lệnh đọc, KHÔNG đổi thứ tự đọc-ghi,
       // KHÔNG đụng vòng retry). Chỉ chặn khi BẬT cờ ALLOWLIST_NAMECHECK & dòng CÓ lưu tên & tên nhập lệch
@@ -306,7 +426,11 @@ async function apiClaim(payload) {
       const at = firebase.firestore.FieldValue.serverTimestamp();
       tx.set(teamRef,   { icon, count: count + 1, names: names.concat(name) }, { merge: true });
       tx.set(memberRef, { icon, at });                                           // guard: chỉ tên đội (đọc được)
-      if (dedupRef) tx.set(dedupRef, { at });                                    // guard: chỉ tồn-tại
+      const dedupDoc = DEDUP_STORE_ICON ? { at, icon } : { at };                 // guard: tồn-tại (+ tên đội khi bật cờ; icon không phải PII)
+      if (dedupRef) tx.set(dedupRef, dedupDoc);
+      // M chỉ do tên CÓ dấu ghi, và CHỈ khi chưa có (rules update:false ⇒ set lên doc sẵn có bị từ chối). Hai tên có dấu cùng F
+      // ("Hùng"/"Hưng") đua nhau tạo M: tx thua retry, thấy M đã có ⇒ bỏ qua ghi M ⇒ cả hai đều thành công.
+      if (mRef && !plan.ascii && !(mSnap && mSnap.exists)) tx.set(mRef, dedupDoc);
       tx.set(signupRef, { ...fields, playerId: pid, icon, at }, { merge: true });     // PII: merge để GIỮ hồ sơ đã ghi lúc điền xong, chỉ gắn thêm icon
       return { ok: true };
     });
@@ -344,11 +468,11 @@ async function apiClaim(payload) {
   // demo: áp luật đội y như backend (1 token 1 đội, tối đa CAPACITY, chặn trùng theo DEDUP_FIELD)
   const obj      = JSON.parse(await sGet(SK.CLAIMS, true) || "{}");
   const fields   = payload.fields || {};
-  const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? _dedupKey(fields[DEDUP_FIELD] || "") : "";
+  const dedupVal = (BLOCK_DUP && DEDUP_FIELD) ? String(fields[DEDUP_FIELD] || "") : "";   // demo: so bất đối xứng (_sameDedup), khớp backend firebase
   for (const ic in obj) {
     for (const m of obj[ic]) {
-      if (m.pid && m.pid === payload.playerId) return { ok: false, reason: REASON.ALREADY };
-      if (dedupVal && _dedupKey(m[DEDUP_FIELD] || "") === dedupVal) return { ok: false, reason: REASON.DUP };
+      if (m.pid && m.pid === payload.playerId) return { ok: false, reason: REASON.ALREADY, icon: ic };
+      if (dedupVal && _sameDedup(m[DEDUP_FIELD] || "", dedupVal)) return { ok: false, reason: REASON.DUP, icon: ic };
     }
   }
   // Danh sách cho phép (demo) — SAU already/dup, TRƯỚC full (khớp thứ tự nhánh firebase). Demo không có

@@ -28,9 +28,10 @@ async function doClaim(iconDef) {
   toast(TEXT.toast.saving, true);                // toast dính: apiClaim có thể retry vài giây
   let joined = false;   // join OK ⇒ nhánh tự quản hoãn-render & nhả-khoá → finally BỎ QUA
   try {
-    const res = await apiClaim({ icon: iconDef.icon, playerId: me.id, fields: me.fields });
+    const res = (await softClaimGate()) || await apiClaim({ icon: iconDef.icon, playerId: me.id, fields: me.fields });   // softClaimGate: tên gõ-thiếu-dấu khớp người đã đăng ký ⇒ KHÔNG gọi claim
     if (res && res.ok) {
       myIcon = iconDef.icon;
+      remoteView = false;       // tự chọn tại máy này ⇒ không phải chế độ xem
       _skipSelfHeal = true;
       await saveMe();
       // Vẽ lưới/banner về trạng thái ĐÃ KHOÁ *trước* khi mở popup: lúc này chưa có lớp
@@ -58,8 +59,21 @@ async function doClaim(iconDef) {
     } else {
       const reason = res && res.reason;
       if      (reason === REASON.FULL)      toast(TEXT.toast.full(iconDef.name, capOf(iconDef.icon)));
-      else if (reason === REASON.ALREADY)   toast(TEXT.toast.already);
-      else if (reason === REASON.DUP)     { dupBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.dup(labelOf(DEDUP_FIELD))); }   // thua đua join → dọn signup trùng của mình
+      else if (reason === REASON.ALREADY)   {
+        // pid này ĐÃ là thành viên (nguồn chuẩn: members/{pid}) nhưng máy quên → KHÔI PHỤC myIcon theo icon server trả,
+        // vẽ lại như đã join (lưới khoá + banner) thay vì chỉ báo toast rồi để lưới mở.
+        const aIcon = lookupIcon(res);
+        if (aIcon) { myIcon = aIcon; remoteView = false; await saveMe(); }
+        toast(TEXT.toast.already);
+      }
+      else if (reason === REASON.DUP)     {
+        // thua đua join / mã đã dùng ở thiết bị khác. Có icon ⇒ người này ĐÃ đăng ký → vào chế độ XEM đăng ký (không cho chọn lại);
+        // không icon (doc dedup cũ chưa backfill) ⇒ chặn như cũ. Cả hai đều dọn signup trùng của pid này.
+        if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+        const rr = res.soft || await resolveReg(res);   // đối chiếu teams.names từ server (bất đối xứng, xem rvResolve); res.soft = kết quả cổng mềm
+        if (rr.mode === "room") { await enterRemoteView(rr.icon); toast((TEXT.lookup && TEXT.lookup.note) || TEXT.toast.already); }
+        else       { blockDupWith(rr); toast(TEXT.toast.dup(labelOf(DEDUP_FIELD))); }
+      }
       else if (reason === REASON.NOT_ALLOWED) { allowBlocked = true; if (typeof apiRemoveProfile === "function") apiRemoveProfile(me.id); toast(TEXT.toast.notAllowed); }   // ngoài danh sách → bật cổng chặn + dọn hồ sơ (renderProfile bên dưới hiện modal)
       else if (reason === REASON.NAME_MISMATCH) { editing = true; toast(TEXT.toast.nameMismatch); }   // tên lệch danh sách → mở lại popup để sửa (renderProfile cuối doClaim)
       else if (reason === REASON.GENDER_MISMATCH) toast(TEXT.toast.genderMismatch(roomGender(iconDef.icon)));   // phòng khác giới (theo danh sách) → báo rõ; lưới đã khoá sẵn nên hiếm khi tới đây
@@ -88,7 +102,7 @@ function computeSig() {
   const teamsSig = Object.keys(state).sort()
     .map(ic => ic + ":" + state[ic].count + ":" + (state[ic].names || []).join(","))
     .join("|");
-  return teamsSig + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0) + "|" + (stateLoaded ? 1 : 0);
+  return teamsSig + "||" + (myIcon || "") + "|" + (editing ? 1 : 0) + "|" + (profileComplete() ? 1 : 0) + "|" + (stateLoaded ? 1 : 0) + "|" + (inRemoteView() ? 1 : 0);
 }
 function renderStateIfChanged(force) {
   const sig = computeSig();
@@ -105,12 +119,12 @@ async function refresh(force) {
 async function loadMe() {
   try {
     const raw = await sGet(SK.ME, false);
-    if (raw) { const saved = JSON.parse(raw); me = saved.me || me; myIcon = saved.myIcon || null; }
+    if (raw) { const saved = JSON.parse(raw); me = saved.me || me; myIcon = saved.myIcon || null; remoteView = !!(saved.remoteView && myIcon); }
   } catch (e) {}
 }
 
 async function saveMe() {
-  await sSet(SK.ME, JSON.stringify({ me, myIcon }), false);
+  await sSet(SK.ME, JSON.stringify({ me, myIcon, remoteView: inRemoteView() }), false);
 }
 
 // ── Hàm init(): chạy SAU KHI boot() đã nạp xong config từ Firestore ──────────
@@ -126,6 +140,8 @@ async function init() {
     const seenEpoch = Number(await sGet(SK.DATA_EPOCH, false)) || 0;
     if (DATA_EPOCH > seenEpoch) {
       myIcon = null;                          // đội cũ đã bị xóa ⇒ bỏ chọn (người dùng chọn lại)
+      remoteView = false;
+      delete me.softNo;                       // câu trả lời "Không" của hộp xác nhận tên gần giống cũng lỗi thời (roster mới)
       me.fields = {};                         // xóa hồ sơ cũ (MSNV/tên) ⇒ profileComplete()=false ⇒ hiện form nhập lại
       await sDel(SK.RESERVED_KEY, false);     // nhả chỗ giữ cũ ⇒ apiRegReserve sẽ TẠO LẠI khóa thật trên server
       await saveMe();
@@ -142,7 +158,18 @@ async function init() {
   // myIcon → tránh lọt xuống cổng dedup, bị coi là "trùng" rồi apiRemoveProfile XÓA NHẦM signup của thành viên
   // thật (ca 3549). undefined (mạng lỗi/demo) ⇒ KHÔNG đụng. Lưu _serverMember để cổng dưới không xóa PII member.
   let _serverMember;   // undefined=chưa rõ/lỗi mạng ; null=KHÔNG ở đội ; {icon}=đang ở đội
-  if (MODE === MODE_FIREBASE && me.id && (myIcon || profileComplete()) && typeof apiMyMembership === "function") {
+  if (MODE === MODE_FIREBASE && inRemoteView() && DEDUP_FIELD && typeof apiLookupRegistration === "function") {
+    // CHẾ ĐỘ XEM ĐĂNG KÝ: pid máy này thường KHÔNG có members/{pid}. NHƯNG nếu members/{pid} CÓ (lần trước gặp lỗi mạng nên lỡ vào
+    // remote view khi máy là member thật) ⇒ thoát remote view, khôi phục member bình thường (để không kẹt vĩnh viễn ở chế độ xem).
+    const mem = typeof apiMyMembership === "function" ? await apiMyMembership(me.id) : undefined;
+    if (mem && mem.icon) { remoteView = false; myIcon = mem.icon; _serverMember = mem; await saveMe(); }
+    else {
+      // Xác minh bằng dedup_keys theo họ tên: CHỈ nhả khi server nói rõ KHÔNG còn (found===false) và không lỗi mạng.
+      const rv = await apiLookupRegistration(me.fields[DEDUP_FIELD]);
+      if (rv && rv.found === false && !rv.error) { myIcon = null; remoteView = false; await saveMe(); }          // admin đã gỡ/xoá ⇒ cho chọn lại
+      // (đổi phòng / tên không còn trong names: renderState → revalidateRemoteView đọc lại server rồi chuyển phòng hoặc chặn)
+    }
+  } else if (MODE === MODE_FIREBASE && me.id && (myIcon || profileComplete()) && typeof apiMyMembership === "function") {
     _serverMember = await apiMyMembership(me.id);
     if (_serverMember === null) {
       if (myIcon) { myIcon = null; await saveMe(); }                                       // bị gỡ ⇒ bỏ chọn
@@ -154,11 +181,28 @@ async function init() {
   // CỔNG chống trùng NGAY KHI VÀO TRANG: đã có hồ sơ nhưng CHƯA vào đội & MSNV đã đăng ký rồi
   // → chặn vào lưới chọn linh thú (kể cả khi đăng ký ở thiết bị khác). apiClaim vẫn là chốt cuối.
   // Hai lớp: dedup_keys (đã JOIN) HOẶC reg_keys (đã GIỮ CHỖ lúc điền form, không phải chỗ của mình).
+  // XUYÊN THIẾT BỊ: tra dedup_keys TRƯỚC (kèm icon). Đã đăng ký ở máy khác + biết icon ⇒ vào chế độ XEM đăng ký
+  // (không đặt-chỗ, không ghi hồ sơ, không cho chọn lại). Có doc nhưng chưa có icon ⇒ chặn như cũ. Lỗi/không hỗ trợ ⇒ luồng cũ.
   if (MODE === MODE_FIREBASE && !myIcon && profileComplete() && BLOCK_DUP && DEDUP_FIELD) {
-    if (typeof apiDedupTaken === "function")
-      dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
-    if (!dupBlocked && typeof apiRegTaken === "function")
-      dupBlocked = await apiRegTaken(me.fields[DEDUP_FIELD]);
+    let looked = null;
+    if (typeof apiLookupRegistration === "function") looked = await apiLookupRegistration(me.fields[DEDUP_FIELD]);
+    // Chỉ vào remote view khi server nói rõ pid này KHÔNG phải member (_serverMember===null) VÀ icon được kiểm chứng bằng teams.names.
+    // _serverMember===undefined (lỗi mạng) ⇒ không đoán: rơi xuống chặn như cũ, tránh kẹt remote view khi máy là member thật.
+    let rr = (looked && looked.found && _serverMember === null) ? await resolveReg(looked) : null;
+    // Chốt MỀM gõ-thiếu-dấu: chưa có doc trùng nhưng tên gần giống 1 tên đã đăng ký ⇒ HỎI bằng hộp xác nhận (softConfirm) — chỉ khi pid KHÔNG phải member (null); lỗi mạng ⇒ fail-open.
+    if (!rr && looked && !looked.found && !looked.error && _serverMember === null) rr = await softConfirm();
+    if (rr && rr.mode === "room") {
+      await enterRemoteView(rr.icon);
+      // Khối đồng bộ hồ sơ bên dưới bị bỏ qua ở remote view ⇒ tự dọn signup mồ côi của pid máy này (cùng guard khối dupBlocked: CHỈ khi server trả null).
+      if (_serverMember === null && typeof apiRemoveProfile === "function") apiRemoveProfile(me.id);
+    } else if ((looked && looked.found) || (rr && rr.mode !== "room")) {
+      blockDupWith(rr);                                                    // không xác định được phòng (doc cũ/giả, tên không dấu mơ hồ, đã có bản không dấu…) ⇒ chặn
+    } else {
+      if ((!looked || looked.error) && typeof apiDedupTaken === "function")   // lookup không dùng được ⇒ đường cũ
+        dupBlocked = await apiDedupTaken(me.fields[DEDUP_FIELD]);
+      if (!dupBlocked && typeof apiRegTaken === "function")
+        dupBlocked = await apiRegTaken(me.fields[DEDUP_FIELD]);
+    }
   }
 
   // CỔNG danh sách cho phép NGAY KHI VÀO TRANG: bật allowlist & MSNV KHÔNG nằm trong danh sách
@@ -178,7 +222,8 @@ async function init() {
   // Đồng bộ hồ sơ lên server để admin có data (kể cả CHƯA chọn đội). NHƯNG nếu bị chặn (trùng MSNV
   // hoặc ngoài danh sách cho phép) thì KHÔNG lưu — và DỌN bản ghi của mình nếu đã lỡ lưu ở phiên
   // trước. Khớp với cổng chặn ở save()/doClaim.
-  if (MODE === MODE_FIREBASE && profileComplete()) {
+  // Chế độ xem đăng ký (inRemoteView) ⇒ BỎ QUA hẳn khối này: không apiRegReserve / apiSaveProfile / apiRemoveProfile.
+  if (MODE === MODE_FIREBASE && profileComplete() && !inRemoteView()) {
     if (dupBlocked || allowBlocked) {
       // CHỐNG XÓA NHẦM PII (2026-06-19): chỉ dọn signup khi CHẮC CHẮN không phải member thật (server trả null).
       // Đang là member (_serverMember.icon) hoặc CHƯA RÕ (undefined/lỗi mạng) ⇒ GIỮ signup. Ca 3549: dedup của
