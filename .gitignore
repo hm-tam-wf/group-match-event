@@ -28,3 +28,6 @@ btc-data/
 
 # Đầu ra của bộ test (log emulator, kết quả JSON, bản admin dựng tạm, ảnh smoke) — không commit
 tests/.out/
+
+# Site admin riêng dựng tự động trước khi deploy (backend/scripts/build-admin-site.js, predeploy trong firebase.json)
+hosting-admin/

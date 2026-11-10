@@ -12,29 +12,31 @@ Người chơi chỉ cần **nhập họ tên**. Hệ thống tự tra giới t�
 
 ---
 
-## Cách nhanh — điền file mẫu rồi chạy 1 lệnh
+## Cách nhanh — nạp 1 file mẫu ngay trong admin
 
-File mẫu (tên giả): `sample-allowlist/tnt-mau-nhap-lieu.xlsx` (có sheet "Hướng dẫn" bên trong).
-**Dữ liệu thật** của BTC để ở thư mục `btc-data/` — thư mục này KHÔNG đưa lên git vì repo GitHub đang public
-(có họ tên nhân sự). File đã điền sẵn: `btc-data/tnt-nhap-lieu.xlsx` — script dùng file này mặc định.
+1. Tạo sự kiện (hoặc **Nhân bản** sự kiện TNT cũ) theo **Bước 2** bên dưới — chỉ cần tên, ô `name`, chống trùng theo `name`,
+   tích **Danh sách cho phép** + **Chia phòng theo giới tính**. Phòng chưa cần nhập tay.
+2. Vào trang **Danh sách cho phép** → chọn đúng **Sự kiện** → khung **Nạp Nhân sự + Phòng từ file mẫu** → **Tải file mẫu**
+   (file sinh theo sự kiện, sheet Phòng điền sẵn các phòng đang có, có sheet "Hướng dẫn").
+3. Điền file:
+   - **Sheet "Nhân sự"**: `NAME` | `Gender` | `Phòng`. Cột **Phòng** để trống = người đó tự chọn trên web; ghi **số thứ tự phòng**
+     (1, 2, 3…) = BTC xếp sẵn (người được xếp sẵn không cần vào web — tên họ hiện luôn trong "Danh sách roommate").
+   - **Sheet "Phòng"**: `STT` | `Tên phòng` | `Số giường` | `Giới tính` (Nam/Nữ, trống = phòng chung) | `Team` (tuỳ chọn — hiện thành
+     "Phòng 1 · Team 1") | `Emoji` (tuỳ chọn). Có sheet này thì **thay toàn bộ danh sách phòng** của sự kiện; không muốn đổi phòng thì xoá sheet.
+4. **Chọn file mẫu đã điền** → admin xem trước: số người Nam/Nữ, bảng phòng, số giường, **lỗi từng dòng** (trùng tên, sai giới,
+   xếp quá số giường, phòng sai…). Hết lỗi mới bấm được:
+   - lần đầu: **Xoá cũ & nạp mới** (ghi xong danh sách mới rồi mới xoá tên cũ không còn trong file);
+   - bổ sung người sau này: **Nạp thêm** (giữ người cũ);
+   - có cột Phòng và muốn BTC xếp sẵn: tích **Xếp sẵn** → **Xoá cũ & nạp mới + xếp sẵn** (XOÁ toàn bộ đăng ký hiện có, phải gõ lại ID sự kiện).
+5. Phòng **đang có người** phải giữ đúng emoji trong sheet Phòng (file mẫu đã điền sẵn) — sai thì admin không cho nạp.
 
-- **Sheet "Nhân sự"** (phải là sheet đầu): `NAME` | `Gender` | `Phòng`.
-  Cột **Phòng** để trống = người đó tự chọn trên web; ghi **số thứ tự phòng** (1, 2, 3…) = BTC xếp sẵn.
-  Người được xếp sẵn không cần vào web — tên họ hiện luôn trong "Danh sách roommate".
-- **Sheet "Phòng"**: `STT` | `Tên phòng` | `Số giường` | `Giới tính` (Nam/Nữ, trống = phòng chung) | `Team` (tuỳ chọn — hiện thành "Phòng 1 · Team 1") | `Emoji` (tuỳ chọn).
+File mẫu tên giả trong repo: `sample-allowlist/tnt-mau-nhap-lieu.xlsx`. **Dữ liệu thật** của BTC để ở `btc-data/` (KHÔNG đưa lên git
+vì repo GitHub public — có họ tên nhân sự), ví dụ `btc-data/tnt-nhap-lieu.xlsx`.
 
-Chạy trong thư mục dự án (cần file `serviceAccountKey.json` ở thư mục gốc):
+> Script cũ `backend/scripts/tnt-import.js` vẫn còn (tạo sự kiện mới thẳng từ file bằng service account, `--apply`), chỉ dùng khi không
+> vào được admin: `node backend/scripts/tnt-import.js --file "<file.xlsx>"` (kiểm tra) rồi thêm `--apply --open` (tạo + mở).
 
-```
-node backend/scripts/tnt-import.js --file "đường-dẫn-file.xlsx"                 ← chỉ KIỂM TRA, không ghi gì
-node backend/scripts/tnt-import.js --file "đường-dẫn-file.xlsx" --apply --open  ← tạo sự kiện + mở luôn
-```
-
-Lệnh kiểm tra in ra danh sách phòng, số người, số giường và mọi lỗi (trùng tên, sai giới, xếp quá số giường,
-thiếu giường…). Hết lỗi mới chạy `--apply`. Sự kiện mặc định có ID `mini-outing-2026` (đổi bằng `--event <id>`);
-nếu ID đã tồn tại thì script dừng, không ghi đè. Làm xong có thể chỉnh tiếp trong admin như bình thường.
-
-Muốn làm tay trong admin thì theo các bước dưới.
+Muốn làm từng bước tay trong admin thì theo các bước dưới.
 
 ## Bước 1 — Chuẩn bị file Excel
 
@@ -72,16 +74,21 @@ Vào admin → đăng nhập → trong **Danh sách sự kiện**, bấm **Sửa
 
 ## Bước 3 — Nạp danh sách nhân sự
 
+Cách gọn nhất là file mẫu Nhân sự + Phòng (mục **Cách nhanh** ở trên — nạp cả phòng lẫn người, có xem trước + lỗi từng dòng).
+Chỉ có danh sách người (không đổi phòng) thì dùng khung **Nhập từ Excel**:
+
 1. Chuyển sang tab **Danh sách cho phép** → chọn đúng **Sự kiện**.
 2. Chọn file Excel. Hệ thống tự nhận cột `NAME` và `Gender`, rồi báo số người Nam / Nữ / trống.
-3. Lần đầu: bấm **Xoá cũ & nạp mới**. Bổ sung thêm người sau này: bấm **Nhập (thêm vào danh sách)**.
+3. Lần đầu: bấm **Xoá cũ & nạp mới** (ghi xong danh sách mới rồi mới xoá tên cũ). Bổ sung thêm người sau này: bấm **Nhập thêm**.
    Nếu file có cột **Phòng** (xếp sẵn): tích **Chia đội** rồi bấm **Xoá cũ & nạp mới + chia đội**.
    Số trong cột Phòng = thứ tự phòng trong "Danh sách đội" của sự kiện (dòng 1 = phòng 1…).
 4. Sửa nhanh 1 người (sai tên / sai giới): dùng ô thêm/sửa 1 dòng ngay trong tab này.
+5. Người đã chọn phòng mà cần chuyển / gỡ / xoá: trang **Đăng ký** → nút `⋯` ở dòng người đó.
 
 ## Bước 4 — Mở sự kiện
 
 Trong **Danh sách sự kiện**, bấm **Mở** ở sự kiện TNT. Chỉ 1 sự kiện được mở tại một thời điểm.
+Admin kiểm tra trước khi mở: giờ đóng đã qua, danh sách cho phép đang trống, thiếu ô `name`… ⇒ báo lỗi, chưa cho mở (nút **Sửa sự kiện**).
 
 ## Bước 5 — Kiểm tra thử
 
@@ -107,5 +114,6 @@ Trong **Danh sách sự kiện**, bấm **Mở** ở sự kiện TNT. Chỉ 1 s�
 
 - **Firebase Hosting**: link chính **https://pickyourgroup.web.app** (link cũ `pickyoursquad-faraday.web.app` tự chuyển sang).
   Cập nhật sau khi push code: chạy ở thư mục dự án `firebase deploy --only hosting`.
-- **Tắt giao diện TNT** sau sự kiện: trong `fe/js/config/theme.js` đổi `DEFAULT_VARIANT = 'tnt'` thành
-  `DEFAULT_VARIANT = ''`, commit + push (và deploy Firebase nếu dùng).
+- **Giao diện TNT theo từng sự kiện**: sửa sự kiện → tab **Nhận diện** → **Giao diện** = "TNT · Mini Outing" hoặc "Theme gốc"
+  (lưu vào hồ sơ sự kiện, không cần sửa code). `DEFAULT_VARIANT` trong `fe/js/config/theme.js` chỉ còn áp cho sự kiện cũ chưa có hồ sơ.
+- Hướng dẫn admin đầy đủ (tab Nhận diện, file mẫu, thao tác từng người, quản trị viên, site admin riêng): `documentation/ADMIN.md`.
