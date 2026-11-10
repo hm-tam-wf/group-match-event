@@ -257,6 +257,15 @@
 
     <div class="drawer-body">
      <div class="dpane" id="dpCfg" role="tabpanel" aria-labelledby="dtabCfg">
+      <!-- Chỉ hiện khi Nhân bản: chép kèm dữ liệu cấu hình phụ (KHÔNG chép dữ liệu đăng ký) -->
+      <fieldset class="fs" id="fsClone" hidden>
+        <legend>Nhân bản</legend>
+        <label class="switch"><input type="checkbox" id="fCloneAllow" checked /><span class="switch-ui" aria-hidden="true"></span>
+          <span>Chép kèm Danh sách cho phép <b id="fCloneAllowN"></b></span></label>
+        <label class="switch" id="fCloneHomeWrap" hidden><input type="checkbox" id="fCloneHome" checked /><span class="switch-ui" aria-hidden="true"></span>
+          <span>Chép kèm nội dung trang home</span></label>
+        <small class="hint">Bản sao giữ mọi cấu hình và hồ sơ (tab Nhận diện) của sự kiện gốc nhưng bắt đầu từ 0 người: không chép đăng ký, đội đã chọn, khoá chống trùng.</small>
+      </fieldset>
       <fieldset class="fs">
         <legend>Thông tin chung</legend>
         <label class="field"><span>Tên sự kiện</span><input type="text" id="fTitle" placeholder="vd: Team Building Q2" /></label>
@@ -776,6 +785,7 @@
   let evRendered    = false; // đã vẽ dữ liệu sự kiện lần đầu chưa (false → loadEventList hiện skeleton)
   let editingId     = "";   // "" = đang TẠO mới; có giá trị = đang SỬA sự kiện này
   let editOriginal  = null; // cfg gốc của sự kiện đang sửa (để so sánh dedup/field)
+  let cloneSrc      = null; // { id } của sự kiện gốc khi form đang ở chế độ NHÂN BẢN (null = tạo mới / sửa)
   let allowlistOnTabOpen = null; // gán bởi IIFE allowlist; gọi khi mở tab "Danh sách cho phép"
 
   // Màn chờ: giữ tới khi BIẾT trạng thái đăng nhập; nếu đã đăng nhập thì giữ tiếp tới khi dữ liệu sự kiện đầu tiên về
@@ -1220,17 +1230,51 @@
     }
   }
 
+  // Nhân bản = form tạo mới điền sẵn cấu hình + hồ sơ của sự kiện gốc. Lưu xử lý như backend/scripts/clone-event.js
+  // (submitForm): chép mọi key meta/config (trừ createdAt/updatedAt), dataEpoch 1, allowlist + meta/home tuỳ chọn, config/eventList.
   async function cloneEvent(eid) {
     const ev = cachedEvents.find(e => e.id === eid);
     if (!ev || !ev.cfg) { confirmModal({ title: "Không nhân bản được", message: "Không tìm thấy cấu hình sự kiện.", confirmText: "Đóng", cancelText: "" }); return; }
     populateForm(ev.cfg, "", eid);
+    cloneSrc = { id: eid };
     $("formHeading").textContent = `Nhân bản từ "${ev.cfg.title || eid}"`;
     $("btnSave").textContent = $("btnSave").dataset.label = "Tạo bản sao";
     const banner = $("formModeBanner");
     banner.hidden = false;
     banner.className = "form-mode dup";
     banner.textContent = "Đặt ID mới trước khi lưu.";
+    $("fsClone").hidden = false;
+    $("fCloneAllowN").textContent = "(đang đếm…)";
     flashForm();
+    try {
+      const ref = db.collection("events").doc(eid);
+      const [al, home] = await Promise.all([ref.collection("allowlist").get(), ref.collection("meta").doc("home").get()]);
+      if (!cloneSrc || cloneSrc.id !== eid) return;              // form đã đóng / sang việc khác trong lúc chờ
+      $("fCloneAllowN").textContent = `(${fmtNum(al.size)} người)`;
+      $("fCloneAllow").checked = al.size > 0; $("fCloneAllow").disabled = al.size === 0;
+      $("fCloneHomeWrap").hidden = !home.exists;
+    } catch (err) {
+      if (cloneSrc && cloneSrc.id === eid) $("fCloneAllowN").textContent = "(không đếm được: " + (err.code || err.message || err) + ")";
+    }
+  }
+  // Chép allowlist + meta/home của sự kiện gốc sang ID mới (batch ≤400). Gọi TRƯỚC khi ghi meta/config ⇒ sự kiện chỉ hiện khi đã đủ dữ liệu.
+  async function cloneExtras(srcId, dstId, { allow, home }) {
+    const src = db.collection("events").doc(srcId), dst = db.collection("events").doc(dstId);
+    const out = { allow: 0, home: false };
+    if (allow) {
+      const docs = (await src.collection("allowlist").get()).docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = db.batch();
+        docs.slice(i, i + 400).forEach(x => batch.set(dst.collection("allowlist").doc(x.id), x.data()));
+        await batch.commit();
+      }
+      out.allow = docs.length;
+    }
+    if (home) {
+      const h = await src.collection("meta").doc("home").get();
+      if (h.exists) { await dst.collection("meta").doc("home").set(h.data()); out.home = true; }
+    }
+    return out;
   }
 
   // ── Quản lý dữ liệu: xóa dữ liệu · xóa sự kiện · sửa ───────────────────────
@@ -1631,9 +1675,30 @@
       }
     } catch (_) { /* chưa tồn tại hoặc permission — an toàn để tiếp tục */ }
 
+    // ── Nhân bản: đọc lại cấu hình gốc (bản mới nhất) — mọi key không có trên form được chép nguyên (như clone-event.js) ──
+    const clone = cloneSrc;
+    const copyAllow = !!clone && $("fCloneAllow").checked && !$("fCloneAllow").disabled;
+    const copyHome  = !!clone && $("fCloneHome").checked && !$("fCloneHomeWrap").hidden;
+    let base = {};
+    if (clone) {
+      try {
+        const s = await db.collection("events").doc(clone.id).collection("meta").doc("config").get();
+        if (!s.exists) throw new Error(`sự kiện gốc "${clone.id}" không còn cấu hình`);
+        Object.entries(s.data() || {}).forEach(([k, v]) => { if (k !== "createdAt" && k !== "updatedAt") base[k] = v; });
+      } catch (err) { $("formErr").textContent = "Không đọc được sự kiện gốc: " + (err.message || err); return ""; }
+      if (copyAllow && (d.dedupField || "") !== (base.dedupField || "")) {
+        const ok = await confirmModal({ title: "Ô kiểm tra trùng khác bản gốc",
+          message: `Danh sách cho phép của "${clone.id}" đối chiếu theo "${base.dedupField || "(không có)"}", bản sao dùng "${d.dedupField || "(không có)"}" ⇒ danh sách chép sang sẽ không khớp ai. Vẫn tạo?`,
+          confirmText: "Vẫn tạo" });
+        if (!ok) return "";
+      }
+    }
+
     formBusy(true, "Đang lưu…");
     try {
-      await db.collection("events").doc(d.eventId).collection("meta").doc("config").set({
+      let copied = { allow: 0, home: false };
+      if (clone) copied = await cloneExtras(clone.id, d.eventId, { allow: copyAllow, home: copyHome });
+      await db.collection("events").doc(d.eventId).collection("meta").doc("config").set(Object.assign(base, {
         title:      d.title,
         subtitle:   d.subtitle,
         fields:     d.fields,
@@ -1649,12 +1714,14 @@
         allowlistGenderCheck: d.allowlistGenderCheck,   // phân phòng theo giới (giới lấy từ danh sách)
         profile:    pr.profile,        // hồ sơ TƯỜNG MINH (hợp đồng bước 2); key không ghi = theo giao diện / hành vi cũ
         createdAt:  FV.serverTimestamp()
-      });
+      }, clone ? { dataEpoch: 1 } : {}));   // bản sao = sự kiện mới ⇒ "thế hệ" dữ liệu đầu tiên
       await db.collection("config").doc("eventList")
               .set({ ids: FV.arrayUnion(d.eventId) }, { merge: true });
       resetForm();
       closeDrawer();
-      toast(`Đã tạo sự kiện "${d.eventId}".`);
+      toast(clone
+        ? `Đã tạo bản sao "${d.eventId}"` + (copied.allow ? ` kèm ${fmtNum(copied.allow)} người trong danh sách cho phép` : "") + (copied.home ? " + trang home" : "") + "."
+        : `Đã tạo sự kiện "${d.eventId}".`);
       await loadEventList();
       return d.eventId;
     } catch (err) {
@@ -1773,6 +1840,10 @@
   function resetForm(seed = true) {
     editingId    = "";
     editOriginal = null;
+    cloneSrc     = null;
+    $("fsClone").hidden = true;
+    $("fCloneAllow").checked = true; $("fCloneAllow").disabled = false; $("fCloneAllowN").textContent = "";
+    $("fCloneHome").checked = true; $("fCloneHomeWrap").hidden = true;
     $("fId").readOnly      = false;
     $("fId").value         = "";
     $("fId").dataset.manual = "";
