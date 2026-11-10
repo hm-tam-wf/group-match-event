@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thông tin sự kiện</title>
+  <meta name="description" content="Lịch trình, lưu ý, trang phục và thông tin di chuyển của sự kiện." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Token chung → theme tech → biến thể (INERT khi data-variant khác) → giao diện trang lịch trình (dùng chung với travel.html) → phần bổ sung -->
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/themes.css">
+  <link rel="stylesheet" href="themes/tech/tech.css">
+  <link rel="stylesheet" href="themes/tech/variants/tnt/tnt.css">
+  <link rel="stylesheet" href="travel/travel.css">
+  <link rel="stylesheet" href="assets/home.css">
+
+  <!-- data-theme/data-variant mặc định trước khi vẽ; home.js chỉnh lại theo meta/config.profile khi loader còn che -->
+  <script src="js/config/theme.js"></script>
+  <script>
+    // Mở lại trong phiên / quay về từ trang sự kiện cùng site ⇒ bỏ hiệu ứng vào trang, loader chỉ hiện nếu tải lâu.
+    // HomeVisit.KEY = khoá sessionStorage DUY NHẤT của trang (home.js ghi sau khi vẽ xong).
+    window.HomeVisit = { KEY: 'home_loaded', returning: false };
+    (function () {
+      try {
+        var ref = document.referrer ? new URL(document.referrer) : null;
+        var fromEvent = !!ref && ref.origin === location.origin && /(^|\/)(index\.html)?$/.test(ref.pathname);
+        if (sessionStorage.getItem(window.HomeVisit.KEY) === '1' || fromEvent) {
+          window.HomeVisit.returning = true;
+          document.documentElement.classList.add('return-visit');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="home-page">
+
+  <!-- Loader: hiện từ khung hình đầu, che tới khi đọc xong dữ liệu (không nháy nội dung trống) -->
+  <div id="homeLoader" class="travel-loader" role="status" aria-live="polite">
+    <div class="loader-card">
+      <div class="loader-icon-wrap">
+        <div class="loader-ring"></div>
+        <span class="loader-plane">✈️</span>
+      </div>
+      <div class="loader-brand" id="loaderBrand"></div>
+      <div class="loader-status" id="loaderStatus"></div>
+      <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+      <div class="loader-percent" id="loaderPercent">0%</div>
+    </div>
+  </div>
+
+  <!-- Màn thông báo: không tìm thấy sự kiện / chưa có trang thông tin / lỗi mạng (home.js điền chữ) -->
+  <div id="homeMsg" class="travel-loader home-msg" role="alert" hidden>
+    <div class="loader-card">
+      <div class="home-msg-ic" aria-hidden="true"></div>
+      <h1 class="home-msg-title"></h1>
+      <p class="home-msg-text"></p>
+      <div class="home-msg-actions"></div>
+    </div>
+  </div>
+
+  <div id="homePage" class="wrap travel-page" hidden>
+    <!-- Khối logo: meta/config.profile.brand (biến thể tnt tự vẽ logo TNT bằng CSS) -->
+    <div class="tech-logo-only" id="homeBrand" hidden>
+      <div class="logo-wrap">
+        <img class="logo-icon" alt="">
+        <span class="logo-text"></span>
+      </div>
+    </div>
+
+    <header class="travel-hero" id="heroContainer"></header>
+
+    <div class="schedule-nav-wrapper" id="schedule">
+      <nav class="schedule-nav-container" id="scheduleNavList"></nav>
+    </div>
+
+    <main id="scheduleContent"></main>
+
+    <footer class="travel-footer" id="homeFooter" hidden></footer>
+
+    <button type="button" id="backToTopBtn" class="back-to-top-btn">
+      <span aria-hidden="true">▲</span>
+      <span class="btt-label"></span>
+    </button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- config.js (AVAILABLE_VARIANTS, DEFAULT_*, LANG) → profile.js (applyEventProfile: biến thể/ngôn ngữ/logo — chung với
+       trang sự kiện) → firebase-config.js (db). home.js dùng thẳng các global này. -->
+  <script src="js/config/config.js"></script>
+  <script src="js/config/profile.js"></script>
+  <script src="js/config/firebase-config.js"></script>
+  <script src="js/home/home-schema.js"></script>
+  <script src="js/home/home-strings.js"></script>
+  <script src="js/home/home-render.js"></script>
+  <script src="js/home/home.js"></script>
+</body>
+</html>

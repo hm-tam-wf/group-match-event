@@ -1,0 +1,103 @@
+/* ============================================================================
+   home.css — phần BỔ SUNG cho trang home dùng chung (fe/home.html).
+   Giao diện chính dùng lại nguyên travel/travel.css (+ theme tech / biến thể tnt) vì markup giữ đúng class
+   của travel.html ⇒ đổi giao diện trang lịch trình chỉ sửa 1 nơi. File này chỉ chứa phần travel.css chưa có:
+   màn thông báo, ảnh hero, các field mà travel.js chưa vẽ, mục văn bản tự do, nền dự phòng cho theme không phải tech.
+   ============================================================================ */
+
+/* travel.css bật chuyển trang mượt (@view-transition) nhưng index.html chưa opt-in ⇒ Chromium huỷ transition và ném
+   "InvalidStateError: Transition was aborted…" trên TRANG SỰ KIỆN mỗi lần bấm CTA (travel.html bị y hệt — đã đo bằng
+   Edge 157). Tắt cho home; khi index.html opt-in thì xoá rule này để có hiệu ứng chuyển trang 2 chiều. */
+@view-transition { navigation: none; }
+
+/* Thuộc tính hidden luôn thắng (travel.css/tech.css đặt display cho loader, logo… cùng độ ưu tiên). */
+body.home-page [hidden] { display: none !important; }
+
+/* Theme không phải tech (vd "default"): khối kính navy của travel.css cần nền tối — dùng nền dự phòng cùng tông loader. */
+html:not([data-theme="tech"]) body.home-page { color: #fff; }
+html:not([data-theme="tech"]) body.home-page::before {
+  background: radial-gradient(1200px 800px at 50% 30%, #17316A 0%, #0F193D 75%);
+}
+
+/* Lần mở lại trong phiên / quay về từ trang sự kiện: loader trong suốt 350ms đầu ⇒ tải nhanh thì không thấy chớp. */
+html.return-visit .travel-loader { animation: homeLoaderIn 0.2s ease 0.35s backwards; }
+@keyframes homeLoaderIn { from { opacity: 0; } }
+
+/* ── Màn thông báo (không tìm thấy sự kiện / chưa có trang / lỗi mạng): dùng lại khung loader ── */
+.home-msg .home-msg-ic { font-size: 40px; line-height: 1; margin-bottom: 16px; }
+.home-msg .home-msg-title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.3;
+  color: #fff;
+  margin: 0 0 10px;
+  padding-top: 0.15em;            /* dấu tiếng Việt chồng tầng không bị xén (xem gotcha h1 của biến thể tnt) */
+  background: none;
+  -webkit-text-fill-color: #fff;
+  text-shadow: none;
+  animation: none;
+}
+.home-msg .home-msg-text {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--c-light-cyan, #82B2EA);
+  margin: 0 0 22px;
+}
+.home-msg .home-msg-actions { display: flex; justify-content: center; }
+.home-msg .cta-btn { flex: 0 1 auto; min-width: 200px; text-decoration: none; }
+
+/* ── Ảnh hero tuỳ chọn ── */
+.home-hero-img {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  max-height: 320px;
+  object-fit: cover;
+  margin: 0 auto 22px;
+  border-radius: var(--r-xl, 24px);
+  border: 1px solid color-mix(in srgb, var(--c-accent-cyan, #55E8FF) 30%, transparent);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Field có trong dữ liệu nhưng travel.js chưa vẽ ── */
+.dress-time {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--c-light-cyan, #82B2EA);
+  margin: -2px 0 8px;
+}
+.bus-lead {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--c-soft-glow, #D4D5F2);
+  opacity: 0.85;
+}
+.home-bus-right { display: flex; gap: 8px; align-items: center; }   /* = style inline của travel.js */
+.home-contacts-note { font-size: 13px; color: var(--c-light-cyan, #82B2EA); margin: 0 0 16px; }
+
+/* Chỉ còn 1 khối (không có liên hệ, hoặc không có thông tin xe) ⇒ trải hết chiều ngang. */
+@media (min-width: 860px) {
+  .transport-layout.is-single { grid-template-columns: 1fr; }
+}
+
+/* ── Mục văn bản tự do (type "text") ── */
+.home-text {
+  color: var(--c-soft-glow, #D4D5F2);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.home-text > :first-child { margin-top: 0; }
+.home-text > :last-child { margin-bottom: 0; }
+.home-text p, .home-text ul, .home-text ol, .home-text blockquote { margin: 0 0 12px; }
+.home-text h3, .home-text h4 { font-family: var(--display); color: #fff; margin: 16px 0 8px; }
+.home-text a { color: var(--c-accent-cyan, #55E8FF); text-decoration: underline; text-underline-offset: 2px; }
+.home-text strong, .home-text b { color: #fff; }
+.home-text blockquote {
+  padding: 8px 14px;
+  border-left: 3px solid var(--c-accent-cyan, #55E8FF);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0 10px 10px 0;
+}
+.home-text hr { border: 0; height: 1px; background: rgba(255, 255, 255, 0.14); margin: 16px 0; }
