@@ -462,6 +462,13 @@ input[readonly]{background:rgba(255,255,255,.03);color:var(--mut);cursor:not-all
 .act-btn.danger{color:#FF9BAD;background:var(--danger-soft);box-shadow:inset 0 0 0 1px rgba(255,92,122,.26)}
 .act-btn.danger:hover:not(:disabled){background:rgba(255,92,122,.2)}
 .row-act svg circle{fill:currentColor;stroke:none}
+/* trang Quản trị viên */
+.mono{font-family:var(--mono);font-size:13.5px;letter-spacing:0}
+.pill-root{color:#B4BCFF;background:var(--accent-soft);box-shadow:inset 0 0 0 1px rgba(139,151,255,.35)}
+.adm-table td{white-space:normal;max-width:none}
+.adm-table td code{font-size:12px;word-break:break-all}
+.adm-table .td-act,#tbl .td-act{width:56px}
+.adm-table tr.is-root td{background:rgba(99,112,255,.04)}
 .cm-msg:has(+ .cm-list){margin-bottom:12px}
 .cm-list{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px;max-height:min(46vh,380px);overflow:auto}
 .cm-list li{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
@@ -694,7 +701,7 @@ button.is-loading::before{content:"";width:14px;height:14px;border-radius:50%;bo
   /* ↑ bỏ backdrop-filter: nó tạo containing block cho con position:fixed ⇒ .nav sẽ dính đáy .side thay vì đáy màn hình */
   .side-foot .btn-txt,.topbar .btn-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* chữ còn cho screen reader */
   .side-foot .btn-block,#btnRefresh{width:44px;min-height:44px;padding:0}
-  .nav{position:fixed;left:0;right:0;bottom:0;z-index:60;order:0;flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:60;order:0;flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line-2);border-radius:0;
     background:rgba(9,11,22,.96);overflow:visible}
   .tab{flex-direction:column;justify-content:center;gap:4px;min-height:56px;padding:6px 2px;font-size:11.5px;font-weight:600;line-height:1.15}

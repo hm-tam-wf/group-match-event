@@ -59,6 +59,8 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4-6"/></svg><span class="tab-txt">Đăng ký</span></button>
       <button class="tab" data-tab="tab-allowlist" data-title="Danh sách cho phép" data-sub="Chỉ người có tên trong danh sách mới được tham gia">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span class="tab-txt tab-long">Danh sách cho phép</span><span class="tab-short" aria-hidden="true">Cho phép</span></button>
+      <button class="tab" data-tab="tabAdmins" data-title="Quản trị viên" data-sub="Ai được vào trang quản trị — thêm hoặc gỡ theo UID">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 11-4.7"/><path d="M18 13.5v7M14.5 17h7"/></svg><span class="tab-txt">Quản trị</span></button>
     </nav>
 
     <div class="side-foot">
@@ -233,6 +235,41 @@
             </table>
           </div>
           <div class="empty-state al-empty" id="alEmpty" hidden>Chưa có ai trong danh sách. Nạp file ở khung "Nhập từ Excel".</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TRANG: Quản trị viên — admins/{uid}; UID gốc khai trong firestore.rules (isRootAdmin) ── -->
+    <section id="tabAdmins" class="tab-panel" aria-label="Quản trị viên">
+      <div class="split split-left">
+        <div class="stack">
+          <div class="panel">
+            <div class="panel-head"><h2>Tài khoản của bạn</h2><span class="pill" id="admRole">—</span></div>
+            <div class="stat"><span class="stat-k">UID</span><span class="stat-v mono" id="admMyUid">—</span></div>
+            <div class="btn-row"><button id="admCopy" class="btn-ghost btn-sm" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Sao chép UID</button></div>
+            <p class="hint">Người mới cần có tài khoản đăng nhập (email/mật khẩu, tạo ở Firebase Console → Authentication). Họ đăng nhập trang này, thấy UID ở đây, gửi cho một quản trị viên thêm vào.</p>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Thêm quản trị viên</h2></div>
+            <label class="field"><span>UID</span><input type="text" id="admUid" placeholder="vd 3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2" spellcheck="false" autocomplete="off" /></label>
+            <label class="field"><span>Ghi chú (tuỳ chọn)</span><input type="text" id="admNote" placeholder="vd Lan — BTC Mini Outing" autocomplete="off" /></label>
+            <button id="admAdd" class="btn-pri" type="button">Thêm quản trị viên</button>
+            <p id="admMsg" class="hint" role="status"></p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Danh sách quản trị viên</h2>
+            <button id="admReload" class="btn-ghost btn-sm" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Tải lại</button></div>
+          <p id="admErr" class="err" role="alert"></p>
+          <div class="table-wrap">
+            <table class="reg-table adm-table">
+              <thead><tr><th>UID</th><th>Ghi chú</th><th>Thêm bởi</th><th>Lúc</th><th class="td-act"><span class="sr-only">Thao tác</span></th></tr></thead>
+              <tbody id="admBody"></tbody>
+            </table>
+          </div>
+          <p class="hint">UID gốc khai trong <code>backend/firestore.rules</code> (hàm isRootAdmin) luôn là quản trị viên — không gỡ được ở đây. Người bị gỡ mất quyền ngay ở lần đọc / ghi kế tiếp.</p>
         </div>
       </div>
     </section>
@@ -561,6 +598,10 @@
   const emptyState   = txt => "<div class='empty-state'>" + emptySvg() + "<div>" + txt + "</div></div>";
   const loadingState = txt => "<div class='loading-row'><span class='spinner'></span>" + esc(txt) + "</div>";
 
+  // ── Quản trị viên: UID GỐC chỉ để HIỂN THỊ (không gỡ được) — PHẢI khớp isRootAdmin() trong backend/firestore.rules ──
+  const ROOT_ADMIN_UIDS = ["3sY4NPL2UZPFlV4Y8q3Y3BvdT5w2", "tHN0gED97nS6KEmDBKO0SgJOiWJ3"];
+  const ADMIN_UID_RE = /^[^\s/]{6,128}$/, ADMIN_NOTE_MAX = 200;   // UID Firebase Auth ≤128 ký tự; ghi chú ≤200 (rules chặn cùng mức)
+
   // ── ID sự kiện + link trang công khai ─────────────────────────────────────
   // Cùng bộ ký tự với ?e= của trang sự kiện (^[a-z0-9][a-z0-9-]{0,99}$) ⇒ ID nào tạo được ở đây cũng mở được bằng link.
   const EVENT_ID_MAX = 100;
@@ -770,6 +811,7 @@
         vt.finished.catch(() => {});
       } else apply();
       if (btn.dataset.tab === "tab-allowlist" && allowlistOnTabOpen) allowlistOnTabOpen();
+      if (btn.dataset.tab === "tabAdmins") loadAdmins();
     });
   });
   // Nút trong nội dung chuyển trang: data-goto="<id panel>" (+ data-event để chọn sẵn sự kiện ở trang Đăng ký).
@@ -870,6 +912,8 @@
       $("loginView").hidden = true;
       $("adminView").hidden = false;
       $("who").textContent = "Đăng nhập: " + (user.email || user.uid);
+      $("admMyUid").textContent = user.uid;
+      $("admRole").textContent = ROOT_ADMIN_UIDS.includes(user.uid) ? "Quản trị gốc" : "—";
       requestAnimationFrame(moveNavInd);
       loadEventList().finally(hideBoot);   // lỗi tải cũng bỏ màn chờ (thông báo lỗi nằm trong trang)
     } else {
@@ -3530,6 +3574,76 @@
       if (el.event.value) loadEvent(el.event.value);
     };
   })();
+
+  // ── Tab "Quản trị viên": collection admins/{uid} (rules: isAdmin = UID gốc HOẶC có doc). Không ai tự thêm mình (rules chặn). ──
+  let admRows = [];
+  async function loadAdmins() {
+    const body = $("admBody"), me = auth.currentUser;
+    $("admErr").textContent = "";
+    if (!me) return;
+    if (!body.children.length) body.innerHTML = skelRows(3, 5);
+    busy(body, true);
+    try {
+      const snap = await db.collection("admins").get();
+      admRows = snap.docs.map(d => Object.assign({ uid: d.id }, d.data()));
+      admRows.sort((a, b) => ((b.at && b.at.seconds) || 0) - ((a.at && a.at.seconds) || 0));
+      $("admRole").textContent = ROOT_ADMIN_UIDS.includes(me.uid) ? "Quản trị gốc" : (admRows.some(r => r.uid === me.uid) ? "Quản trị (thêm bằng dữ liệu)" : "—");
+      const short = u => u ? (u.length > 14 ? u.slice(0, 6) + "…" + u.slice(-4) : u) : "—";
+      const rootRow = u => `<tr class="is-root"><td data-label="UID"><code>${esc(u)}</code></td><td data-label="Ghi chú"><span class="pill pill-root">Gốc · trong rules</span></td>`
+        + `<td data-label="Thêm bởi">—</td><td data-label="Lúc">—</td><td class="td-act" data-label="Thao tác"></td></tr>`;
+      body.innerHTML = ROOT_ADMIN_UIDS.map(rootRow).join("") + admRows.map(r =>
+        `<tr><td data-label="UID"><code>${esc(r.uid)}</code>${r.uid === me.uid ? ' <span class="pill">bạn</span>' : ""}</td>`
+        + `<td data-label="Ghi chú">${esc(r.note || "")}</td><td data-label="Thêm bởi" title="${esc(r.addedBy || "")}"><code>${esc(short(r.addedBy))}</code></td>`
+        + `<td class="td-time" data-label="Lúc">${esc(fmtTime(r.at))}</td>`
+        + `<td class="td-act" data-label="Thao tác"><button type="button" class="btn-del icon-del adm-del" data-uid="${esc(r.uid)}" title="Gỡ quyền quản trị" aria-label="Gỡ quyền quản trị của ${esc(r.uid)}">${ICON_X}</button></td></tr>`).join("");
+    } catch (err) {
+      const denied = /permission|insufficient/i.test(String(err && (err.code || err.message) || err));
+      body.innerHTML = "";
+      $("admRole").textContent = ROOT_ADMIN_UIDS.includes(me.uid) ? "Quản trị gốc" : (denied ? "Chưa có quyền quản trị" : "—");
+      $("admErr").textContent = denied ? "Tài khoản này chưa có quyền quản trị — gửi UID ở khung bên trái cho một quản trị viên." : "Lỗi tải danh sách: " + (err.message || err);
+    } finally { busy(body, false); }
+  }
+  $("admReload").addEventListener("click", loadAdmins);
+  $("admNote").maxLength = ADMIN_NOTE_MAX;
+  $("admCopy").addEventListener("click", async () => {
+    const uid = $("admMyUid").textContent;
+    try { await navigator.clipboard.writeText(uid); toast("Đã sao chép UID."); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("admMyUid")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Đã bôi đen UID — bấm Ctrl+C để sao chép."); }
+  });
+  $("admAdd").addEventListener("click", async () => {
+    const uid = $("admUid").value.trim(), note = $("admNote").value.trim(), me = auth.currentUser, msg = $("admMsg");
+    msg.style.color = "var(--err)";
+    if (!ADMIN_UID_RE.test(uid) || uid === "." || uid === "..") { msg.textContent = "UID không hợp lệ (6–128 ký tự, không có khoảng trắng hay dấu /)."; return; }
+    if (me && uid === me.uid) { msg.textContent = "Không tự thêm chính mình được."; return; }
+    if (ROOT_ADMIN_UIDS.includes(uid)) { msg.textContent = "UID này đã là quản trị gốc."; return; }
+    if (admRows.some(r => r.uid === uid)) { msg.textContent = "UID này đã có trong danh sách."; return; }
+    const ok = await confirmModal({ title: "Thêm quản trị viên?", message: `UID ${uid} sẽ có TOÀN QUYỀN trang quản trị: xem họ tên người đăng ký, sửa / xoá sự kiện, thêm / gỡ quản trị viên khác.`,
+                                    confirmText: "Thêm quản trị viên" });
+    if (!ok) return;
+    $("admAdd").disabled = true;
+    try {
+      const doc = { addedBy: me.uid, at: FV.serverTimestamp() };
+      if (note) doc.note = note.slice(0, ADMIN_NOTE_MAX);
+      await db.collection("admins").doc(uid).set(doc);
+      $("admUid").value = ""; $("admNote").value = "";
+      msg.style.color = "var(--ok)"; msg.textContent = `Đã thêm ${uid}. Người đó tải lại trang quản trị là dùng được.`;
+      await loadAdmins();
+    } catch (err) {
+      msg.textContent = /permission|insufficient/i.test(String(err && (err.code || err.message) || err))
+        ? "Không thêm được: tài khoản này không có quyền (hoặc UID đã có / đang tự thêm chính mình)." : "Lỗi: " + (err.message || err);
+    } finally { $("admAdd").disabled = false; }
+  });
+  $("admBody").addEventListener("click", async e => {
+    const b = e.target.closest(".adm-del");
+    if (!b) return;
+    const uid = b.dataset.uid, self = auth.currentUser && auth.currentUser.uid === uid;
+    const ok = await confirmModal({ title: "Gỡ quyền quản trị?", message: self
+        ? `Đây là CHÍNH BẠN — gỡ xong bạn mất quyền quản trị ngay (cần một quản trị viên khác thêm lại).`
+        : `UID ${uid} mất quyền quản trị ở lần đọc / ghi kế tiếp.`, confirmText: "Gỡ quyền", danger: true });
+    if (!ok) return;
+    try { await db.collection("admins").doc(uid).delete(); toast(`Đã gỡ quyền của ${uid}.`); await loadAdmins(); }
+    catch (err) { toast("Không gỡ được: " + (err.message || err), "err"); }
+  });
 
   // Khởi tạo: mở form ở chế độ "Tạo sự kiện mới" + seed sẵn field mặc định (name + employeeId)
   // ngay khi tải trang. Gọi ở CUỐI IIFE để EMP_ID_RE + các hàm sync đã khởi tạo xong (tránh TDZ).
