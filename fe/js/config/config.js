@@ -46,8 +46,9 @@ let FIELDS      = DEFAULT_FIELDS;
 let DEDUP_FIELD = DEFAULT_DEDUP_FIELD;
 // Ghi thêm `icon` (tên đội, KHÔNG phải PII) vào dedup_keys/{khoá} lúc join → cho phép "xem đăng ký của tôi"
 // trên thiết bị khác (tra theo họ tên → biết đội/phòng). CHỈ BẬT SAU KHI đã deploy firestore.rules mới:
-// rules cũ chỉ cho phép hasOnly(['at']) → ghi {at, icon} sẽ bị TỪ CHỐI ⇒ HỎNG join. Mặc định false (an toàn).
-let DEDUP_STORE_ICON = false;
+// rules cũ chỉ cho phép hasOnly(['at']) → ghi {at, icon} sẽ bị TỪ CHỐI ⇒ HỎNG join.
+// 2026-11-10: đã deploy rules mới + chạy backfill-dedup-icon.js --apply ⇒ bật.
+let DEDUP_STORE_ICON = true;
 let EVENT_ID   = DEFAULT_EVENT_ID;
 let CAPACITY    = DEFAULT_CAPACITY;
 let ICONS       = DEFAULT_ICONS;
