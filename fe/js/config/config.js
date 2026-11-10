@@ -35,6 +35,9 @@ function registerVariantCopy(id, copyByLang) {
 const DEFAULT_BRAND = Object.freeze({ name: "FARADAY", logoUrl: "themes/tech/img/LOGO.png", logoAlt: "Faraday Icon" });
 // Trang "home" khi hồ sơ KHÔNG khai homeUrl (hành vi cũ: nút Huỷ / Quay lại đưa về trang lịch trình travel).
 const LEGACY_HOME_URL = "travel.html";
+// Hồ sơ admin ghi TƯỜNG MINH khi TẠO sự kiện mới (sự kiện mới không rơi vào mặc định cũ của code) — sửa ở tab Nhận diện.
+// homeUrl "" = không có trang home (Huỷ chỉ đóng popup). Không khai brand ⇒ logo mặc định của skin.
+const NEW_EVENT_PROFILE = Object.freeze({ variant: "tnt", lang: "vi", homeUrl: "" });
 
 // ➋ Sĩ số tối đa mỗi đội. Ở chế độ firebase: đọc từ events/{id}/meta/config trên Firestore.
 const DEFAULT_CAPACITY = 10;

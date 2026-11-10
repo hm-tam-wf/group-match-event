@@ -42,7 +42,7 @@ Logo: `brandLogoHtml()` (ui-utils.js) dùng chung header (`#brandSlot` display:c
 ## Global mới (tránh khai trùng khi viết trang khác nạp theme.js/config.js)
 theme.js: `VARIANT_ID_RE, EVENT_ID_RE, PROFILE_CACHE_PREFIX, VARIANT_PARAM, eventIdFromUrl(), profileCacheKey(),
 cachedEventProfile(), setActiveVariant()`, `ACTIVE_VARIANT` là `let`. config.js: `AVAILABLE_VARIANTS, VARIANT_COPY,
-registerVariantCopy(), DEFAULT_BRAND, LEGACY_HOME_URL, DEFAULT_LANG, LANG_PARAM`. profile.js: `BRAND, HOME_URL,
+registerVariantCopy(), DEFAULT_BRAND, LEGACY_HOME_URL, NEW_EVENT_PROFILE (hồ sơ admin ghi khi tạo sự kiện mới), DEFAULT_LANG, LANG_PARAM`. profile.js: `BRAND, HOME_URL,
 applyEventProfile(), cacheEventProfile(), buildText(), safeProfileUrl(), variantMeta()`. ui-render.js: `hasHome()`.
 
 ## Kiểm thử (2026-11-10, scratchpad — chuyển vào tests/ khi tích hợp bước 4)
