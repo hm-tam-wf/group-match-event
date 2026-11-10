@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="vi">
+<!-- data-event-page: theme.js dùng hồ sơ sự kiện đã lưu lần trước cho lần vẽ đầu (đúng skin ngay từ màn loading). -->
+<html lang="vi" data-event-page>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -62,12 +63,8 @@
 
   <!-- Nội dung chính — bị ẩn cho đến khi boot() nạp xong config -->
   <div id="appContent" hidden>
-    <div class="tech-logo-only">
-      <div class="logo-wrap">
-        <img src="themes/tech/img/LOGO.png" alt="Faraday Icon" class="logo-icon">
-        <span class="logo-text">FARADAY</span>
-      </div>
-    </div>
+    <!-- Khối logo: boot() vẽ theo hồ sơ sự kiện (profile.brand, mặc định DEFAULT_BRAND) — renderBrandSlot() ở ui-utils.js. -->
+    <div id="brandSlot" style="display:contents"></div>
     <h1>Group Match</h1>
     <p class="sub">Mỗi icon là <b>1 đội</b> (tối đa <b>10 thành viên</b>). Điền thông tin rồi tham gia đội bạn thích — đội đủ 10 người sẽ <b>chốt danh sách</b>. Mỗi người chỉ vào được <b>1 đội</b>.</p>
 
@@ -106,12 +103,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <!-- Nạp ĐÚNG THỨ TỰ phụ thuộc biến toàn cục (script thường, KHÔNG type=module):
-     config → [themes/tech/strings → variants/tnt/strings] → firebase-config → storage → api → ui-utils → ui-render → app -->
+     config → [themes/tech/strings → variants/*/strings] → profile → firebase-config → storage → api → ui-utils → ui-render → app -->
 <script src="js/config/config.js"></script>
 <!-- Text riêng-theo-theme (terminal boot của theme `tech`, gói trong fe/themes/tech/) — merge vào STRINGS, phải nạp SAU config.js. -->
 <script src="themes/tech/strings.js"></script>
-<!-- Copy riêng biến thể "tnt" (tự return nếu ACTIVE_VARIANT khác) — phải nạp SAU themes/tech/strings.js. -->
+<!-- Copy riêng biến thể "tnt" — CHỈ đăng ký (registerVariantCopy); profile.js phủ lên khi hồ sơ chọn tnt. Nạp SAU themes/tech/strings.js. -->
 <script src="themes/tech/variants/tnt/strings.js"></script>
+<!-- Hồ sơ sự kiện (skin/ngôn ngữ/logo/câu chữ/home/intro) — nạp SAU mọi file chữ, TRƯỚC firebase-config. -->
+<script src="js/config/profile.js"></script>
 <script src="js/config/firebase-config.js"></script>
 <script src="js/data/storage.js"></script>
 <script src="js/data/api.js"></script>

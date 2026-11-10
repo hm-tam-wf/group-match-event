@@ -16,13 +16,25 @@ const DEFAULT_DEDUP_FIELD = "employeeId";
 //     Ở chế độ firebase: giá trị thực được đọc từ config/active trên Firestore khi khởi động.
 //     Giá trị dưới đây là DỰ PHÒNG cho chế độ demo/sheet hoặc khi Firestore lỗi.
 const DEFAULT_EVENT_ID = "su-kien-2026-q2";
-// ➊d Domain → sự kiện CỐ ĐỊNH (bỏ qua config/active). GitHub Pages = bản demo chạy dữ liệu riêng (event-demo),
-//     KHÔNG đụng sự kiện thật đang mở trên Firebase Hosting. Domain không có trong map ⇒ đọc config/active như cũ.
-const EVENT_ID_BY_HOST = { "hm-tam-wf.github.io": "event-demo" };
-function hostEventId(host) {
-  const id = Object.prototype.hasOwnProperty.call(EVENT_ID_BY_HOST, host) ? EVENT_ID_BY_HOST[host] : "";
-  return typeof id === "string" ? id.trim() : "";
+// ➊d Chọn sự kiện: ?e=<id> trên URL > config/hosts.byHost[domain] > config/active (xem boot() trong app.js).
+//     Domain → sự kiện là DỮ LIỆU (doc config/hosts, sửa bằng backend/scripts/hosts.js) — không còn map trong code.
+
+// ➊e Hồ sơ sự kiện (events/{id}/meta/config.profile) — skin, ngôn ngữ, logo, câu chữ, trang home: js/config/profile.js.
+//     Biến thể skin ĐÃ ĐÓNG GÓI trong code (CSS + chữ ở themes/<theme>/variants/<id>/). Sự kiện chọn bằng profile.variant;
+//     admin đọc danh sách này để làm dropdown. Thêm biến thể = thêm thư mục + 1 dòng ở đây + <link>/<script> ở index.html.
+const AVAILABLE_VARIANTS = [
+  { id: "tnt", label: "TNT · Mini Outing", theme: "tech", defaultLang: "vi" },
+];
+// Chữ riêng của từng biến thể — themes/<theme>/variants/<id>/strings.js tự đăng ký; profile.js phủ lên bản sao của
+// STRINGS khi áp hồ sơ (KHÔNG sửa STRINGS gốc ⇒ áp hồ sơ khác vẫn đúng).
+const VARIANT_COPY = {};
+function registerVariantCopy(id, copyByLang) {
+  if (typeof id === "string" && id && copyByLang && typeof copyByLang === "object") VARIANT_COPY[id] = copyByLang;
 }
+// Khối logo khi hồ sơ KHÔNG khai brand (biến thể có thể tự vẽ logo riêng bằng CSS, vd tnt).
+const DEFAULT_BRAND = Object.freeze({ name: "FARADAY", logoUrl: "themes/tech/img/LOGO.png", logoAlt: "Faraday Icon" });
+// Trang "home" khi hồ sơ KHÔNG khai homeUrl (hành vi cũ: nút Huỷ / Quay lại đưa về trang lịch trình travel).
+const LEGACY_HOME_URL = "travel.html";
 
 // ➋ Sĩ số tối đa mỗi đội. Ở chế độ firebase: đọc từ events/{id}/meta/config trên Firestore.
 const DEFAULT_CAPACITY = 10;
@@ -172,11 +184,11 @@ const STRINGS = {
     celebrate: {
       title: `${_cap(UE.one)} Joined Successfully!`,
       body:  (name) => `You are now a member of <b>${name}</b>. Get ready and connect with your teammates to prepare for the challenges ahead!`,
-      ok:    "Get Ready for Company Trip 2026!",
+      ok:    "Let's go!",
     },
     banner: {
       title: (name) => `You're on ${name}`,   // chỉ dùng tên đội (icon đã hiện ở .bi) — tránh "Squad 1 1"
-      sub:   "",  // EN: tắt sub banner cho Company Trip 2026 (bật lại: thay "" bằng dòng dưới)
+      sub:   "",  // EN: tắt sub banner (bật lại: thay "" bằng dòng dưới, hoặc đặt profile.copy.en["banner.sub"])
       // sub:   `Your info has been recorded. Each person can join only one ${UE.one}.`,
     },
     grid: {
@@ -286,7 +298,7 @@ const STRINGS = {
     celebrate: {
       title: `Tham gia ${UV.one} thành công!`,
       body:  (name) => `Bạn đã là thành viên của <b>${name}</b>. Hãy sẵn sàng và kết nối với đồng đội để chuẩn bị cho những thử thách phía trước!`,
-      ok:    "Sẵn sàng cho Company Trip 2026!",
+      ok:    "Sẵn sàng rồi!",
     },
     banner: {
       title: (name) => `Bạn đang ở ${name}`,   // chỉ dùng tên đội (icon đã hiện ở .bi) — tránh "Squad 1 1"
@@ -343,14 +355,16 @@ const STRINGS = {
   },
 };
 
-// Ngôn ngữ giao diện hiện hành: "en" | "vi". Đổi mặc định tại đây (giống ACTIVE_THEME).
-// Cho phép ?lang=en / ?lang=vi trên URL để test nhanh mà không cần sửa file.
-let LANG = "en";
+// Ngôn ngữ giao diện: "en" | "vi". Mặc định code = DEFAULT_LANG; sự kiện đổi bằng profile.lang hoặc defaultLang của
+// biến thể (js/config/profile.js). ?lang=en / ?lang=vi trên URL thắng tất cả (test nhanh, không sửa dữ liệu).
+const DEFAULT_LANG = "en";
+let LANG_PARAM = null;
 try {
   const langParam = new URLSearchParams(location.search).get("lang");
-  if (langParam === "en" || langParam === "vi") LANG = langParam;
+  if (langParam === "en" || langParam === "vi") LANG_PARAM = langParam;
 } catch (e) {}
-// `let` (không phải const): biến thể sự kiện (themes/<tên>/variants/<biến-thể>/strings.js, nạp ngay sau
-// file này) được phép chuyển cả trang sang ngôn ngữ khác — gán lại TEXT TRƯỚC khi mọi file UI chạy.
+let LANG = LANG_PARAM || DEFAULT_LANG;
+// `let` (không phải const): profile.js dựng lại TEXT (bản sao STRINGS[LANG] + chữ biến thể + profile.copy) khi áp
+// hồ sơ sự kiện — mọi file UI đọc TEXT lúc render nên luôn thấy bản mới nhất.
 let TEXT = STRINGS[LANG] || STRINGS.en;   // bảng chuỗi theo ngôn ngữ đang chọn (fallback EN)
 try { document.documentElement.lang = LANG; } catch (e) {}   // đồng bộ <html lang> với ngôn ngữ UI (a11y/SEO)

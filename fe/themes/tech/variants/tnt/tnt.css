@@ -1,7 +1,8 @@
 /* ============================================================================
    BIẾN THỂ "tnt" của theme tech — sự kiện Mini Outing (brand TNT · tìm roommate)
    ----------------------------------------------------------------------------
-   Bật: DEFAULT_VARIANT='tnt' ở js/config/theme.js (hoặc ?variant=tnt để xem trước).
+   Bật: profile.variant = "tnt" trong events/{id}/meta/config của sự kiện (thiếu key ⇒ DEFAULT_VARIANT ở
+   js/config/theme.js), hoặc ?variant=tnt trên URL để xem trước.
    MỌI selector scope [data-theme="tech"][data-variant="tnt"] ⇒ INERT với sự kiện khác (ảnh trong
    url() cũng KHÔNG tải). Specificity (0,3,x) > rule tech (0,2,x) ⇒ thắng bất kể thứ tự nạp.
    Chỉ OVERRIDE phần khác của dịp này — palette/bề mặt kế thừa nguyên theme tech. Chữ: strings.js cùng thư mục.
@@ -36,12 +37,13 @@
 /* —— Logo TNT thay FARADAY ——
    4 chỗ hiện logo (header, popup định danh, màn đếm ngược, màn kết thúc) dùng CHUNG markup
    .tech-logo-only > .logo-wrap > img.logo-icon + span.logo-text ⇒ đổi thuần CSS, không đụng JS:
-   ẩn icon + chữ FARADAY, vẽ logo TNT bằng ::before của .logo-wrap. */
-[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-icon,
-[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-text {
+   ẩn icon + chữ FARADAY, vẽ logo TNT bằng ::before của .logo-wrap.
+   Sự kiện khai logo riêng (profile.brand ⇒ <html data-brand="custom">, js/config/profile.js) ⇒ KHÔNG thay. */
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .tech-logo-only .logo-icon,
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .tech-logo-only .logo-text {
   display: none;
 }
-[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-wrap::before {
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .tech-logo-only .logo-wrap::before {
   content: "";
   display: block;
   height: clamp(92px, 17vw, 124px);
@@ -50,14 +52,14 @@
   filter: var(--tnt-glow);
   transition: transform 0.2s ease;
 }
-[data-theme="tech"][data-variant="tnt"] .tech-logo-only .logo-wrap:hover::before {
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .tech-logo-only .logo-wrap:hover::before {
   transform: scale(1.03);
 }
 /* Popup định danh chật hơn trang → logo nhỏ lại để form không bị đẩy xuống. */
 [data-theme="tech"][data-variant="tnt"] .profile-modal .tech-logo-only {
   margin-bottom: 14px;
 }
-[data-theme="tech"][data-variant="tnt"] .profile-modal .tech-logo-only .logo-wrap::before {
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .profile-modal .tech-logo-only .logo-wrap::before {
   height: 84px;
 }
 
@@ -79,15 +81,16 @@
 }
 
 /* —— Màn loading: logo TNT thay con chip (PDF trang 1 hỏi "đổi được không?" → có) ——
-   data-variant đặt ngay trong <head> (theme.js) ⇒ loader hiện đúng logo từ khung hình đầu, không nháy chip. */
-[data-theme="tech"][data-variant="tnt"] .tech-chip {
+   data-variant đặt ngay trong <head> (theme.js) ⇒ loader hiện đúng logo từ khung hình đầu, không nháy chip.
+   Sự kiện có logo riêng (data-brand="custom") ⇒ giữ con chip trung tính của tech, không hiện logo TNT. */
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .tech-chip {
   display: none;
 }
-[data-theme="tech"][data-variant="tnt"] .loader-spinner {
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .loader-spinner {
   width: auto;
   height: auto;
 }
-[data-theme="tech"][data-variant="tnt"] .loader-spinner::before {
+[data-theme="tech"][data-variant="tnt"]:not([data-brand="custom"]) .loader-spinner::before {
   content: "";
   display: block;
   height: 104px;

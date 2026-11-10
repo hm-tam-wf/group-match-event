@@ -13,10 +13,11 @@
 - [[admin-panel]] — Firebase Auth, export CSV, hardcoded UID gotcha; UI dashboard tối: sidebar, 4 trang, drawer form
 - [[firestore-schema]] — collections, security rules, capacity sync gotcha
 - [[allowlist]] — danh sách MSNV được phép join: import Excel/CSV, toggle/sự kiện, cổng chặn client (mirror dedup); cột Giới tính → phân phòng Nam/Nữ
+- [[event-profile]] — hồ sơ sự kiện `meta/config.profile` (skin/ngôn ngữ/logo/câu chữ/homeUrl/introMs, thiếu key = cũ) + chọn sự kiện `?e=` > `config/hosts` > `config/active`; hosts.js; rollout config/hosts trước push
 
 ## UI & components
 - [[design-tokens]] — Soft Cloud Candy palette, fonts Baloo 2 + Nunito, motion
-- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME (theme.js, 0 FOUC) + data-theme; biến thể sự kiện (DEFAULT_VARIANT / ?variant=; `tnt` = brand TNT, Mini Outing); theme `tech` (chỉ app); admin dùng UI riêng `assets/admin.css` (không theo theme sự kiện)
+- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME (theme.js, 0 FOUC) + data-theme; biến thể sự kiện (chọn bằng profile.variant — [[event-profile]]; DEFAULT_VARIANT = mặc định cũ; ?variant= xem trước; `tnt` = brand TNT, Mini Outing); theme `tech` (chỉ app); admin dùng UI riêng `assets/admin.css` (không theo theme sự kiện)
 - [[i18n-system]] — đổi ngôn ngữ UI bằng 1 cờ LANG (registry STRINGS en/vi + TEXT trong config.js); ?lang= override; tách text hardcode vs tầng config per-event; biến thể được chuyển LANG + ghi đè copy
 
 ## Decisions (ADRs)

@@ -1,0 +1,98 @@
+# CI — chạy toàn bộ test trên Firestore Emulator (project demo-icon-picker) + Chrome headless có sẵn của runner.
+# KHÔNG deploy, KHÔNG cần secret, KHÔNG chạm Firebase thật. Chi tiết + cách thêm case: documentation/TESTING.md
+# deploy.yml gọi lại workflow này (workflow_call) để test đúng commit được tag trước khi deploy production.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# PR: push mới huỷ lượt cũ; master / tag: không huỷ (mỗi commit đều có kết quả).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: '26'      # giữ đồng bộ với deploy.yml
+  JAVA_VERSION: '21'      # Firestore Emulator (firebase-tools 15) cần JDK 21+
+
+jobs:
+  test:
+    name: test            # tên check dùng cho branch protection
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Đọc bản firebase-tools cố định (package.json → config.firebaseTools)
+        id: fbt
+        run: |
+          v="$(node -p "require('./package.json').config.firebaseTools")"
+          if [ -z "$v" ] || [ "$v" = "undefined" ]; then echo "::error::Thiếu config.firebaseTools trong package.json"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Firestore Emulator
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ steps.fbt.outputs.version }}
+
+      - name: Cài dependency
+        run: npm ci --no-audit --no-fund
+
+      - name: Cài firebase-tools ${{ steps.fbt.outputs.version }}
+        run: npm install --global --no-audit --no-fund "firebase-tools@${{ steps.fbt.outputs.version }}"
+
+      - name: Tải Firestore Emulator (bỏ qua nếu cache đã có)
+        id: emulator
+        run: firebase setup:emulators:firestore
+
+      # Chạy hết các suite (suite trước FAIL vẫn chạy suite sau) nếu phần cài đặt đã xong.
+      - name: Unit
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
+        run: npm run test:unit
+
+      - name: Rules
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
+        run: npm run test:rules
+
+      - name: Script backend (emulator)
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
+        run: npm run test:scripts
+
+      - name: Admin (Firebase giả)
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
+        run: npm run test:admin
+
+      - name: E2E (emulator + Chrome)
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
+        run: npm run test:e2e
+
+      - name: Lưu log emulator + kết quả khi lỗi
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tests/.out/
+          retention-days: 7
+          if-no-files-found: ignore

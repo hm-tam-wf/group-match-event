@@ -1,0 +1,75 @@
+{
+ "title": "BẠN MUỐN CHUNG CHĂN!",
+ "fields": [
+  {
+   "key": "name",
+   "label": "Tên công nhân sự kiện",
+   "type": "text",
+   "required": true,
+   "placeholder": "Nguyễn Văn A"
+  }
+ ],
+ "capacity": 3,
+ "caps": {
+  "🌊": 2
+ },
+ "openAt": null,
+ "closeAt": null,
+ "dedupField": "name",
+ "blockDup": true,
+ "allowlistMode": true,
+ "allowlistNameCheck": false,
+ "allowlistGenderCheck": true,
+ "createdAt": {
+  "__ts": 1790700270000
+ },
+ "subtitle": "\"Chọn phòng đừng để phòng dư, chọn bạn đừng để phòng bạn to hơn phòng mình\"<ul><li><b>Săn roommate phiên bản giới hạn:</b> Mỗi phòng sẽ chỉ bán ra vài chiếc giường giới hạn — gom đủ người, hệ thống tự động \"khóa cửa\" tiễn khách.</li><li>Mỗi công nhân sự kiện chỉ được <b>chốt cạ cứng 1 lần duy nhất</b>, đã chọn là không thể quay đầu.</li></ul>",
+ "dataEpoch": 1,
+ "icons": [
+  {
+   "icon": "🌊",
+   "name": "Phòng 1 · Team 1",
+   "color": "#2f80ed",
+   "gender": "Nữ"
+  },
+  {
+   "icon": "🌸",
+   "name": "Phòng 2 · Team 2",
+   "color": "#e0479e",
+   "gender": "Nữ"
+  },
+  {
+   "icon": "🐬",
+   "name": "Phòng 3 · Team 3",
+   "color": "#38bdf8",
+   "gender": "Nữ"
+  },
+  {
+   "icon": "🌷",
+   "name": "Phòng 4 · Team 1",
+   "color": "#ff6cce",
+   "gender": "Nữ"
+  },
+  {
+   "icon": "🦈",
+   "name": "Phòng 5 · Team 2",
+   "color": "#7a8cff",
+   "gender": "Nữ"
+  },
+  {
+   "icon": "🌻",
+   "name": "Phòng 6 · Team 3",
+   "color": "#ffb13d",
+   "gender": "Nữ"
+  },
+  {
+   "icon": "7",
+   "name": "Phòng 7 · Team 4",
+   "color": "#a6ff4d",
+   "gender": "Nữ"
+  }
+ ],
+ "updatedAt": {
+  "__ts": 1794202892000
+ }
+}

@@ -10,13 +10,16 @@ updated: 2026-09-29
 
 ## Script loading order (SACRED — đừng thay đổi)
 ```
-config.js → themes/tech/strings.js → themes/tech/variants/tnt/strings.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
+config.js → themes/tech/strings.js → themes/tech/variants/tnt/strings.js → js/config/profile.js → firebase-config.js → storage.js → api.js → ui-utils.js → ui-render.js → app.js
 ```
+(`theme.js` nạp riêng trong `<head>`; từ 2026-11-10 nó còn cung cấp `eventIdFromUrl`/`setActiveVariant`/cache hồ sơ cho
+profile.js + app.js — xem [[event-profile]].)
 Mỗi file phụ thuộc vào globals của file trước. Sai thứ tự = `ReferenceError` ngay lập tức.
 `themes/tech/strings.js` (text riêng-theo-theme, merge vào `STRINGS` — xem [[i18n-system]]) chỉ phụ
 thuộc config.js; CHỈ index.html nạp (admin.html không có). Nếu thiếu/sai chỗ ⇒ `TEXT.tech` undefined.
-`variants/tnt/strings.js` (2026-09-29) phải SAU tech/strings.js (ghi đè `STRINGS.vi.tech`) và TRƯỚC mọi
-file UI (có thể gán lại `TEXT`/`LANG`); tự return khi `ACTIVE_VARIANT` khác. CSS: `tnt.css` link SAU chip.css.
+`variants/tnt/strings.js` phải SAU tech/strings.js và TRƯỚC `profile.js`: từ 2026-11-10 nó CHỈ
+`registerVariantCopy("tnt", …)` (không sửa STRINGS/LANG/TEXT); `profile.js` dựng TEXT + chuyển LANG theo hồ sơ sự kiện,
+phải TRƯỚC mọi file UI. CSS: `tnt.css` link SAU chip.css.
 
 **Lưới + giới tính (2026-09-29):** `renderState` tính `gLocked` (phòng gắn giới ≠ `myGender`) ⇒ tile `disabled`
 + `gender-lock` + nhãn `grid.tileGender`; `openForMe` = 0 mà còn phòng ⇒ `#freeHint` = `grid.genderFull`.

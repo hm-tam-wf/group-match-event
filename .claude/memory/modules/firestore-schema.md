@@ -122,10 +122,14 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 
 ## Registry & event-list (config docs ngoài namespace)
 - `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.
-  **Ngoại lệ theo domain:** `EVENT_ID_BY_HOST` (fe/js/config/config.js) — domain có trong map dùng sự kiện
-  cố định, KHÔNG đọc config/active (app.js bước 1). Hiện: `hm-tam-wf.github.io` (GitHub Pages) → `event-demo`
-  (bản demo, dữ liệu riêng; tạo 2026-11-10 bằng `backend/scripts/clone-event.js --with-allowlist` từ
-  mini-outing-2026: chép meta/config + allowlist, KHÔNG chép đăng ký). Admin vẫn badge "đang mở" theo config/active.
+  **Chọn sự kiện (từ bước 2, 2026-11-10):** `?e=<id>` > `config/hosts.byHost[domain]` > `config/active` — xem [[event-profile]].
+- `config/hosts = { byHost: { "<hostname>": "<eventId>" }, updatedAt }` — domain → sự kiện mặc định (thay `EVENT_ID_BY_HOST`
+  trong code, đã gỡ). Đọc công khai, write admin (rules `config/{doc}` sẵn có). Sửa bằng `backend/scripts/hosts.js`.
+  Dự kiến: `hm-tam-wf.github.io` (GitHub Pages) → `event-demo` (bản demo, dữ liệu riêng; tạo 2026-11-10 bằng
+  `backend/scripts/clone-event.js --with-allowlist` từ mini-outing-2026: chép meta/config + allowlist, KHÔNG chép đăng ký).
+  Admin vẫn badge "đang mở" theo config/active.
+- `events/{id}/meta/config.profile` — hồ sơ sự kiện (skin/ngôn ngữ/logo/câu chữ/homeUrl/introMs), mọi key tuỳ chọn,
+  thiếu = hành vi cũ — xem [[event-profile]]. Ghi cả map bằng `update({profile})`.
 - `config/eventList = { ids:[...] }` — **registry liệt kê mọi sự kiện** (admin dashboard dùng,
   KHÔNG dùng collectionGroup). Tạo sự kiện = `arrayUnion`; **xóa sự kiện = `arrayRemove`**
   (quên ⇒ "ghost row" hiện `?/?`). Cả hai nằm dưới `match /config/{doc}` (write: isAdmin).
