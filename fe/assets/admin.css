@@ -432,6 +432,7 @@ input[readonly]{background:rgba(255,255,255,.03);color:var(--mut);cursor:not-all
 .cp-key{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .cp-key code{font-size:12px;overflow-wrap:anywhere}
 .cp-fn{font-size:11px;font-weight:600;padding:1px 8px;border-radius:var(--pill);color:var(--warn);background:var(--warn-soft)}
+.cp-var{font-size:11px;font-weight:600;padding:1px 8px;border-radius:var(--pill);color:#B4BCFF;background:var(--accent-soft);cursor:help}
 .cp-in{min-height:38px;font-size:13.5px;line-height:1.45}
 .cp-row.is-set .cp-in{border-color:rgba(139,151,255,.55);background:var(--card-3)}
 .cp-json > summary{cursor:pointer;font-size:13px;font-weight:500;color:var(--mut);padding:4px 0;width:fit-content}

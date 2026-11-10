@@ -15,7 +15,10 @@ Quyền admin do `backend/firestore.rules` quyết định (hàm `isAdmin()`), t
 | Trang **Quản trị** | Xem UID của mình, thêm / gỡ quản trị viên theo UID (`admins/{uid}`). |
 
 ### Hồ sơ sự kiện (`profile`) — ghi thế nào
-- **Tạo sự kiện**: luôn ghi `profile` tường minh (mặc định = giao diện hiện tại; `homeUrl: ""`).
+- **Tạo sự kiện**: luôn ghi `profile` tường minh, mặc định = `NEW_EVENT_PROFILE` trong `fe/js/config/config.js` (hiện `{ variant: "tnt", lang: "vi", homeUrl: "" }`).
+- Ô chữ ghi đè hiện **chữ đang hiển thị** làm gợi ý: chữ của biến thể đang chọn (`VARIANT_COPY[variant][lang]`, có nhãn tím) nếu có, không thì
+  chữ gốc `STRINGS`. admin.html nạp `themes/tech/variants/tnt/strings.js` cho việc này ⇒ **thêm biến thể mới thì thêm thẻ `<script>` của nó vào admin.html**
+  (ngoài `AVAILABLE_VARIANTS` + `index.html`).
 - **Sửa sự kiện**: chỉ ghi `profile` (bằng `update`, thay cả map) khi đã sửa tab Nhận diện; không đụng thì giữ nguyên.
 - Lựa chọn "Dùng logo mặc định của giao diện" = **không ghi** `brand` (skin như TNT giữ logo riêng của nó).
 - Lựa chọn "Như cũ" ở nút Huỷ = **không ghi** `homeUrl` (hành vi cũ: về trang trước / travel.html).

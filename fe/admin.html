@@ -400,7 +400,7 @@
 
       <fieldset class="fs">
         <legend>Chữ trên trang</legend>
-        <small class="hint">Chỉ ô đã điền mới được lưu; để trống = giữ chữ gốc (chữ mờ). <code>{0}</code>, <code>{1}</code> là chỗ chèn tham số (tên đội, số người…). Dùng được HTML đơn giản như &lt;b&gt;. Giao diện biến thể (vd TNT) có thể đã thay sẵn một số chữ gốc.</small>
+        <small class="hint">Chỉ ô đã điền mới được lưu; để trống = giữ chữ gốc (chữ mờ). <code>{0}</code>, <code>{1}</code> là chỗ chèn tham số (tên đội, số người…). Dùng được HTML đơn giản như &lt;b&gt;. Chữ mờ là chữ đang hiển thị: của giao diện biến thể (nhãn tím) nếu có, không thì chữ gốc.</small>
         <div class="cp-bar">
           <div class="seg-tabs" role="tablist" aria-label="Ngôn ngữ của chữ">
             <button type="button" class="seg-btn" role="tab" data-lang="vi" aria-selected="true">Tiếng Việt <b id="cpCount-vi">0</b></button>
@@ -444,6 +444,8 @@
 <script src="js/config/config.js"></script>
 <!-- Chuỗi riêng theme tech (tech.terminalLine…): chỉ để tab Nhận diện liệt kê được key ghi đè. Không đổi giao diện admin. -->
 <script src="themes/tech/strings.js"></script>
+<!-- Chữ của biến thể (registerVariantCopy → VARIANT_COPY): chỉ để ô gợi ý ở tab Nhận diện hiện đúng chữ đang dùng. Thêm biến thể ⇒ thêm thẻ ở đây. -->
+<script src="themes/tech/variants/tnt/strings.js"></script>
 <script src="js/config/firebase-config.js"></script>
 
 <script>
@@ -628,6 +630,9 @@
     const id = (typeof DEFAULT_VARIANT !== "undefined") ? String(DEFAULT_VARIANT || "") : "tnt";
     return (!id || PROFILE_VARIANTS.some(v => v.id === id)) ? id : "";
   })();
+  // Hồ sơ ghi tường minh khi TẠO sự kiện (NEW_EVENT_PROFILE ở config.js); thiếu hằng ⇒ literal dự phòng cùng giá trị.
+  const PROFILE_NEW = (typeof NEW_EVENT_PROFILE !== "undefined" && NEW_EVENT_PROFILE && typeof NEW_EVENT_PROFILE === "object")
+    ? NEW_EVENT_PROFILE : { variant: "tnt", lang: "vi", homeUrl: "" };
   const PROFILE_KEYS  = ["variant", "lang", "brand", "homeUrl", "introMs", "copy"];   // key admin soạn; key lạ (bản sau) được GIỮ khi lưu
   const INTRO_MS_MIN = 1000, INTRO_MS_MAX = 15000, BRAND_NAME_MAX = 40, LOGO_ALT_MAX = 80, COPY_VALUE_MAX = 2000;
   const variantLang = id => { const v = PROFILE_VARIANTS.find(x => x.id === id); return (v && PROFILE_LANGS[v.defaultLang]) ? v.defaultLang : PROFILE_FALLBACK_LANG; };
@@ -2025,7 +2030,7 @@
     const banner = $("formModeBanner");
     if (banner) { banner.hidden = true; banner.className = "form-mode"; banner.textContent = ""; }
     showDrawerPane("dpCfg");
-    populateIdentity(null, "create", "");   // tạo mới: hồ sơ mặc định = đúng giao diện hiện tại (homeUrl "")
+    populateIdentity(Object.assign({}, PROFILE_NEW), "create", "");   // tạo mới: NEW_EVENT_PROFILE (= giao diện hiện tại, homeUrl "")
   }
 
   // Sửa / nhân bản: form đã điền sẵn → mở drawer.
@@ -2180,14 +2185,27 @@
   function updateCopyCounts() {
     Object.keys(PROFILE_LANGS).forEach(l => { const el = $("cpCount-" + l); if (el) el.textContent = Object.keys(idCopy[l] || {}).length; });
   }
+  // Chữ của biến thể (VARIANT_COPY[id][lang][ns][key] — themes/…/variants/<id>/strings.js tự đăng ký); null = biến thể không đổi chữ này.
+  function variantText(variant, lang, path, arity) {
+    const reg = (typeof VARIANT_COPY !== "undefined" && VARIANT_COPY && typeof VARIANT_COPY === "object") ? VARIANT_COPY : null;
+    let v = reg && variant && reg[variant] ? reg[variant][lang] : null;
+    for (const part of path.split(".")) { if (!v || typeof v !== "object") return null; v = v[part]; }
+    if (typeof v === "string") return v;
+    if (typeof v === "function") {
+      try { return String(v.apply(null, Array.from({ length: Math.max(v.length, arity || 0) }, (_, i) => "{" + i + "}"))); } catch (e) { return null; }
+    }
+    return null;
+  }
   function renderCopyList() {
-    const list = $("cpList"), q = _foldVN($("cpSearch").value);
+    const list = $("cpList"), q = _foldVN($("cpSearch").value), variant = $("pVariant").value;
     const cat = copyCatalog(idLang), cur = idCopy[idLang] || {};
     updateCopyCounts();
     if (!cat.length) { list.innerHTML = "<p class='hint'>Không đọc được danh sách chữ của ứng dụng (STRINGS).</p>"; return; }
+    const vLabel = (PROFILE_VARIANTS.find(v => v.id === variant) || {}).label || variant;
     const groups = {};
     cat.forEach(it => {
-      if (q && !_foldVN(it.path + " " + it.orig + " " + (cur[it.path] || "")).includes(q)) return;
+      it.vtext = variantText(variant, idLang, it.path, it.arity);   // chữ đang hiển thị của biến thể (nếu biến thể đổi chữ này)
+      if (q && !_foldVN(it.path + " " + it.orig + " " + (it.vtext || "") + " " + (cur[it.path] || "")).includes(q)) return;
       const ns = it.path.split(".")[0];
       (groups[ns] = groups[ns] || []).push(it);
     });
@@ -2196,10 +2214,11 @@
       const items = groups[ns], n = items.filter(it => cur[it.path]).length;
       return `<details class="cp-ns"${q || n ? " open" : ""}><summary><span>${esc(ns)}</span><span class="cp-n">${n ? n + " đã sửa" : items.length + " chữ"}</span></summary><div class="cp-rows">`
         + items.map(it => {
-            const v = cur[it.path] || "", rows = it.orig.length > 90 ? 3 : (it.orig.length > 40 ? 2 : 1);
+            const v = cur[it.path] || "", ph = it.vtext != null ? it.vtext : it.orig, rows = ph.length > 90 ? 3 : (ph.length > 40 ? 2 : 1);
             return `<label class="cp-row${v ? " is-set" : ""}"><span class="cp-key"><code>${esc(it.path)}</code>`
               + (it.fn ? `<span class="cp-fn" title="Có tham số: giữ {0}, {1}… đúng vị trí">${it.arity ? "có tham số" : "hàm"}</span>` : "")
-              + `</span><textarea class="cp-in" rows="${rows}" data-path="${esc(it.path)}" placeholder="${esc(it.orig || "(trống)")}">${esc(v)}</textarea></label>`;
+              + (it.vtext != null && it.vtext !== it.orig ? `<span class="cp-var" title="Chữ mờ là chữ của giao diện ${esc(vLabel)} (chữ gốc ứng dụng: ${esc(it.orig || "trống")})">${esc(vLabel)}</span>` : "")
+              + `</span><textarea class="cp-in" rows="${rows}" data-path="${esc(it.path)}" placeholder="${esc(ph || "(trống)")}">${esc(v)}</textarea></label>`;
           }).join("") + "</div></details>";
       }).join("") : "<p class='hint'>Không có chữ nào khớp.</p>";
   }
@@ -2278,6 +2297,7 @@
   $("pVariant").addEventListener("change", () => {
     if (!$("pLang").dataset.touched) $("pLang").value = variantLang($("pVariant").value);   // chưa tự chọn ⇒ theo biến thể
     idDirty = true;
+    renderCopyList();                                   // chữ gợi ý theo biến thể mới
   });
   $("pLang").addEventListener("change", () => { $("pLang").dataset.touched = "1"; idDirty = true; });
   $("pBrandMode").addEventListener("change", () => {
@@ -2304,7 +2324,7 @@
     const variant = own("variant") && typeof has.variant === "string" ? has.variant : PROFILE_DEFAULT_VARIANT;
     setVariantSelect(variant);
     $("pLang").value = own("lang") && PROFILE_LANGS[has.lang] ? has.lang : variantLang(variant);
-    $("pLang").dataset.touched = own("lang") ? "1" : "";
+    $("pLang").dataset.touched = (own("lang") && mode !== "create") ? "1" : "";   // tạo mới: đổi biến thể vẫn kéo ngôn ngữ theo
     $("pIntro").value = own("introMs") && Number.isFinite(has.introMs) ? String(has.introMs) : "";
     const b = own("brand") && has.brand && typeof has.brand === "object" ? has.brand : null;
     const bName = b && b.name != null ? String(b.name) : "", bUrl = b && b.logoUrl != null ? String(b.logoUrl) : "";
