@@ -76,7 +76,8 @@ Ví dụ — sự kiện theme gốc, tiếng Anh, logo riêng, không có trang
 Ví dụ — sự kiện TNT có trang lịch trình: `{ "variant": "tnt", "homeUrl": "travel.html" }`.
 
 Ghi hồ sơ: luôn ghi **cả map** `update({ profile })` (`set(..., {merge:true})` chỉ trộn sâu, không xoá key cũ).
-Luồng "Sửa sự kiện" của admin dùng `set(merge:true)` ⇒ giữ nguyên `profile`.
+Luồng "Sửa sự kiện" của admin dùng `set(merge:true)` ⇒ giữ nguyên `profile`. Tạo sự kiện mới: admin ghi tường minh
+`NEW_EVENT_PROFILE` (config.js — hiện `{ variant: "tnt", lang: "vi", homeUrl: "" }`) rồi sửa ở tab Nhận diện.
 
 ### Xem trước không cần sửa dữ liệu
 
