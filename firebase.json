@@ -14,8 +14,26 @@
         "assets/admin.css"
       ],
       "redirects": [
-        { "source": "/admin.html", "destination": "https://hm-tam-wf.github.io/group-match-event/admin.html", "type": 301 },
-        { "source": "/admin", "destination": "https://hm-tam-wf.github.io/group-match-event/admin.html", "type": 301 }
+        { "source": "/admin.html", "destination": "https://pickyourgroup-admin.web.app/", "type": 302 },
+        { "source": "/admin", "destination": "https://pickyourgroup-admin.web.app/", "type": 302 }
+      ]
+    },
+    {
+      "site": "pickyourgroup-admin",
+      "public": "hosting-admin",
+      "predeploy": ["node backend/scripts/build-admin-site.js"],
+      "ignore": ["**/.*"],
+      "rewrites": [
+        { "source": "/", "destination": "/admin.html" }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        }
       ]
     },
     {
