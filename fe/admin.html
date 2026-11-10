@@ -138,6 +138,33 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Tải lại</button>
       </div>
 
+      <!-- Nạp MỘT file mẫu: sheet "Nhân sự" → danh sách cho phép · sheet "Phòng" → danh sách đội (tên, số giường, giới tính) -->
+      <div class="panel tpl" id="tplPanel">
+        <div class="panel-head">
+          <h2>Nạp Nhân sự + Phòng từ file mẫu</h2>
+          <button id="tplDownload" class="btn-ghost btn-sm" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Tải file mẫu</button>
+        </div>
+        <div class="tpl-grid">
+          <div class="tpl-side">
+            <p class="hint">Một file .xlsx: sheet <b>Nhân sự</b> vào danh sách cho phép, sheet <b>Phòng</b> thay danh sách đội (tên, số giường, giới tính). File mẫu điền sẵn các phòng hiện có. Sửa hết lỗi mới nạp được.</p>
+            <label class="drop">
+              <input type="file" id="tplFile" accept=".xlsx,.xls" />
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+              <span>Chọn file mẫu đã điền</span>
+            </label>
+            <label class="switch" id="tplSeedWrap" hidden><input type="checkbox" id="tplSeed" /><span class="switch-ui" aria-hidden="true"></span>
+              <span>Xếp sẵn người có cột “Phòng” (<b>xoá toàn bộ đăng ký hiện có</b> rồi xếp)</span></label>
+            <div class="btn-row">
+              <button id="tplAdd" class="btn-pri" type="button" disabled>Nạp thêm</button>
+              <button id="tplReplace" class="btn-ghost" type="button" disabled>Xoá cũ &amp; nạp mới</button>
+            </div>
+            <div class="al-result" id="tplResult" role="status" hidden></div>
+          </div>
+          <div class="tpl-prev" id="tplPreview" aria-live="polite"><p class="hint">Chọn file để xem trước phòng, số người và lỗi từng dòng.</p></div>
+        </div>
+      </div>
+
       <div class="split split-left">
         <div class="stack">
           <div class="panel">
@@ -388,14 +415,16 @@
   const FV   = firebase.firestore.FieldValue;
 
   // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
-  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "" }) {
+  // list: [{ kind: "err"|"warn"|"ok"|"", text }] — danh sách hậu quả / kết quả kiểm tra hiện dưới message (chữ qua textContent).
+  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "", list = null }) {
     return new Promise(resolve => {
       const bg = document.createElement("div");
       bg.className = "cm-bg";
       bg.innerHTML = `
-        <div class="cm-box" role="dialog" aria-modal="true">
+        <div class="cm-box${list && list.length ? " wide" : ""}" role="dialog" aria-modal="true">
           <h3 class="cm-title"></h3>
           <p class="cm-msg"></p>
+          ${list && list.length ? `<ul class="cm-list"></ul>` : ""}
           ${requireText ? `<input class="cm-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />` : ""}
           <div class="cm-row">
             <button class="cm-cancel"></button>
@@ -406,6 +435,11 @@
       bg.querySelector(".cm-msg").textContent     = message || "";
       bg.querySelector(".cm-cancel").textContent  = cancelText;
       bg.querySelector(".cm-confirm").textContent = confirmText;
+      if (!message) bg.querySelector(".cm-msg").hidden = true;
+      if (list && list.length) {
+        const ul = bg.querySelector(".cm-list");
+        list.forEach(it => { const li = document.createElement("li"); if (it.kind) li.className = it.kind; li.textContent = it.text; ul.appendChild(li); });
+      }
       if (!cancelText) bg.querySelector(".cm-cancel").hidden = true;
       const confirmBtn = bg.querySelector(".cm-confirm");
       const input      = bg.querySelector(".cm-input");
@@ -2371,8 +2405,11 @@
       download:$('alDownload'), body:$('alBody'), empty:$('alEmpty'),
       seedWrap:$('alSeedWrap'), seedTeams:$('alSeedTeams'),
       oneKey:$('alOneKey'), oneName:$('alOneName'), addOne:$('alAddOne'), oneCancel:$('alOneCancel'), oneMsg:$('alOneMsg'),
+      tplPanel:$('tplPanel'), tplFile:$('tplFile'), tplDownload:$('tplDownload'), tplPreview:$('tplPreview'), tplSeedWrap:$('tplSeedWrap'),
+      tplSeed:$('tplSeed'), tplAdd:$('tplAdd'), tplReplace:$('tplReplace'), tplResult:$('tplResult'),
     };
     let cur = { eid:'', dedupField:'', genderCheck:false, rows:[], parsed:null };   // parsed = {items:[{key,name,team,raw,gender,genderRaw}]}
+    let tplParsed = null;   // file mẫu (Nhân sự + Phòng) đang xem trước: { errors, warns, rooms, people, … }
     // Ô chọn giới tính cho "Thêm/sửa 1 mã": "" = không có giới (người này không bị khoá phòng nào).
     el.oneGender.innerHTML = `<option value="">Giới tính: —</option>` +
       GENDER_OPTIONS.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
@@ -2405,6 +2442,31 @@
         }
       },
       async clear(eid){ await deleteAll(`events/${eid}/allowlist`); },   // tái dùng deleteAll của admin
+      // "Xoá cũ & nạp mới" AN TOÀN: GHI XONG danh sách mới (ghi đè trọn từng dòng — file mới là nguồn sự thật, ô trống thì
+      // xoá giá trị cũ) RỒI mới xoá những mã không còn trong file. Không có lúc danh sách trống ⇒ không chặn nhầm cả sự kiện.
+      async replaceAll(eid, items){
+        const col = db.collection('events').doc(eid).collection('allowlist');
+        const oldKeys = (await col.get()).docs.map(d => d.id);
+        const ts = FV.serverTimestamp();
+        for (let i=0;i<items.length;i+=400){
+          const batch = db.batch();
+          items.slice(i,i+400).forEach(it => {
+            const doc = { at:ts };
+            if (it.name) doc.name = it.name;
+            if (it.gender) doc.gender = it.gender;
+            batch.set(col.doc(it.key), doc);
+          });
+          await batch.commit();
+        }
+        const keep = new Set(items.map(it => it.key));
+        const stale = oldKeys.filter(k => !keep.has(k));
+        for (let i=0;i<stale.length;i+=400){
+          const batch = db.batch();
+          stale.slice(i,i+400).forEach(k => batch.delete(col.doc(k)));
+          await batch.commit();
+        }
+        return { written: items.length, removed: stale.length };
+      },
       async delOne(eid, key){ return db.collection('events').doc(eid).collection('allowlist').doc(key).delete(); },
 
       // Seed người ĐÃ CÓ ĐỘI (cột "team") vào đúng đội — CHIẾM SLOT THẬT + KHOÁ MÃ.
@@ -2486,6 +2548,7 @@
       const noField = !cur.dedupField;
       el.warnNoField.hidden = !noField;
       el.import.classList.toggle('is-disabled', noField);
+      el.tplPanel.classList.toggle('is-disabled', noField);   // file mẫu cũng đối chiếu theo ô kiểm tra trùng
       el.warnEmpty.hidden = !(el.mode.checked && cur.rows.length === 0);
       // Bật "Check giới tính" mà danh sách (không rỗng) chưa có ai mang giới tính ⇒ tính năng vô tác dụng → nhắc.
       el.warnNoGender.hidden = !(el.mode.checked && cur.genderCheck && cur.rows.length > 0 && !cur.rows.some(r => r.gender));
@@ -2506,6 +2569,7 @@
 
     async function loadEvent(eid){
       cur.eid = eid; cur.parsed = null; el.result.hidden = true;
+      tplReset();        // đổi sự kiện → bỏ file mẫu đang xem trước (đã đọc theo cấu hình sự kiện cũ)
       cancelEditOne();   // đổi sự kiện → thoát chế độ sửa (tránh lưu nhầm mã sang event khác)
       el.add.disabled = el.replace.disabled = true; el.col.hidden = true; el.file.value = '';
       el.seedWrap.hidden = true; el.seedTeams.checked = false; el.replace.textContent = 'Xoá cũ & nạp mới';
@@ -2650,8 +2714,7 @@
         el.add.disabled = el.replace.disabled = true;
         try {
           await clearEventData(cur.eid);                 // teams/members/dedup_keys/reg_keys/signups (giữ config + allowlist)
-          await data.clear(cur.eid);                     // allowlist
-          await data.addMany(cur.eid, cur.parsed.items); // nạp lại danh sách cho phép (kèm cột name)
+          await data.replaceAll(cur.eid, cur.parsed.items); // danh sách mới ghi xong rồi mới xoá mã cũ không còn trong file
           const res = await data.seedTeams(cur.eid, cur.parsed.items, cfg);
           // Bump dataEpoch: máy người chơi đang giữ localStorage cũ sẽ tự nhả khi vào lại (giống "Xóa dữ liệu").
           await db.collection('events').doc(cur.eid).collection('meta').doc('config').set({ dataEpoch: FV.increment(1) }, { merge:true });
@@ -2681,8 +2744,8 @@
       }
       el.add.disabled = el.replace.disabled = true;
       try {
-        if (replace) await data.clear(cur.eid);
-        await data.addMany(cur.eid, cur.parsed.items);
+        if (replace) await data.replaceAll(cur.eid, cur.parsed.items);   // ghi mới xong mới xoá cũ (không có lúc danh sách trống)
+        else await data.addMany(cur.eid, cur.parsed.items);
         // Replace = thay TOÀN BỘ danh sách (roster mới) ⇒ bump dataEpoch để máy đã đăng nhập tự ĐĂNG NHẬP LẠI
         // khi vào lại (boot so seenEpoch → xóa me.fields → cổng allowlist kiểm theo danh sách MỚI). KHÔNG bump
         // khi chỉ "Thêm" (additive: người cũ vẫn hợp lệ, không nên đá ra).
@@ -2707,7 +2770,284 @@
       URL.revokeObjectURL(a.href);
     }
 
+    // ── Nạp "Nhân sự + Phòng" từ MỘT file mẫu (thay backend/scripts/tnt-import.js) ───────────────────────
+    // Sheet "Nhân sự": <ô kiểm tra trùng> (sự kiện chống trùng theo tên: NAME) | NAME | Gender | Phòng (STT phòng nếu xếp sẵn)
+    // Sheet "Phòng":   STT | Tên phòng | Số giường | Giới tính | Team | Emoji  (Team ghép vào tên: "Phòng 1 · Team 1")
+    // Có sheet Phòng ⇒ THAY danh sách đội (icons/capacity/caps, như tnt-import.js). Đội đang có người phải giữ emoji (khoá teams/{icon}).
+    const TPL = {
+      people: 'nhan su', rooms: 'phong', guide: 'huong dan',            // tên sheet (đã bỏ dấu, chữ thường)
+      roomCols: { stt:/^stt$/, name:/^ten phong$/, beds:/^so giuong$/, gender:/^gioi tinh$/, team:/^(team|nhom)$/, emoji:/^emoji$/ },
+      nameCol: /^(name|ho ten|ho va ten|ten|full ?name)$/,
+      genderCol: /^(gioi tinh|gioi|ma gioi|ma gioi tinh|gender|sex)$/,
+      roomCol: /^(phong|room|team|doi|nhom)$/,
+      emojiPool: ['🌊','🌸','🐬','🌷','🦈','🌻','🐳','🌼','🌴','🌺','⭐','🍀'],   // như tnt-import.js; hết thì dùng số thứ tự
+      colors: ['#2f80ed','#e0479e','#38bdf8','#ff6cce','#7a8cff','#ffb13d','#4dd47a','#b06cff','#ff7a45','#4dffe1','#ffe14d','#ff3b5c'],
+      emojiMax: 16, show: 40,                                             // độ dài emoji tối đa · số lỗi/lưu ý hiện tối đa
+    };
+    const tplFold = h => _foldVN(h).replace(/\s+/g, ' ');
+
+    function tplReset(){
+      tplParsed = null; el.tplFile.value = ''; el.tplResult.hidden = true;
+      el.tplPreview.innerHTML = '<p class="hint">Chọn file để xem trước phòng, số người và lỗi từng dòng.</p>';
+      el.tplSeedWrap.hidden = true; el.tplSeed.checked = false;
+      syncTplButtons();
+    }
+    function syncTplButtons(){
+      const ok = !!(tplParsed && !tplParsed.errors.length && (tplParsed.people.length || tplParsed.rooms.length));
+      const seeding = el.tplSeed.checked && !el.tplSeedWrap.hidden;
+      el.tplAdd.disabled = !ok || seeding;               // xếp sẵn = làm mới dữ liệu ⇒ chỉ qua "Xoá cũ & nạp mới"
+      el.tplReplace.disabled = !ok;
+      el.tplReplace.textContent = seeding ? 'Xoá cũ & nạp mới + xếp sẵn' : 'Xoá cũ & nạp mới';
+    }
+    function tplMsg(msg, err){ el.tplResult.textContent = msg; el.tplResult.classList.toggle('err', !!err); el.tplResult.hidden = false; }
+
+    // Workbook → { errors[], warns[], rooms[], people[], roomSheet, peopleSheet }. Mỗi lỗi ghi rõ sheet + dòng.
+    function tplParse(wb, cfg){
+      const errors = [], warns = [];
+      const aoaOf = n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, defval:'' });
+      const cell = (r, i) => (i >= 0 && r[i] != null ? String(r[i]).trim() : '');
+      const colOf = (hdr, re) => hdr.findIndex(h => re.test(tplFold(h)));
+      const roomSheet = wb.SheetNames.find(n => tplFold(n) === TPL.rooms) || '';
+      const peopleSheet = wb.SheetNames.find(n => tplFold(n) === TPL.people)
+        || wb.SheetNames.find(n => n !== roomSheet && tplFold(n) !== TPL.guide) || '';
+      const curIcons = Array.isArray(cfg.icons) ? cfg.icons : [];
+      // ---- Phòng ----
+      const rooms = [];
+      if (roomSheet){
+        const ra = aoaOf(roomSheet), rh = (ra[0] || []).map(String), c = {};
+        Object.keys(TPL.roomCols).forEach(k => { c[k] = colOf(rh, TPL.roomCols[k]); });
+        if (c.name < 0 || c.beds < 0) errors.push(`Sheet "${roomSheet}": cần cột "Tên phòng" và "Số giường".`);
+        else ra.slice(1).forEach((r, i) => {
+          const name = cell(r, c.name); if (!name) return;
+          const line = `Phòng · dòng ${i + 2} (${name})`;
+          const sttRaw = cell(r, c.stt), stt = c.stt >= 0 ? Number(sttRaw) : rooms.length + 1;
+          if (stt !== rooms.length + 1) errors.push(`${line}: STT phải liên tục 1, 2, 3… (đang là "${sttRaw}").`);
+          const bedsRaw = cell(r, c.beds), beds = Number(bedsRaw);
+          if (!Number.isInteger(beds) || beds < 1) errors.push(`${line}: Số giường phải là số nguyên ≥ 1 (đang là "${bedsRaw}").`);
+          const gRaw = cell(r, c.gender), gender = normGender(gRaw);
+          if (gRaw && !gender) errors.push(`${line}: Giới tính "${gRaw}" không hiểu — ghi Nam hoặc Nữ (trống = phòng chung).`);
+          const team = cell(r, c.team), emoji = cell(r, c.emoji);
+          if (emoji && (emoji.length > TPL.emojiMax || emoji.includes('/'))) errors.push(`${line}: Emoji "${emoji}" không hợp lệ.`);
+          rooms.push({ stt, name, beds, gender, team, label: team ? `${name} · ${team}` : name, emoji, color: '' });
+        });
+        if (!rooms.length && !errors.length) errors.push(`Sheet "${roomSheet}": chưa có phòng nào.`);
+        // Emoji trống ⇒ emoji của đội CÙNG TÊN đang có (giữ khoá teams/{icon}) → kho emoji → số thứ tự chưa dùng.
+        rooms.forEach(r => {
+          if (r.emoji) return;
+          const m = curIcons.find(ic => ic && ic.icon && (tplFold(ic.name) === tplFold(r.label) || tplFold(ic.name) === tplFold(r.name)));
+          if (m) r.emoji = m.icon;
+        });
+        // Kho emoji bỏ cả emoji của MỌI đội hiện có: phòng mới không được "chiếm" khoá teams/{icon} của đội khác tên (đội đó có thể đang có người).
+        const used = new Set(rooms.map(r => r.emoji).filter(Boolean).concat(curIcons.map(ic => ic && ic.icon).filter(Boolean)));
+        const pool = TPL.emojiPool.filter(e => !used.has(e));
+        let no = 1;
+        rooms.forEach(r => {
+          if (r.emoji) return;
+          let e = pool.shift();
+          if (!e) { while (used.has(String(no))) no++; e = String(no); }
+          r.emoji = e; used.add(e);
+        });
+        const seenE = new Map();
+        rooms.forEach((r, i) => {
+          if (seenE.has(r.emoji)) errors.push(`Phòng "${r.name}" trùng emoji ${r.emoji} với phòng "${seenE.get(r.emoji)}" — mỗi phòng cần 1 emoji riêng.`);
+          else seenE.set(r.emoji, r.name);
+          const m = curIcons.find(ic => ic && ic.icon === r.emoji);       // đội cũ cùng emoji ⇒ giữ màu
+          r.color = (m && m.color) || TPL.colors[i % TPL.colors.length];
+        });
+      }
+      // Cột "Phòng" của Nhân sự trỏ tới: phòng trong file (sẽ thay); không có sheet Phòng ⇒ đội hiện tại theo thứ tự.
+      const target = roomSheet ? rooms : curIcons.map((ic, i) => ({ stt: i + 1, name: ic.name || ic.icon, label: ic.name || ic.icon, emoji: ic.icon,
+        gender: normGender(ic.gender), beds: (cfg.caps && typeof cfg.caps[ic.icon] === 'number' && cfg.caps[ic.icon] > 0) ? cfg.caps[ic.icon] : (Number(cfg.capacity) || 0) }));
+      // ---- Nhân sự ----
+      const people = [], df = cur.dedupField;
+      const dfLabel = ((Array.isArray(cfg.fields) ? cfg.fields : []).find(f => f && f.key === df) || {}).label || '';
+      if (!peopleSheet) errors.push('Không thấy sheet "Nhân sự".');
+      else {
+        const pa = aoaOf(peopleSheet), ph = (pa[0] || []).map(String);
+        const nameCol = colOf(ph, TPL.nameCol);
+        let idCol = ph.findIndex(h => { const x = tplFold(h); return !!x && (x === tplFold(df) || (!!dfLabel && x === tplFold(dfLabel))); });
+        if (idCol < 0 && df === 'name') idCol = nameCol;
+        const gCol = colOf(ph, TPL.genderCol), rCol = colOf(ph, TPL.roomCol);
+        if (idCol < 0) errors.push(`Sheet "${peopleSheet}": cần cột "${df}"${dfLabel ? ` (hoặc "${dfLabel}")` : ''} — khớp ô kiểm tra trùng của sự kiện.`);
+        else {
+          const seenK = new Map();
+          pa.slice(1).forEach((r, i) => {
+            const raw = cell(r, idCol); if (!raw) return;
+            const name = nameCol >= 0 ? cell(r, nameCol) : '';
+            const line = `Nhân sự · dòng ${i + 2} (${name || raw})`;
+            const key = _dedupKey(raw);
+            if (seenK.has(key)) { errors.push(`${line}: trùng với dòng ${seenK.get(key)} — người sau sẽ bị chặn.`); return; }
+            seenK.set(key, i + 2);
+            const gRaw = cell(r, gCol), gender = normGender(gRaw);
+            if (gRaw && !gender) errors.push(`${line}: Giới tính "${gRaw}" không hiểu — ghi Nam hoặc Nữ.`);
+            else if (gCol >= 0 && !gRaw) warns.push(`${line}: trống giới tính ⇒ vào được mọi phòng.`);
+            const roomRaw = cell(r, rCol);
+            let room = null;
+            if (roomRaw){
+              const n = Number(roomRaw);
+              room = Number.isInteger(n) ? (target.find(x => x.stt === n) || null) : null;
+              if (!room) errors.push(`${line}: Phòng "${roomRaw}" không hợp lệ — ghi số thứ tự 1…${target.length}${roomSheet ? ' (cột STT sheet Phòng)' : ' (thứ tự đội của sự kiện)'}.`);
+              else if (room.gender && gender && room.gender !== gender) errors.push(`${line}: là ${gender} nhưng xếp vào ${room.name} (phòng ${room.gender}).`);
+            }
+            people.push({ key, raw, name: name || (df === 'name' ? raw : ''), gender, room });
+          });
+          if (!people.length) warns.push(`Sheet "${peopleSheet}" chưa có ai ⇒ danh sách cho phép giữ nguyên.`);
+        }
+      }
+      target.forEach(r => { const n = people.filter(p => p.room === r).length; if (r.beds && n > r.beds) errors.push(`${r.name}: xếp sẵn ${n} người nhưng chỉ có ${r.beds} giường.`); });
+      if (rooms.length && people.length){
+        const bedsOf = g => rooms.filter(r => r.gender === g).reduce((s, r) => s + r.beds, 0);
+        const total = rooms.reduce((s, r) => s + r.beds, 0), common = bedsOf('');
+        if (people.length > total) warns.push(`Thiếu giường: ${people.length} người nhưng chỉ ${total} giường ⇒ ${people.length - total} người sẽ không còn chỗ.`);
+        GENDER_OPTIONS.forEach(g => { const n = people.filter(p => p.gender === g).length; if (n > bedsOf(g) + common) warns.push(`Thiếu giường ${g}: ${n} người ${g} nhưng chỉ ${bedsOf(g)} giường ${g} (+${common} chung).`); });
+      }
+      return { errors, warns, rooms, people, roomSheet, peopleSheet };
+    }
+    // Phòng → cấu hình đội (giống tnt-import.js): sĩ số chung = phòng nhiều giường nhất, phòng khác số đó ⇒ sĩ số riêng.
+    function tplRoomsCfg(rooms){
+      const capacity = Math.max(...rooms.map(r => r.beds));
+      const caps = {};
+      rooms.forEach(r => { if (r.beds !== capacity) caps[r.emoji] = r.beds; });
+      const icons = rooms.map(r => { const ic = { icon: r.emoji, name: r.label, color: r.color }; if (r.gender) ic.gender = r.gender; return ic; });
+      return { icons, capacity, caps };
+    }
+    function renderTplPreview(P){
+      const nG = g => P.people.filter(p => p.gender === g).length, pre = P.people.filter(p => p.room).length;
+      const head = P.errors.length ? `<div class="tpl-status bad">${P.errors.length} lỗi — sửa file rồi chọn lại.</div>`
+        : `<div class="tpl-status ok">File hợp lệ${P.warns.length ? ` · ${P.warns.length} lưu ý` : ''}.</div>`;
+      const stat = (k, v, s) => `<div class="stat"><span class="stat-k">${esc(k)}</span><span class="stat-v">${esc(v)}</span><span class="stat-s">${esc(s)}</span></div>`;
+      const stats = '<div class="stat-row">'
+        + stat('Nhân sự', String(P.people.length), P.people.length ? GENDER_OPTIONS.map(g => `${nG(g)} ${g}`).join(' · ') + (pre ? ` · xếp sẵn ${pre}` : '') : 'không đổi danh sách')
+        + stat('Phòng', P.roomSheet ? String(P.rooms.length) : '—', P.roomSheet ? `${P.rooms.reduce((s, r) => s + r.beds, 0)} giường · thay danh sách đội` : 'không có sheet Phòng ⇒ giữ đội hiện tại')
+        + '</div>';
+      const list = (arr, cls) => arr.length ? `<ul class="tpl-msgs ${cls}">` + arr.slice(0, TPL.show).map(m => `<li>${esc(m)}</li>`).join('')
+        + (arr.length > TPL.show ? `<li>…và ${arr.length - TPL.show} mục nữa</li>` : '') + '</ul>' : '';
+      const rooms = P.rooms.length ? '<div class="table-wrap tpl-rooms"><table class="reg-table"><thead><tr><th class="num">STT</th><th>Phòng</th><th>Giường</th><th>Giới tính</th><th>Xếp sẵn</th></tr></thead><tbody>'
+        + P.rooms.map(r => { const n = P.people.filter(p => p.room === r).length;
+            return `<tr><td class="num" data-label="STT">${r.stt}</td><td class="td-team" data-label="Phòng">${esc(r.emoji)} ${esc(r.label)}</td>`
+              + `<td data-label="Giường">${r.beds}</td><td data-label="Giới tính">${esc(r.gender || 'Chung')}</td><td data-label="Xếp sẵn">${n || '—'}</td></tr>`; }).join('')
+        + '</tbody></table></div>' : '';
+      el.tplPreview.innerHTML = head + stats + list(P.errors, 'err') + rooms + list(P.warns, 'warn');
+    }
+    async function tplOnFile(){
+      el.tplResult.hidden = true; tplParsed = null; syncTplButtons();
+      const f = el.tplFile.files[0]; if (!f) return;
+      if (!cur.eid || !cur.dedupField){ tplMsg('Chọn sự kiện có ô kiểm tra trùng trước.', true); return; }
+      let wb, cfg;
+      try { wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type:'array' }); }
+      catch (e) { tplMsg('Không đọc được file — cần file .xlsx theo mẫu.', true); el.tplFile.value = ''; return; }
+      try { cfg = await data.config(cur.eid); }
+      catch (e) { tplMsg('Không đọc được cấu hình sự kiện: ' + (e.message || e), true); return; }
+      tplParsed = tplParse(wb, cfg);
+      el.tplSeedWrap.hidden = !tplParsed.people.some(p => p.room);
+      if (el.tplSeedWrap.hidden) el.tplSeed.checked = false;
+      renderTplPreview(tplParsed);
+      syncTplButtons();
+    }
+    async function tplImport(replace){
+      const P = tplParsed;
+      if (!P || P.errors.length) return;
+      const eid = cur.eid, evRef = db.collection('events').doc(eid);
+      const seeding = replace && el.tplSeed.checked && !el.tplSeedWrap.hidden;
+      let cfg, teams;
+      try {
+        cfg = await data.config(eid);
+        teams = (await evRef.collection('teams').get()).docs.map(d => ({ icon: d.id, count: (d.data() || {}).count || 0 }));
+      } catch (err) { tplMsg('Không đọc được sự kiện: ' + (err.message || err), true); return; }
+      const roomsCfg = P.rooms.length ? tplRoomsCfg(P.rooms) : null;
+      const items = P.people.map(p => ({ key: p.key, name: p.name, gender: p.gender }));
+      const lines = [];
+      if (!items.length) lines.push({ text: 'Danh sách cho phép: giữ nguyên (sheet Nhân sự trống).' });
+      else lines.push(replace
+        ? { kind: 'warn', text: `Danh sách cho phép: THAY TOÀN BỘ bằng ${items.length} người trong file. Mã không còn trong file bị xoá SAU khi ghi xong danh sách mới.` }
+        : { text: `Danh sách cho phép: thêm / cập nhật ${items.length} người, giữ người cũ không có trong file.` });
+      if (roomsCfg){
+        const nCaps = Object.keys(roomsCfg.caps).length;
+        lines.push({ kind: 'warn', text: `Danh sách đội: thay ${(cfg.icons || []).length} đội hiện tại bằng ${roomsCfg.icons.length} phòng (sĩ số chung ${roomsCfg.capacity}${nCaps ? `, ${nCaps} phòng số giường riêng` : ''}).` });
+        if (!seeding){
+          const keep = new Set(roomsCfg.icons.map(i => i.icon));
+          const lost = teams.filter(t => t.count > 0 && !keep.has(t.icon)).map(t => t.icon);
+          if (lost.length){ tplMsg(`Chưa nạp: đội đang có người sẽ bị mất (${lost.join(' ')}). Giữ đúng emoji các đội này ở cột Emoji của sheet Phòng, hoặc dùng “Xếp sẵn” (làm mới dữ liệu đăng ký).`, true); return; }
+          const capOf = ic => roomsCfg.caps[ic] != null ? roomsCfg.caps[ic] : roomsCfg.capacity;
+          const over = teams.filter(t => t.count > capOf(t.icon));
+          if (over.length) lines.push({ kind: 'warn', text: `Có đội đông hơn số giường mới (${over.map(t => `${t.icon} ${t.count}/${capOf(t.icon)}`).join(', ')}) — không ai bị đẩy ra, đội đó hiện "đầy".` });
+        }
+      }
+      if (seeding) lines.push({ kind: 'err', text: `XOÁ toàn bộ đăng ký hiện có của "${eid}" (đội, người đã chọn, khoá chống trùng) rồi xếp sẵn ${P.people.filter(p => p.room).length} người theo cột Phòng. Không hồi phục được.` });
+      if (replace) lines.push({ text: 'Máy người chơi đã nhập thông tin trước đó sẽ phải nhập lại khi mở trang.' });
+      const ok = await confirmModal({ title: seeding ? 'Làm mới dữ liệu và nạp file mẫu?' : 'Nạp file mẫu?', message: `Sự kiện "${eid}":`, list: lines,
+        confirmText: seeding ? 'Làm mới & nạp' : 'Nạp', danger: replace, requireText: seeding ? eid : '' });
+      if (!ok) return;
+      el.tplAdd.disabled = el.tplReplace.disabled = true;
+      tplMsg('Đang nạp…');
+      try {
+        let removed = 0, seedRes = null, newCfg = cfg;
+        if (items.length){ if (replace) removed = (await data.replaceAll(eid, items)).removed; else await data.addMany(eid, items); }
+        if (roomsCfg){
+          await evRef.collection('meta').doc('config').update({ icons: roomsCfg.icons, capacity: roomsCfg.capacity, caps: roomsCfg.caps, updatedAt: FV.serverTimestamp() });
+          newCfg = Object.assign({}, cfg, roomsCfg);
+        }
+        if (seeding){
+          await clearEventData(eid);                        // seed đòi collection rỗng (rules members/dedup_keys: update:false)
+          const seedItems = P.people.filter(p => p.room).map(p => ({ key: p.key, raw: p.raw, name: p.name || p.raw, team: String(p.room.stt) }));
+          seedRes = await data.seedTeams(eid, seedItems, newCfg);
+        }
+        if (replace) await evRef.collection('meta').doc('config').set({ dataEpoch: FV.increment(1) }, { merge: true });   // như "Xoá cũ & nạp mới" hiện có
+        cur.rows = await data.list(eid); renderList();
+        let msg = items.length ? `Đã nạp ${items.length} người${replace ? ` (xoá ${removed} mã cũ không còn trong file)` : ''}` : 'Danh sách cho phép giữ nguyên';
+        if (roomsCfg) msg += ` · ${roomsCfg.icons.length} phòng`;
+        if (seedRes) msg += ` · xếp sẵn ${seedRes.seeded} người` + (seedRes.conflicts.length ? ` · ⚠ bỏ qua (trùng khoá): ${seedRes.conflicts.join('; ')}` : '');
+        tplReset(); tplMsg(msg + '.');
+        loadEventList();                                     // thẻ sự kiện / tổng quan thấy phòng mới
+      } catch (err) {
+        tplMsg('Lỗi khi nạp: ' + (err.message || err) + ' — một phần có thể đã ghi; kiểm tra rồi nạp lại.', true);
+        syncTplButtons();
+      }
+    }
+    // File mẫu sinh tại chỗ theo sự kiện đang chọn: cột đối chiếu = ô kiểm tra trùng; sheet Phòng điền sẵn các đội hiện có.
+    async function tplDownload(){
+      let cfg = {};
+      try { if (cur.eid) cfg = await data.config(cur.eid); } catch (e) {}
+      const df = cur.dedupField || 'name', byName = df === 'name';
+      const hdr = byName ? ['NAME', 'Gender', 'Phòng'] : [df, 'NAME', 'Gender', 'Phòng'];
+      const demo = [['NGUYỄN VĂN A', 'Nam', ''], ['TRẦN THỊ B', 'Nữ', '1'], ['LÊ VĂN C', 'Nam', '']];
+      const people = demo.map((r, i) => byName ? r : ['NV' + String(i + 1).padStart(4, '0')].concat(r));
+      const icons = Array.isArray(cfg.icons) ? cfg.icons : [];
+      const bedsOf = ic => (cfg.caps && typeof cfg.caps[ic.icon] === 'number' && cfg.caps[ic.icon] > 0) ? cfg.caps[ic.icon] : (Number(cfg.capacity) || 1);
+      const split = nm => { const m = /^(.*?)\s*·\s*(.+)$/.exec(String(nm || '')); return m ? [m[1], m[2]] : [String(nm || ''), '']; };
+      const rooms = icons.length ? icons.map((ic, i) => { const [n, t] = split(ic.name || ic.icon); return [i + 1, n, bedsOf(ic), normGender(ic.gender), t, ic.icon]; })
+        : [[1, 'Phòng 1', 4, 'Nam', 'Team 1', ''], [2, 'Phòng 2', 4, 'Nữ', 'Team 2', ''], [3, 'Phòng 3', 4, '', '', '']];
+      const guide = [
+        'HƯỚNG DẪN — nạp ở admin: trang "Danh sách cho phép" → "Nạp Nhân sự + Phòng từ file mẫu" (xem trước + báo lỗi từng dòng trước khi nạp).',
+        '',
+        'SHEET Nhân sự — mỗi dòng 1 người:',
+        byName ? '• NAME: họ tên CÓ DẤU đầy đủ, đúng như người chơi sẽ gõ (đây là mã đối chiếu). Không để 2 người trùng tên.'
+               : `• ${df}: mã đối chiếu (ô kiểm tra trùng của sự kiện), mỗi người 1 mã. NAME: họ tên (nên có).`,
+        '• Gender: Nam hoặc Nữ (trống = vào được mọi phòng).',
+        '• Phòng: để TRỐNG nếu người đó tự chọn trên web; ghi SỐ THỨ TỰ phòng (cột STT sheet Phòng) nếu BTC xếp sẵn.',
+        '   → Xếp sẵn chỉ chạy khi admin tích "Xếp sẵn": XOÁ toàn bộ đăng ký hiện có rồi xếp. Không vượt Số giường, cùng giới với phòng.',
+        '',
+        'SHEET Phòng — có sheet này thì THAY toàn bộ danh sách đội của sự kiện (không muốn đổi phòng: xoá sheet này):',
+        '• STT: 1, 2, 3… liên tục. Tên phòng, Số giường (số nguyên ≥ 1) bắt buộc.',
+        '• Giới tính: Nam / Nữ; trống = phòng chung.   Team (tuỳ chọn): hiện thành "Phòng 1 · Team 1".',
+        '• Emoji: khoá định danh phòng — phòng ĐANG CÓ NGƯỜI phải giữ nguyên emoji. Trống = tự đặt.',
+        '',
+        '"Nạp thêm" giữ người cũ trong danh sách cho phép; "Xoá cũ & nạp mới" thay toàn bộ (ghi xong danh sách mới mới xoá mã cũ).',
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.aoa_to_sheet([hdr].concat(people)); ws1['!cols'] = hdr.map(h => ({ wch: h === 'NAME' ? 28 : 12 }));
+      const ws2 = XLSX.utils.aoa_to_sheet([['STT', 'Tên phòng', 'Số giường', 'Giới tính', 'Team', 'Emoji']].concat(rooms)); ws2['!cols'] = [6, 22, 10, 10, 14, 8].map(w => ({ wch: w }));
+      const ws3 = XLSX.utils.aoa_to_sheet(guide.map(l => [l])); ws3['!cols'] = [{ wch: 120 }];
+      XLSX.utils.book_append_sheet(wb, ws1, 'Nhân sự'); XLSX.utils.book_append_sheet(wb, ws2, 'Phòng'); XLSX.utils.book_append_sheet(wb, ws3, 'Hướng dẫn');
+      XLSX.writeFile(wb, `mau-nhan-su-phong-${cur.eid || 'su-kien'}.xlsx`);
+    }
+
     // ── events ──
+    el.tplFile.onchange = tplOnFile;
+    el.tplSeed.onchange = syncTplButtons;
+    el.tplAdd.onclick = () => tplImport(false);
+    el.tplReplace.onclick = () => tplImport(true);
+    el.tplDownload.onclick = tplDownload;
     el.event.onchange = e => loadEvent(e.target.value);
     el.reload.onclick = () => cur.eid && loadEvent(cur.eid);
     el.file.onchange = onFile;

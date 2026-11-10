@@ -212,7 +212,22 @@ input[readonly]{background:rgba(255,255,255,.03);color:var(--mut);cursor:not-all
 .drop svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .drop:focus-within{box-shadow:var(--ring)}
-.al-import.is-disabled{opacity:.5;pointer-events:none}
+.al-import.is-disabled,.tpl.is-disabled{opacity:.5;pointer-events:none}
+/* nạp file mẫu Nhân sự + Phòng: cột trái thao tác, cột phải xem trước (thống kê · lỗi từng dòng · bảng phòng · lưu ý) */
+.tpl{margin-bottom:14px}
+.tpl-grid{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:16px;align-items:start}
+.tpl-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tpl-prev{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:120px;padding:14px;border-radius:14px;border:1px dashed var(--line-2);background:rgba(255,255,255,.015)}
+.tpl-status{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600}
+.tpl-status::before{content:"";flex:0 0 8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor}
+.tpl-status.ok{color:var(--ok)}
+.tpl-status.bad{color:var(--bad)}
+.stat-s{font-size:12px;color:var(--mut);line-height:1.4}
+.tpl-msgs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
+.tpl-msgs li{font-size:13px;line-height:1.45;padding:7px 10px;border-radius:9px;overflow-wrap:anywhere}
+.tpl-msgs.err li{background:var(--danger-soft);color:#FFB3C0}
+.tpl-msgs.warn li{background:var(--warn-soft);color:#FFD9A0}
+.tpl-rooms{max-height:300px}
 .al-result{font-size:13.5px;color:var(--ok)}
 .al-result.err{color:var(--bad)}
 .search{position:relative;display:block}
@@ -436,6 +451,16 @@ input[readonly]{background:rgba(255,255,255,.03);color:var(--mut);cursor:not-all
 .cm-confirm{background:var(--grad);color:#fff;box-shadow:var(--glow)}
 .cm-confirm.danger{background:var(--danger-solid);box-shadow:0 8px 22px -12px rgba(255,92,122,.8)}
 .cm-input{width:100%;margin:0 0 16px;font-family:var(--mono)!important;font-weight:600}
+.cm-box.wide{max-width:540px}
+.cm-msg:has(+ .cm-list){margin-bottom:12px}
+.cm-list{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px;max-height:min(46vh,380px);overflow:auto}
+.cm-list li{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.cm-list li::before{content:"";flex:0 0 7px;height:7px;margin-top:7px;border-radius:50%;background:var(--mut)}
+.cm-list li.ok::before{background:var(--ok)}
+.cm-list li.warn{background:var(--warn-soft);color:#FFD9A0}
+.cm-list li.warn::before{background:var(--warn)}
+.cm-list li.err{background:var(--danger-soft);color:#FFB3C0}
+.cm-list li.err::before{background:var(--bad)}
 .cm-input:focus{border-color:var(--danger)!important;box-shadow:0 0 0 3px rgba(255,92,122,.25)!important}
 
 /* ── toast ── */
@@ -612,6 +637,7 @@ button.is-loading::before{content:"";width:14px;height:14px;border-radius:50%;bo
   .side-foot{margin:0 0 0 auto}
   .side-foot .btn-block{width:auto}
   .split-left{grid-template-columns:minmax(0,1fr)}
+  .tpl-grid{grid-template-columns:minmax(0,1fr)}
   .nav{min-width:0}
   .nav-ind::before{left:24%;right:24%;top:auto;bottom:3px;width:auto;height:3px}
 }
