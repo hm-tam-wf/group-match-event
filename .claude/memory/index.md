@@ -16,7 +16,7 @@
 
 ## UI & components
 - [[design-tokens]] — Soft Cloud Candy palette, fonts Baloo 2 + Nunito, motion
-- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME (theme.js, 0 FOUC) + data-theme; biến thể sự kiện (DEFAULT_VARIANT / ?variant=; `tnt` = brand TNT, Mini Outing); theme `tech` (cả app + admin)
+- [[theme-system]] — đổi giao diện bằng 1 cờ ACTIVE_THEME (theme.js, 0 FOUC) + data-theme; biến thể sự kiện (DEFAULT_VARIANT / ?variant=; `tnt` = brand TNT, Mini Outing); theme `tech` (chỉ app); admin cố định theme `midnight` (sidebar, không theo theme sự kiện)
 - [[i18n-system]] — đổi ngôn ngữ UI bằng 1 cờ LANG (registry STRINGS en/vi + TEXT trong config.js); ?lang= override; tách text hardcode vs tầng config per-event; biến thể được chuyển LANG + ghi đè copy
 
 ## Decisions (ADRs)

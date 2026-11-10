@@ -1,18 +1,15 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-theme="midnight">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Admin — Group Match</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
-<!-- Áp theme TRƯỚC khi vẽ (0 FOUC). Nguồn sự thật: ACTIVE_THEME trong theme.js. -->
-<script src="js/config/theme.js"></script>
-<!-- Theme 'tech' cho admin: khối §ADMIN ([data-theme="tech"] body.admin) nằm trong tech.css
-     (gói fe/themes/tech/). Specificity cao hơn :root inline bên dưới → thắng cascade dù nạp
-     trước; theme khác/default thì INERT. -->
-<link rel="stylesheet" href="themes/tech/tech.css">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Admin dùng theme CỐ ĐỊNH 'midnight' (data-theme đặt sẵn trên <html>) — KHÔNG theo theme/biến thể
+     sự kiện của trang công khai (không nạp theme.js / tech.css). -->
+<link rel="stylesheet" href="themes/midnight/midnight.css">
 <style>
   :root{
     /* ── Cloud Candy back-office: nền trung tính + nhấn tím "Linh Thú" ── */
@@ -76,6 +73,7 @@
   .bar{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
   .bar h1{margin:0}
   .bar .who{color:var(--mut);font-size:13.5px;font-weight:600;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-user{display:flex;align-items:center;gap:12px}
 
   /* ── tabs ── */
   .tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--line);margin-bottom:var(--s5);overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -278,20 +276,22 @@
 
   <!-- B) ĐÃ ĐĂNG NHẬP -->
   <div id="adminView" hidden>
+    <!-- .side = sidebar ở theme midnight (≥1024px); theme khác không style → bố cục cũ -->
+    <aside class="side">
     <div class="bar">
       <h1 style="margin:0;">ADMIN</h1>
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div class="bar-user">
         <span class="who" id="who"></span>
-        <button id="themeToggle" class="btn-ghost" type="button" aria-label="Đổi giao diện" title="Đổi giao diện (tech ⇄ mặc định)">🌓</button>
         <button id="btnLogout" class="btn-ghost">Đăng xuất</button>
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="tabEvents">Quản lý sự kiện</button>
-      <button class="tab" data-tab="tabSignups">Xem đăng ký</button>
-      <button class="tab" data-tab="tab-allowlist">Danh sách cho phép</button>
-    </div>
+    <nav class="tabs" aria-label="Mục quản trị">
+      <button class="tab active" data-tab="tabEvents"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Quản lý sự kiện</button>
+      <button class="tab" data-tab="tabSignups"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Xem đăng ký</button>
+      <button class="tab" data-tab="tab-allowlist"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10v-6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>Danh sách cho phép</button>
+    </nav>
+    </aside>
 
     <!-- TAB: Quản lý sự kiện -->
     <div id="tabEvents" class="tab-panel active">
@@ -549,15 +549,6 @@
   const auth = firebase.auth();
   const FV   = firebase.firestore.FieldValue;
 
-  // Nút đổi giao diện — CHỈ ở admin (trang công khai không cho end-user đổi). Lật data-theme
-  // tech ⇄ default + nhớ localStorage; theme.js (<head>, cả 2 trang) đọc lại khi tải để áp.
-  const _themeBtn = $("themeToggle");
-  if (_themeBtn) _themeBtn.onclick = () => {
-    const next = (document.documentElement.getAttribute("data-theme") === "tech") ? "default" : "tech";
-    document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("theme", next); } catch (e) {}
-  };
-
   // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
   function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "" }) {
     return new Promise(resolve => {
@@ -759,12 +750,35 @@
     }
   }
 
+  // Thanh lấp đầy — trang trí (số % đã có ở dòng stats) nên aria-hidden. CSS chỉ hiện ở theme midnight.
+  function fillBar(pct) {
+    const p = Math.max(0, Math.min(100, Number(pct) || 0));
+    return `<div class="ev-fill" aria-hidden="true"><span style="--p:${p}%"></span></div>`;
+  }
+
+  // Hàng KPI tổng quan trên danh sách sự kiện (theme midnight). Số liệu lấy từ ev.metrics sẵn có.
+  function renderEvKpis(events) {
+    const live = events.find(ev => ev.id === activeEventId && ev.exists);
+    const m    = live && live.metrics || null;
+    const nTeam = live && live.cfg && Array.isArray(live.cfg.icons) ? live.cfg.icons.length : 0;
+    const kpi = (k, v, sub, extra = "", cls = "") =>
+      `<div class="kpi${cls}"><div class="kpi-k">${k}</div><div class="kpi-v">${v}</div>`
+      + (sub ? `<div class="kpi-sub">${sub}</div>` : "") + extra + `</div>`;
+    return '<div class="ev-kpis">'
+      + kpi("Đang chạy", live ? esc(live.cfg.title || live.id) : "Không có",
+            live ? `ID: ${esc(live.id)}` : `${events.length} sự kiện trong danh sách`, "", " is-hero")
+      + kpi("Lượt đăng ký", m ? m.registrations : "—", m ? `trên ${m.totalCap} chỗ` : "Chưa mở sự kiện nào")
+      + kpi("Đội đã đầy", m ? `${m.teamsFull}<span style="color:var(--mut);font-size:.6em"> / ${nTeam}</span>` : "—", m ? "đội đạt sĩ số" : "")
+      + kpi("Lấp đầy", m ? `${m.fillRate}%` : "—", "", m ? fillBar(m.fillRate) : "")
+      + '</div>';
+  }
+
   function renderEvList(events) {
     if (!events.length) {
       $("evListWrap").innerHTML = emptyState("Chưa có sự kiện nào.");
       return;
     }
-    $("evListWrap").innerHTML = '<div class="ev-list">'
+    $("evListWrap").innerHTML = renderEvKpis(events) + '<div class="ev-list">'
       + events.map(ev => {
           const isActive = ev.id === activeEventId;
           const title    = ev.cfg && ev.cfg.title ? ev.cfg.title : ev.id;
@@ -799,6 +813,7 @@
               <div class="ev-title">${esc(title)} ${badge}</div>
               <div class="ev-meta">ID: <code>${esc(ev.id)}</code></div>
               <div class="ev-meta ev-stats">${stats}</div>
+              ${ev.exists ? fillBar(m.fillRate) : ""}
             </div>
             <div class="ev-actions">${controls}</div>
           </div>`;

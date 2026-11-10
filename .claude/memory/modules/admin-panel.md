@@ -23,11 +23,9 @@ Firebase Authentication (email/password). UIDs được hardcode trong `firestor
 - Command: `npm run export`
 
 ## Design theme
-Admin panel có theme riêng (back-office) nhưng dùng cùng font:
-- Background: purple-gray (`--bg: #F4F2FC`, `--surface: #FFFFFF`)
-- Primary: `--pri: #7857E6`, accent: `--accent: #A98CFF`
-- Gradient: `--grad: linear-gradient(135deg, #7857E6, #A98CFF)`
-- Font: Baloo 2 + Nunito (same as main app)
+Theme CỐ ĐỊNH `midnight` (2026-11-10): dashboard tối kiểu bento, sidebar trái, KPI + thanh lấp đầy, font Inter.
+Không theo theme/biến thể sự kiện (không nạp theme.js/tech.css). Token + layout: [[theme-system]] §Theme `midnight`.
+`:root` inline (Cloud Candy sáng `--pri #7857E6`…) chỉ còn là token gốc bị midnight override.
 
 ## Quản lý sự kiện (trong `fe/admin.html`)
 Tab "Quản lý sự kiện" = dashboard + CRUD vòng đời. Tất cả nằm trong IIFE của admin.html.

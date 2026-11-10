@@ -9,8 +9,8 @@
      img/        (ảnh riêng: bg-tech.jpg, chip.svg…) — url() trỏ tương đối 'img/…'
    Base/registry + recipe THÊM THEME ở fe/assets/themes.css; token DEFAULT ở
    styles.css (:root). NẠP SAU styles.css + themes.css để [data-theme] thắng
-   cascade; theme.js (<head>) áp data-theme TRƯỚC khi vẽ → 0 FOUC. Cả index.html
-   lẫn admin.html cùng nạp file này (admin dùng khối §ADMIN body.admin ở cuối).
+   cascade; theme.js (<head>) áp data-theme TRƯỚC khi vẽ → 0 FOUC. CHỈ index.html
+   nạp file này — admin.html dùng theme cố định riêng (fe/themes/midnight/).
    ============================================================================ */
 
 /* ============================================================================
@@ -979,60 +979,3 @@
   --accent:        var(--c-magenta);          /* màu chủ đạo của sự kiện X     */
   --err:           var(--c-accent-cyan);      /* nhấn phụ của sự kiện X        */
 }
-
-
-/* ============================================================================
-   §ADMIN — THEME 'tech' cho admin.html
-   ----------------------------------------------------------------------------
-   admin.html có :root + bộ token RIÊNG (--ink/--pri/--grad/--card-2/--accent-soft
-   /--danger…) và nằm CHUNG file này với app chính. Vì vài token trùng tên
-   (--bg/--card/--line/--accent/--r-lg) nên override admin được SCOPE vào
-   `body.admin` (specificity cao hơn :root inline → thắng dù nạp trước/sau; và
-   KHÔNG đụng app chính vì app chính không có body.admin). Default admin bất biến.
-   Palette --c-* kế thừa từ khối [data-theme="tech"] trên <html> nên dùng lại được.
-   ============================================================================ */
-[data-theme="tech"] body.admin{
-  --bg:var(--c-deep-navy); --card:color-mix(in srgb,var(--c-primary) 86%,transparent); --card-2:color-mix(in srgb,var(--surf-bot) 70%,transparent); --line:color-mix(in srgb,var(--c-electric) 28%,transparent);
-  --ink:var(--c-white); --mut:var(--c-soft-glow); --mut-2:var(--c-light-cyan);
-  --pri:var(--c-electric); --accent:var(--c-cyan-blue); --accent-soft:color-mix(in srgb,var(--c-electric) 16%,transparent);
-  --bad:var(--c-magenta); --danger:var(--c-magenta); --danger-soft:color-mix(in srgb,var(--c-magenta) 16%,transparent); --ok:var(--c-accent-cyan); --ok-soft:color-mix(in srgb,var(--c-accent-cyan) 15%,transparent);
-  --ring:0 0 0 3px color-mix(in srgb,var(--c-accent-cyan) 45%,transparent);
-  --sh:0 1px 2px color-mix(in srgb,var(--shade) 40%,transparent), 0 10px 26px -18px color-mix(in srgb,var(--shade) 60%,transparent);
-  --sh-lg:0 22px 50px -24px color-mix(in srgb,var(--shade) 70%,transparent), 0 0 24px -8px color-mix(in srgb,var(--c-electric) 40%,transparent);
-  --grad:linear-gradient(135deg,var(--c-electric),var(--c-cyan-blue));
-  --r-lg:14px;                       /* chặn rò --r-lg:16px từ khối tech app chính */
-  /* nền trang admin: thay 2 radial sáng hardcode trong styles inline */
-  background-image:
-    radial-gradient(900px 480px at 100% -8%, color-mix(in srgb,var(--c-accent-cyan) 16%,transparent), transparent 60%),
-    radial-gradient(720px 420px at -5% 0%, color-mix(in srgb,var(--c-magenta) 10%,transparent), transparent 55%);
-}
-/* — bề mặt hardcode-sáng của admin → tối/đọc rõ — */
-[data-theme="tech"] body.admin code{background:color-mix(in srgb,var(--c-electric) 16%,transparent);color:var(--c-light-cyan)}
-[data-theme="tech"] body.admin .btn-ghost{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
-[data-theme="tech"] body.admin .btn-ghost:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
-[data-theme="tech"] body.admin .btn-ok{color:var(--c-accent-cyan)}
-[data-theme="tech"] body.admin .btn-ok:hover{background:color-mix(in srgb,var(--c-accent-cyan) 22%,transparent)}
-[data-theme="tech"] body.admin .btn-del{color:var(--c-magenta)}
-[data-theme="tech"] body.admin .btn-del:hover{background:color-mix(in srgb,var(--c-magenta) 22%,transparent)}
-[data-theme="tech"] body.admin input:focus,
-[data-theme="tech"] body.admin select:focus,
-[data-theme="tech"] body.admin textarea:focus,
-[data-theme="tech"] body.admin #loginView input:focus{background:color-mix(in srgb,var(--c-electric) 14%,transparent)}
-[data-theme="tech"] body.admin #fId[readonly]{background:color-mix(in srgb,var(--c-electric) 8%,transparent);color:var(--mut)}
-[data-theme="tech"] body.admin .ev-status{background:color-mix(in srgb,var(--c-electric) 12%,transparent)}
-[data-theme="tech"] body.admin .form-mode.edit{background:color-mix(in srgb,var(--c-neon-pink) 18%,transparent);color:var(--c-neon-pink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-neon-pink) 35%,transparent)}
-[data-theme="tech"] body.admin .form-mode.dup{color:var(--c-light-cyan)}
-[data-theme="tech"] body.admin .chip{color:var(--c-soft-glow)}
-[data-theme="tech"] body.admin .chip b{color:var(--c-light-cyan)}
-[data-theme="tech"] body.admin .dw-head,
-[data-theme="tech"] body.admin .dw-list b{color:var(--c-magenta)}
-[data-theme="tech"] body.admin .dw-list li{background:color-mix(in srgb,var(--hi) 6%,transparent)}
-[data-theme="tech"] body.admin .dup-warn{background:linear-gradient(120deg,var(--danger-soft),color-mix(in srgb,var(--surf-bot) 60%,transparent));border-color:color-mix(in srgb,var(--c-magenta) 30%,transparent)}
-[data-theme="tech"] body.admin .al-warn{color:var(--c-magenta);border-color:color-mix(in srgb,var(--c-magenta) 30%,transparent)}
-[data-theme="tech"] body.admin .skeleton{background:linear-gradient(90deg,var(--card-2) 25%,color-mix(in srgb,var(--c-electric) 10%,transparent) 37%,var(--card-2) 63%);background-size:400% 100%}
-/* — modal admin (cm-box trắng hardcode) → navy + glow — */
-[data-theme="tech"] body.admin .cm-bg{background:color-mix(in srgb,var(--c-deep-navy) 60%,transparent)}
-[data-theme="tech"] body.admin .cm-box{background:linear-gradient(180deg, var(--surf-top), var(--surf-bot));box-shadow:var(--sh-lg)}
-[data-theme="tech"] body.admin .cm-cancel{background:color-mix(in srgb,var(--c-electric) 12%,transparent);color:var(--ink)}
-[data-theme="tech"] body.admin .cm-cancel:hover{background:color-mix(in srgb,var(--c-electric) 20%,transparent)}
-[data-theme="tech"] body.admin .cm-input:focus{background:color-mix(in srgb,var(--c-electric) 14%,transparent)}
