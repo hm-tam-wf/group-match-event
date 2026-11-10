@@ -465,13 +465,18 @@ async function startSchedule() {
   }
 
   try {
-    // ── Bước 1: lấy sự kiện đang mở ──
-    const activeSnap = await db.collection("config").doc("active").get();
-    if (!activeSnap.exists || !activeSnap.data().eventId) {
-      showMsg(noEvent);
-      return;
+    // ── Bước 1: lấy sự kiện đang mở (domain có trong EVENT_ID_BY_HOST ⇒ dùng sự kiện cố định, không đọc config/active) ──
+    const hostEvent = hostEventId(location.hostname);
+    if (hostEvent) {
+      EVENT_ID = hostEvent;
+    } else {
+      const activeSnap = await db.collection("config").doc("active").get();
+      if (!activeSnap.exists || !activeSnap.data().eventId) {
+        showMsg(noEvent);
+        return;
+      }
+      EVENT_ID = String(activeSnap.data().eventId).trim();
     }
-    EVENT_ID = String(activeSnap.data().eventId).trim();
     if (!EVENT_ID) { showMsg(noEvent); return; }
 
     // ── Bước 2: lấy cấu hình sự kiện ──

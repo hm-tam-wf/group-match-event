@@ -122,6 +122,10 @@ TÊN HIỂN THỊ ⇒ **phải có đúng 1 field `key:"name"` và `required:tru
 
 ## Registry & event-list (config docs ngoài namespace)
 - `config/active = { eventId }` — sự kiện đang mở ("" = không có). Đọc công khai, write admin.
+  **Ngoại lệ theo domain:** `EVENT_ID_BY_HOST` (fe/js/config/config.js) — domain có trong map dùng sự kiện
+  cố định, KHÔNG đọc config/active (app.js bước 1). Hiện: `hm-tam-wf.github.io` (GitHub Pages) → `event-demo`
+  (bản demo, dữ liệu riêng; tạo 2026-11-10 bằng `backend/scripts/clone-event.js --with-allowlist` từ
+  mini-outing-2026: chép meta/config + allowlist, KHÔNG chép đăng ký). Admin vẫn badge "đang mở" theo config/active.
 - `config/eventList = { ids:[...] }` — **registry liệt kê mọi sự kiện** (admin dashboard dùng,
   KHÔNG dùng collectionGroup). Tạo sự kiện = `arrayUnion`; **xóa sự kiện = `arrayRemove`**
   (quên ⇒ "ghost row" hiện `?/?`). Cả hai nằm dưới `match /config/{doc}` (write: isAdmin).

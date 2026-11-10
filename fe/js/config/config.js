@@ -16,6 +16,13 @@ const DEFAULT_DEDUP_FIELD = "employeeId";
 //     Ở chế độ firebase: giá trị thực được đọc từ config/active trên Firestore khi khởi động.
 //     Giá trị dưới đây là DỰ PHÒNG cho chế độ demo/sheet hoặc khi Firestore lỗi.
 const DEFAULT_EVENT_ID = "su-kien-2026-q2";
+// ➊d Domain → sự kiện CỐ ĐỊNH (bỏ qua config/active). GitHub Pages = bản demo chạy dữ liệu riêng (event-demo),
+//     KHÔNG đụng sự kiện thật đang mở trên Firebase Hosting. Domain không có trong map ⇒ đọc config/active như cũ.
+const EVENT_ID_BY_HOST = { "hm-tam-wf.github.io": "event-demo" };
+function hostEventId(host) {
+  const id = Object.prototype.hasOwnProperty.call(EVENT_ID_BY_HOST, host) ? EVENT_ID_BY_HOST[host] : "";
+  return typeof id === "string" ? id.trim() : "";
+}
 
 // ➋ Sĩ số tối đa mỗi đội. Ở chế độ firebase: đọc từ events/{id}/meta/config trên Firestore.
 const DEFAULT_CAPACITY = 10;
