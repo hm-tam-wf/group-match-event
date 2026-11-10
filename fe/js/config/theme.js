@@ -12,7 +12,7 @@
 //     sự kiện chọn bằng DỮ LIỆU — events/{id}/meta/config.profile.variant, js/config/profile.js áp lại
 //     sau khi đọc cấu hình. DEFAULT_VARIANT chỉ dùng khi hồ sơ KHÔNG khai variant (sự kiện cũ) và cho
 //     trang không phải trang sự kiện (travel.html).
-//   • Trang sự kiện (<html data-event-page>): lần vẽ đầu dùng variant của hồ sơ đã lưu ở lần mở trước
+//   • Trang của sự kiện (<html data-event-page>: index.html, home.html): lần vẽ đầu dùng variant của hồ sơ đã lưu ở lần mở trước
 //     (localStorage) để màn loading đúng skin ngay; hồ sơ thật đọc xong sẽ áp lại nếu khác.
 //   • Xem trước biến thể KHÔNG cần đổi dữ liệu: thêm ?variant=<tên> vào URL (?variant= rỗng = ép tắt) — thắng hồ sơ.
 // ============================================================================
