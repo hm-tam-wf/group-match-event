@@ -2545,12 +2545,12 @@
         + "<td class='td-act' data-label='Thao tác'><button type='button' class='icon-btn row-act' data-pid=\"" + esc(r._id) + "\" title='Chuyển phòng, gỡ, bỏ chặn, xoá' aria-label=\"Thao tác với " + esc(r.name || r._id) + "\">" + ICON_MORE + "</button></td></tr>";
     }).join("");
 
-    const per = {};
-    sigRows.forEach(r => { per[r.icon] = (per[r.icon] || 0) + 1; });
+    const per = {};   // khoá "" = chưa chọn phòng (trước đây thành chip "undefined")
+    sigRows.forEach(r => { const k = r.icon ? String(r.icon) : ""; per[k] = (per[k] || 0) + 1; });
     $("summary").innerHTML = "Tổng số người đăng ký: <b>" + sigRows.length + "</b>"
       + " — sự kiện <b>" + esc(eid) + "</b>";
     $("chips").innerHTML = Object.keys(per).sort((a, b) => per[b] - per[a])
-      .map(ic => "<span class='chip'>" + esc(teamLabel(ic)) + ": <b>" + per[ic] + "</b></span>")
+      .map(ic => "<span class='chip'>" + esc(ic ? teamLabel(ic) : "Chưa chọn phòng") + ": <b>" + per[ic] + "</b></span>")
       .join("");
 
     renderDupWarn(dupGroups, dupKeys, teamLabel);
