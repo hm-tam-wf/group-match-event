@@ -39,8 +39,8 @@ backend/
   firestore.rules         ← Security Rules (DÁN vào Firebase Console). cap()=10 phải khớp CAPACITY
   scripts/export.js · loadtest.js
 documentation/
-  EXPORT.md               ← công cụ xuất danh sách signups ra CSV (firebase-admin)
-  SETUP-FIREBASE.md       ← hướng dẫn dựng Firestore + deploy
+  md/                     ← tài liệu Markdown: EXPORT.md (xuất signups ra CSV), SETUP-FIREBASE.md (dựng Firestore + deploy), ADMIN.md, DEPLOY.md, TESTING.md…
+  html/                   ← bản HTML để xem trên trình duyệt (cùng nội dung bản .md tương ứng)
 legacy/apps-script/       ← backend Apps Script CŨ — KHÔNG còn dùng (giữ làm dự phòng)
 ```
 
@@ -92,7 +92,7 @@ URL: **https://hm-tam-wf.github.io/group-match-event/**
 
 ## Xuất danh sách đăng ký
 
-Xem [EXPORT.md](documentation/EXPORT.md): `npm install` rồi `npm run export` (đọc `events/<id>/signups` của sự kiện đang mở qua `firebase-admin`; sự kiện khác: `npm run export -- --event <id>`). Cách nhanh hơn: admin → Đăng ký → Xuất Excel.
+Xem [EXPORT.md](documentation/md/EXPORT.md): `npm install` rồi `npm run export` (đọc `events/<id>/signups` của sự kiện đang mở qua `firebase-admin`; sự kiện khác: `npm run export -- --event <id>`). Cách nhanh hơn: admin → Đăng ký → Xuất Excel.
 
 ## Thay đổi sĩ số đội (CAPACITY)
 

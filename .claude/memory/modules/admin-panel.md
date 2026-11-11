@@ -19,7 +19,7 @@ khớp `ROOT_ADMIN_UIDS` trong admin.html — đổi thì sửa CẢ HAI) **ho�
 gỡ; không ai tự thêm mình; UID gốc không gỡ được). Cần DEPLOY rules mới thì tab này + "Chuyển phòng" mới chạy.
 - **Gotcha:** tạo lại tài khoản Firebase = UID đổi ⇒ admin theo dữ liệu: thêm lại doc; admin gốc: sửa rules + admin.html.
 
-## Tính năng bước 3A + 3B (2026-11-11) — xem documentation/ADMIN.md, HOME-TEMPLATE.md
+## Tính năng bước 3A + 3B (2026-11-11) — xem documentation/md/ADMIN.md, HOME-TEMPLATE.md
 - Form sự kiện 2 pane, tab **Nhận diện** soạn `meta/config.profile` ([[event-profile]]): tạo mới ghi `NEW_EVENT_PROFILE`; sửa chỉ
   `update({profile})` khi đã đụng tab; "logo mặc định của skin" = KHÔNG ghi brand; ô gợi ý chữ lấy `VARIANT_COPY[variant][lang]`
   rồi `STRINGS` (admin nạp themes/tech/strings.js + variants/tnt/strings.js — thêm biến thể ⇒ thêm `<script>` ở admin.html).
@@ -46,7 +46,7 @@ gỡ; không ai tự thêm mình; UID gốc không gỡ được). Cần DEPLOY 
   thay cho "đăng ký lại được". Gotcha test: `modalText` = innerText ⇒ KHÔNG chứa `<details>` đang đóng và h4 bị UPPERCASE —
   đọc `.pd-tech` bằng textContent, so tiêu đề mục qua textContent của h4.
 
-## Thẻ "Mức dùng Firestore" (2026-11-11) — documentation/USAGE-MONITORING.md, quyết định [[0003-usage-monitoring-browser-oauth]]
+## Thẻ "Mức dùng Firestore" (2026-11-11) — documentation/md/USAGE-MONITORING.md, quyết định [[0003-usage-monitoring-browser-oauth]]
 - Tab Tổng quan, khung RIÊNG `#usageMount` ngoài `#dashGrid` (renderDashboard thay innerHTML cả lưới ⇒ đặt trong lưới sẽ mất
   trạng thái kết nối). `js/admin/usage-core.js` (UMD, logic thuần, unit test) · `usage-panel.js` (DOM + GIS) · `usage-config.js`
   (`window.ADMIN_USAGE_CONFIG`: `oauthClientId` + ghi đè DEFAULTS: giá, quota, historyDays, checkBilling, loginHint).

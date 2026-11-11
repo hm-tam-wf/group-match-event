@@ -1,4 +1,4 @@
-// Cấu hình thẻ "Mức dùng Firestore" ở tab Tổng quan của admin — cách bật: documentation/USAGE-MONITORING.md
+// Cấu hình thẻ "Mức dùng Firestore" ở tab Tổng quan của admin — cách bật: documentation/md/USAGE-MONITORING.md
 //
 // oauthClientId: OAuth 2.0 Client ID loại "Web application" của Google Cloud project (dạng 123-abc.apps.googleusercontent.com).
 //   KHÔNG phải bí mật (trang nào có nút Đăng nhập Google cũng lộ ra): chỉ dùng được trên các origin đã khai trong Google Cloud,

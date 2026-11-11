@@ -37,7 +37,7 @@
     iamUrl: "https://console.cloud.google.com/iam-admin/iam?project={projectId}",
     apiLibraryUrl: "https://console.cloud.google.com/apis/library/{service}?project={projectId}",
     pricingUrl: "https://cloud.google.com/firestore/pricing",
-    setupDocUrl: "https://github.com/hm-tam-wf/group-match-event/blob/master/documentation/USAGE-MONITORING.md"
+    setupDocUrl: "https://github.com/hm-tam-wf/group-match-event/blob/master/documentation/md/USAGE-MONITORING.md"
   };
 
   var isObj = function (v) { return !!v && typeof v === "object" && !Array.isArray(v); };

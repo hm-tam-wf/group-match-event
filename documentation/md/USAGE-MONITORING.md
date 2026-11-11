@@ -1,6 +1,6 @@
 # Thẻ "Mức dùng Firestore" trong admin: bật từng bước
 
-> Bản HTML dễ xem hơn (có nút chép, mục lục): [html/USAGE-MONITORING.html](html/USAGE-MONITORING.html), mở bằng trình duyệt.
+> Bản HTML dễ xem hơn (có nút chép, mục lục): [html/USAGE-MONITORING.html](../html/USAGE-MONITORING.html), mở bằng trình duyệt.
 > Sửa nội dung thì sửa cả 2 file.
 
 Thẻ nằm cuối trang **Tổng quan** của admin (https://pickyourgroup-admin.web.app), hiện số **thật** của cả project `icon-picker`
@@ -70,7 +70,7 @@ Ngày quota tính theo giờ Pacific: reset lúc 00:00 giờ Pacific = **15:00 g
 4. Để trống **Authorized redirect URIs**. Có ô **Use this client for an AI-powered agent** thì không tick.
 5. **Create** → copy **Client ID** (dạng `123456789-abc….apps.googleusercontent.com`). Không cần Client secret.
 6. Kiểm nhanh: dãy số đầu Client ID (trước dấu `-`) phải trùng `messagingSenderId` trong
-   [`fe/js/config/firebase-config.js`](../fe/js/config/firebase-config.js). Khác nghĩa là đã tạo nhầm project.
+   [`fe/js/config/firebase-config.js`](../../fe/js/config/firebase-config.js). Khác nghĩa là đã tạo nhầm project.
 
 Google ghi chú: thiết lập client có thể mất **5 phút đến vài giờ** mới có hiệu lực. Lần bật đầu tiên của project này mất khoảng
 15 phút; trong lúc chờ, cửa sổ Google báo `Lỗi 401: invalid_client` kèm "no registered origin" (xem [Sự cố](#sự-cố)).
@@ -84,7 +84,7 @@ trò **Monitoring Viewer** (thêm **Browser** để thẻ đọc được trạn
 
 ### Bước 5: Dán Client ID và deploy (người deploy làm)
 
-1. Dán vào [`fe/js/admin/usage-config.js`](../fe/js/admin/usage-config.js): `oauthClientId: "…"`. Client ID không phải bí mật, commit
+1. Dán vào [`fe/js/admin/usage-config.js`](../../fe/js/admin/usage-config.js): `oauthClientId: "…"`. Client ID không phải bí mật, commit
    được.
 2. Deploy site admin: `firebase deploy --only hosting:pickyourgroup-admin`. Muốn kiểm trước rồi mới lên live:
 

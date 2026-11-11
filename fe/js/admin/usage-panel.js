@@ -3,7 +3,7 @@
  * Đăng nhập Google RIÊNG qua Google Identity Services (token model, CHỈ quyền đọc) — không đụng phiên Firebase Auth của admin.
  * Token chỉ nằm trong bộ nhớ tab (không localStorage / sessionStorage), hết hạn ~1 giờ; "Ngắt kết nối" thu hồi ngay.
  * Script Google chỉ tải khi người dùng có ý định kết nối (rê chuột / focus / bấm nút) ⇒ mở trang admin không gọi ra ngoài.
- * Cần: UsageCore (usage-core.js) · cấu hình window.ADMIN_USAGE_CONFIG (usage-config.js) · hướng dẫn: documentation/USAGE-MONITORING.md */
+ * Cần: UsageCore (usage-core.js) · cấu hình window.ADMIN_USAGE_CONFIG (usage-config.js) · hướng dẫn: documentation/md/USAGE-MONITORING.md */
 (function (root) {
   "use strict";
   var Core = root.UsageCore;

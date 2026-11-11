@@ -116,4 +116,4 @@ Admin kiểm tra trước khi mở: giờ đóng đã qua, danh sách cho phép 
   Cập nhật sau khi push code: chạy ở thư mục dự án `firebase deploy --only hosting`.
 - **Giao diện TNT theo từng sự kiện**: sửa sự kiện → tab **Nhận diện** → **Giao diện** = "TNT · Mini Outing" hoặc "Theme gốc"
   (lưu vào hồ sơ sự kiện, không cần sửa code). `DEFAULT_VARIANT` trong `fe/js/config/theme.js` chỉ còn áp cho sự kiện cũ chưa có hồ sơ.
-- Hướng dẫn admin đầy đủ (tab Nhận diện, file mẫu, thao tác từng người, quản trị viên, site admin riêng): `documentation/ADMIN.md`.
+- Hướng dẫn admin đầy đủ (tab Nhận diện, file mẫu, thao tác từng người, quản trị viên, site admin riêng): `documentation/md/ADMIN.md`.

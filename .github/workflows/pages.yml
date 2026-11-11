@@ -3,7 +3,7 @@
 # KHÔNG cần branch gh-pages, KHÔNG cần secret. Firebase deploy vẫn làm thủ công / theo tag (deploy.yml).
 #
 # Admin KHÔNG chạy trên Pages nữa (2026-11-11): admin.html ở đây chỉ là trang chuyển hướng sang ADMIN_URL
-# (giữ bookmark cũ /admin.html, /admin). Admin thật: site Firebase pickyourgroup-admin — xem documentation/ADMIN.md.
+# (giữ bookmark cũ /admin.html, /admin). Admin thật: site Firebase pickyourgroup-admin — xem documentation/md/ADMIN.md.
 #
 # ⚠️ Bắt buộc 1 lần: GitHub repo → Settings → Pages → Build and deployment →
 #    Source = "GitHub Actions" (nếu chưa bật, lần chạy đầu sẽ fail; bật rồi Re-run).

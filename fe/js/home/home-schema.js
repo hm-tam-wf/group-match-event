@@ -1,7 +1,7 @@
 // ============================================================================
 // home-schema.js — SCHEMA trang home của sự kiện: events/{eventId}/meta/home
 // ----------------------------------------------------------------------------
-// MỘT nguồn sự thật cho cả 3 nơi dùng (tài liệu: documentation/HOME-TEMPLATE.md):
+// MỘT nguồn sự thật cho cả 3 nơi dùng (tài liệu: documentation/md/HOME-TEMPLATE.md):
 //   • fe/home.html            — normalize() KHOAN DUNG trước khi vẽ (dữ liệu lạ/thiếu ⇒ giá trị rỗng, không vỡ trang);
 //   • trình soạn admin        — validate() CHẶT trước khi ghi (lỗi kèm đường dẫn field để tô đỏ ô nhập);
 //   • backend/scripts/home-import.js — require() file này trong Node.

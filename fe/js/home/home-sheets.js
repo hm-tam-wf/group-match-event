@@ -37,7 +37,7 @@
 
   const GUIDE = [
     ['Sheet', 'Cột', 'Ý nghĩa'],
-    [SHEET.page, 'key / value', 'Thông tin chung: tiêu đề tab, đầu trang (hero.*), nút (cta.*), chân trang (footer.*). Xem documentation/HOME-TEMPLATE.md'],
+    [SHEET.page, 'key / value', 'Thông tin chung: tiêu đề tab, đầu trang (hero.*), nút (cta.*), chân trang (footer.*). Xem documentation/md/HOME-TEMPLATE.md'],
     [SHEET.sections, 'id, type, title…', 'MỖI DÒNG 1 MỤC, theo đúng thứ tự hiện trên trang. type: timeline | notes | dresscode | transport | text. id: a-z, 0-9, "-" (không trùng)'],
     [SHEET.sections, 'infoTitle…contactsNote', 'Chỉ dùng cho mục type transport (tiêu đề / huy hiệu / ghi chú khối liên hệ)'],
     [SHEET.sections, 'body / bodyHtml', 'Chỉ dùng cho mục type text. bodyHtml (HTML) được ưu tiên hơn body'],

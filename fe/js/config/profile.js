@@ -5,7 +5,7 @@
 // Nạp SAU config.js + themes/<theme>/strings.js + mọi themes/<theme>/variants/<id>/strings.js, TRƯỚC
 // firebase-config.js (cần STRINGS / VARIANT_COPY / AVAILABLE_VARIANTS / DEFAULT_*; theme.js ở <head> cung cấp
 // setActiveVariant / VARIANT_PARAM / cachedEventProfile / profileCacheKey).
-// QUY TẮC VÀNG: key THIẾU = hành vi cũ ⇒ sự kiện chưa có hồ sơ chạy y như trước. Hợp đồng: documentation/EVENT-PROFILE.md
+// QUY TẮC VÀNG: key THIẾU = hành vi cũ ⇒ sự kiện chưa có hồ sơ chạy y như trước. Hợp đồng: documentation/md/EVENT-PROFILE.md
 //   • Lúc nạp: áp hồ sơ đã lưu ở lần mở trước (chưa có ⇒ mặc định) ⇒ loader / tiêu đề đúng ngôn ngữ + skin ngay.
 //   • boot() (app.js) đọc meta/config xong ⇒ applyEventProfile(cfg.profile) + cacheEventProfile(cfg.profile)
 //     TRƯỚC khi vẽ thứ phụ thuộc chữ/logo (nội dung chính còn ẩn sau loader ⇒ không nháy).

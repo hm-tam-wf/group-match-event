@@ -6,9 +6,9 @@ này (trình soạn trong admin, file JSON/Excel, hoặc script) — không sử
 
 - Link: `home.html?e=<eventId>`. Nút chính (CTA) mặc định dẫn sang `index.html?e=<eventId>`.
 - Rules: dùng lại `match /events/{id}/meta/{doc}` (đọc công khai, chỉ admin ghi) — không cần sửa rules.
-- Schema thực thi ở **một** file: [`fe/js/home/home-schema.js`](../fe/js/home/home-schema.js) (`HomeSchema`), dùng
+- Schema thực thi ở **một** file: [`fe/js/home/home-schema.js`](../../fe/js/home/home-schema.js) (`HomeSchema`), dùng
   chung cho trang home (`normalize` — khoan dung), trình soạn admin và script (`validate` — chặt trước khi ghi).
-- Mẫu đầy đủ: [`backend/seed/home-tnt.json`](../backend/seed/home-tnt.json) (chuyển nguyên từ `fe/travel/data.js`).
+- Mẫu đầy đủ: [`backend/seed/home-tnt.json`](../../backend/seed/home-tnt.json) (chuyển nguyên từ `fe/travel/data.js`).
 
 ## 1. Cấu trúc doc (schema v1)
 

@@ -1,6 +1,6 @@
 # Triển khai bản chịu tải lớn (~500 người cùng lúc) bằng Firebase Firestore
 
-App này có 3 chế độ chạy, tự nhận diện trong [fe/js/ui/ui-utils.js](fe/js/ui/ui-utils.js):
+App này có 3 chế độ chạy, tự nhận diện trong [fe/js/ui/ui-utils.js](../../fe/js/ui/ui-utils.js):
 
 | Chế độ | Khi nào | Backend | Chịu tải |
 |--------|---------|---------|----------|
@@ -22,21 +22,21 @@ Hướng dẫn này bật chế độ **`firebase`** — frontend deploy **song 
 
 ## 2. Dán cấu hình vào app
 
-Mở [fe/js/config/firebase-config.js](fe/js/config/firebase-config.js), điền `FIREBASE_CONFIG` (apiKey, projectId, …) lấy ở bước 1.
+Mở [fe/js/config/firebase-config.js](../../fe/js/config/firebase-config.js), điền `FIREBASE_CONFIG` (apiKey, projectId, …) lấy ở bước 1.
 > Các khoá web này **công khai được** (Firestore bảo vệ bằng Security Rules, không phải bằng việc giấu key).
 
-Kiểm tra `CAPACITY` ở [fe/js/config/config.js](fe/js/config/config.js) đúng sĩ số mong muốn, và **danh sách `ICONS`** có đủ số đội bạn cần.
+Kiểm tra `CAPACITY` ở [fe/js/config/config.js](../../fe/js/config/config.js) đúng sĩ số mong muốn, và **danh sách `ICONS`** có đủ số đội bạn cần.
 
 ## 3. Dán Security Rules
 
-Firebase Console → **Firestore Database → Rules** → xoá hết, dán toàn bộ nội dung [backend/firestore.rules](backend/firestore.rules) → **Publish**.
-> ⚠️ Trong file rules có `function cap() { return 10; }` — **số này phải khớp `CAPACITY`** ở [fe/js/config/config.js](fe/js/config/config.js). Đổi sĩ số thì sửa cả hai.
+Firebase Console → **Firestore Database → Rules** → xoá hết, dán toàn bộ nội dung [backend/firestore.rules](../../backend/firestore.rules) → **Publish**.
+> ⚠️ Trong file rules có `function cap() { return 10; }` — **số này phải khớp `CAPACITY`** ở [fe/js/config/config.js](../../fe/js/config/config.js). Đổi sĩ số thì sửa cả hai.
 > (Comment trong `backend/firestore.rules` vẫn ghi tên file cũ "ClientConfig.html" — nay là `fe/js/config/config.js`.)
 
 ## 4. Đẩy lên Firebase Hosting
 
 Thư mục `fe/` đã là sản phẩm cuối (HTML/CSS/JS thật) — **không còn bước build**. Cấu hình ở
-[firebase.json](../firebase.json) (`hosting.public = "fe"`, site `pickyourgroup`). Lần đầu cần tạo site:
+[firebase.json](../../firebase.json) (`hosting.public = "fe"`, site `pickyourgroup`). Lần đầu cần tạo site:
 
 ```powershell
 firebase login
@@ -48,9 +48,9 @@ Sau khi deploy có URL `https://pickyourgroup.web.app`.
 
 > Từ 2026-09-30 site chính là `pickyourgroup`. Site cũ `pickyoursquad-faraday` chỉ còn **chuyển hướng 301** sang
 > `pickyourgroup.web.app` (giữ nguyên đường dẫn + tham số) — cấu hình ở mục thứ 2 của `hosting` trong
-> [firebase.json](../firebase.json), thư mục `hosting-redirect/`. `firebase deploy --only hosting` deploy cả 2.
+> [firebase.json](../../firebase.json), thư mục `hosting-redirect/`. `firebase deploy --only hosting` deploy cả 2.
 
-> 💡 App còn deploy **song song** trên **GitHub Pages** qua [.github/workflows/pages.yml](../.github/workflows/pages.yml)
+> 💡 App còn deploy **song song** trên **GitHub Pages** qua [.github/workflows/pages.yml](../../.github/workflows/pages.yml)
 > (tự động khi push `master` đụng `fe/`) → `https://hm-tam-wf.github.io/group-match-event/`. Bật 1 lần ở repo
 > **Settings → Pages → Source = GitHub Actions**; trang admin trên domain Pages cần thêm `hm-tam-wf.github.io`
 > vào **Firebase Auth → Authorized domains**. Hai hosting dùng chung Firestore nên dữ liệu signup là một.
@@ -76,7 +76,7 @@ Trang đứng riêng cho ban tổ chức xem danh sách `signups` và tải Exce
 
 **6.2. Cấp quyền đọc cho UID đó**
 
-Mở [backend/firestore.rules](backend/firestore.rules), trong `match /events/{eventId}/signups` thay placeholder bằng UID thật:
+Mở [backend/firestore.rules](../../backend/firestore.rules), trong `match /events/{eventId}/signups` thay placeholder bằng UID thật:
 
 ```
 allow read: if request.auth != null
@@ -102,7 +102,7 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 ## Vì sao bản này chịu được ~500 người
 
-- **Ghi (tham gia đội): atomic bằng `runTransaction`** ([fe/js/data/api.js](fe/js/data/api.js)) — mili-giây, không phải khóa tuần tự 1–2s như Apps Script. Không ai thành người thứ 11; không trùng email; 1 người 1 đội.
+- **Ghi (tham gia đội): atomic bằng `runTransaction`** ([fe/js/data/api.js](../../fe/js/data/api.js)) — mili-giây, không phải khóa tuần tự 1–2s như Apps Script. Không ai thành người thứ 11; không trùng email; 1 người 1 đội.
 - **Sĩ số ép ở Security Rules** (`count <= cap()`): client gian lận cũng không vượt được.
 - **Đọc realtime bằng `onSnapshot`** — server tự đẩy thay đổi, **bỏ hẳn việc poll mỗi 3 giây**. Đây là thứ giết Apps Script ở quy mô lớn. Mỗi đội là 1 doc nhỏ nên 500 client cùng nghe vẫn nhẹ.
 - **Bảo mật PII**: tên/email/SĐT chỉ nằm ở `signups` (khoá đọc). Doc đội công khai chỉ có TÊN.
@@ -111,14 +111,14 @@ Nhiều admin thì thêm nhiều UID: `["uid1", "uid2", ...]`. Rồi **Publish l
 
 Sức chứa tối đa = **số icon (đội) × CAPACITY**. Muốn nhận ~500 người:
 - 50 đội × `CAPACITY=10`, **hoặc** 10 đội × `CAPACITY=50`, v.v.
-- Thêm đội = thêm phần tử vào mảng `ICONS` ([fe/js/config/config.js](fe/js/config/config.js)); **mỗi `icon` phải là một emoji DUY NHẤT** (nó là khoá định danh đội). Cần nhiều đội thì dùng các emoji khác nhau.
+- Thêm đội = thêm phần tử vào mảng `ICONS` ([fe/js/config/config.js](../../fe/js/config/config.js)); **mỗi `icon` phải là một emoji DUY NHẤT** (nó là khoá định danh đội). Cần nhiều đội thì dùng các emoji khác nhau.
 
 ## Chạy sự kiện mới
 
 Mỗi sự kiện có **không gian dữ liệu riêng** dưới `events/{EVENT_ID}/`. Để mở sự kiện mới:
 
-1. Mở [fe/js/config/config.js](fe/js/config/config.js), đổi `EVENT_ID` sang nhãn mới (chỉ **chữ thường, số, gạch ngang**), vd `"su-kien-2026-q2"`.
-2. (Tuỳ chọn) chỉnh `FIELDS` / `ICONS` / `CAPACITY` cho sự kiện đó. Nhớ `CAPACITY` khớp `cap()` trong [backend/firestore.rules](backend/firestore.rules).
+1. Mở [fe/js/config/config.js](../../fe/js/config/config.js), đổi `EVENT_ID` sang nhãn mới (chỉ **chữ thường, số, gạch ngang**), vd `"su-kien-2026-q2"`.
+2. (Tuỳ chọn) chỉnh `FIELDS` / `ICONS` / `CAPACITY` cho sự kiện đó. Nhớ `CAPACITY` khớp `cap()` trong [backend/firestore.rules](../../backend/firestore.rules).
 3. `firebase deploy --only hosting` (đẩy `fe/` lên Firebase Hosting). **Không cần đổi gì khác trên Firebase** — Security Rules đã bọc sẵn `events/{eventId}/...`.
 
 Dữ liệu sự kiện cũ **vẫn còn nguyên** ở `events/{event_cũ}/signups`, mở lại / xuất qua Console bất cứ lúc nào. Người tham gia mở lại web ở sự kiện mới sẽ thấy form trống (trạng thái cục bộ cũng tách theo `EVENT_ID`), không kẹt "đã có đội" của sự kiện trước.
@@ -131,4 +131,4 @@ Sự kiện ~500 người thường nằm gọn trong **free tier** (Spark). N�
 
 - Rules hiện cho mọi người tạo doc — đủ cho event. Muốn chặt hơn: bật **Firebase Anonymous Auth** rồi thêm điều kiện `request.auth != null`.
 - `dedup_keys/{key}` cho `get` (transaction cần) nên người biết chính xác 1 giá trị chống trùng (vd MSNV) có thể dò "giá trị này đã đăng ký chưa" (không đọc được PII). Cấm liệt kê cả bảng (`list:false`) nên không enumerate được.
-- Các file Apps Script ([legacy/apps-script/](legacy/apps-script/): `Config.gs`/`Game.gs`/`Handlers.gs`/`Sheet.gs`/`Index.html`) giờ là **legacy** — chế độ `firebase` không dùng tới. Giữ làm dự phòng, không deploy.
+- Các file Apps Script ([legacy/apps-script/](../../legacy/apps-script/): `Config.gs`/`Game.gs`/`Handlers.gs`/`Sheet.gs`/`Index.html`) giờ là **legacy** — chế độ `firebase` không dùng tới. Giữ làm dự phòng, không deploy.

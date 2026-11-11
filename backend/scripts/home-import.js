@@ -1,7 +1,7 @@
 // Nạp nội dung trang home (events/<id>/meta/home) từ file JSON hoặc Excel. Mặc định DRY-RUN (chỉ đọc).
 // Chạy:  node backend/scripts/home-import.js --event <id> --file <home.json|home.xlsx> [--apply] [--key <sa.json>] [--project <id>]
 //   --event <id>   : ID sự kiện (chữ thường/số/gạch ngang như form admin). Sự kiện PHẢI có meta/config (chặn gõ nhầm ID).
-//   --file <path>  : .json theo schema documentation/HOME-TEMPLATE.md, hoặc .xlsx đúng định dạng "Xuất Excel" của trình soạn.
+//   --file <path>  : .json theo schema documentation/md/HOME-TEMPLATE.md, hoặc .xlsx đúng định dạng "Xuất Excel" của trình soạn.
 //   --apply        : ghi thật — set() TRỌN doc (thay toàn bộ trang home), rồi đọc lại để đối chiếu.
 //   FIRESTORE_EMULATOR_HOST=host:port ⇒ chạy trên emulator (--project, mặc định icon-picker).
 // Schema/validate dùng CHUNG với trang home + trình soạn admin: fe/js/home/home-schema.js (+ home-sheets.js cho Excel).

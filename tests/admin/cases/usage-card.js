@@ -86,7 +86,7 @@ module.exports = {
 
     // U1 — chưa có Client ID ⇒ "Chưa bật" + link hướng dẫn + Usage and billing đúng project (tab mới), không có nút Kết nối
     await ev(MOUNT({ oauthClientId: '' }));
-    const u1 = await card(`({ txt: c.textContent, doc: !!c.querySelector('a[href$="documentation/USAGE-MONITORING.md"][target="_blank"][rel~="noopener"]'),
+    const u1 = await card(`({ txt: c.textContent, doc: !!c.querySelector('a[href$="documentation/md/USAGE-MONITORING.md"][target="_blank"][rel~="noopener"]'),
       usage: !!c.querySelector('a[href="https://console.firebase.google.com/project/icon-picker/usage"]'), connect: !!c.querySelector('[data-us="connect"]') })`);
     ok('U1 chưa có Client ID ⇒ "Chưa bật", link hướng dẫn + Usage and billing (tab mới), không có nút Kết nối',
       /Chưa bật/.test(u1.txt) && /usage-config\.js/.test(u1.txt) && u1.doc && u1.usage && !u1.connect, u1);

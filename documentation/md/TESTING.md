@@ -248,7 +248,7 @@ module.exports = {
 **hosting-test (site admin riêng) để ngoài `tests/`**: trên Windows, Hosting Emulator (superstatic) đổi glob `/admin` thành `\admin`
 (glob-slasher dùng dấu phân cách của Windows) ⇒ `redirects` / `headers` không bao giờ khớp; `ignore` chỉ lọc lúc deploy ⇒ emulator vẫn
 phục vụ file chấm. Kết quả khác nhau giữa Windows và Linux CI nên không đưa vào CI. Phần kiểm được ở máy: `node backend/scripts/build-admin-site.js`
-(ra đúng `admin.html` + file nó tham chiếu) và `firebase.json` hợp lệ theo schema của firebase-tools; redirect / header kiểm sau deploy (`documentation/ADMIN.md`).
+(ra đúng `admin.html` + file nó tham chiếu) và `firebase.json` hợp lệ theo schema của firebase-tools; redirect / header kiểm sau deploy (`documentation/md/ADMIN.md`).
 
 Đã gỡ (di sản cờ `DEDUP_STORE_ICON`, FE đã bỏ cờ): các biến thể "flag OFF" của S1–S5, S11–S12 + `S8[A]` (Layer A),
 `S2[browser,flag OFF]`, `S8[browser]`, `S8b[browser]`, `Q5` (Layer B), env `E2E_SKIP_FLAG_OFF`, bản vá `config.js` của static server.

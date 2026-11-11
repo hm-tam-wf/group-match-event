@@ -1,7 +1,7 @@
 ---
 title: home-template
 tags: [module, home, reuse]
-code: [fe/home.html, fe/js/home/home-schema.js, fe/js/home/home-strings.js, fe/js/home/home-render.js, fe/js/home/home-sheets.js, fe/js/home/home.js, fe/assets/home.css, fe/js/admin/home-editor.js, fe/assets/admin-home.css, backend/seed/home-tnt.json, backend/scripts/home-import.js, documentation/HOME-TEMPLATE.md]
+code: [fe/home.html, fe/js/home/home-schema.js, fe/js/home/home-strings.js, fe/js/home/home-render.js, fe/js/home/home-sheets.js, fe/js/home/home.js, fe/assets/home.css, fe/js/admin/home-editor.js, fe/assets/admin-home.css, backend/seed/home-tnt.json, backend/scripts/home-import.js, documentation/md/HOME-TEMPLATE.md]
 related: [[event-profile]], [[admin-panel]], [[theme-system]], [[firestore-schema]]
 updated: 2026-11-11
 ---
@@ -9,7 +9,7 @@ updated: 2026-11-11
 # Trang home dùng chung (bước 3B) — `home.html?e=<eventId>`
 
 Thay trang tĩnh `travel.html` (TNT, Antigravity) bằng template đọc `events/{id}/meta/home`. Tài liệu đầy đủ + schema:
-[HOME-TEMPLATE.md](../../documentation/HOME-TEMPLATE.md).
+[HOME-TEMPLATE.md](../../documentation/md/HOME-TEMPLATE.md).
 
 - **Schema** `HomeSchema` (UMD, Node `require` được): hero, cta, footer, pageTitle, `sections[]` có thứ tự theo `type`
   (timeline | notes | dresscode | transport | text; type lạ GIỮ NGUYÊN dữ liệu). Trang dùng `normalize` (khoan dung), editor +

@@ -1,5 +1,5 @@
 # CI — chạy toàn bộ test trên Firestore Emulator (project demo-icon-picker) + Chrome headless có sẵn của runner.
-# KHÔNG deploy, KHÔNG cần secret, KHÔNG chạm Firebase thật. Chi tiết + cách thêm case: documentation/TESTING.md
+# KHÔNG deploy, KHÔNG cần secret, KHÔNG chạm Firebase thật. Chi tiết + cách thêm case: documentation/md/TESTING.md
 # deploy.yml gọi lại workflow này (workflow_call) để test đúng commit được tag trước khi deploy production.
 
 name: CI

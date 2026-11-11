@@ -1,5 +1,5 @@
 'use strict';
-// HOOK trình soạn trang home trong admin.html (documentation/HOME-TEMPLATE.md §7): tab "Trang thông tin", dropdown sự kiện
+// HOOK trình soạn trang home trong admin.html (documentation/md/HOME-TEMPLATE.md §7): tab "Trang thông tin", dropdown sự kiện
 // lấy từ #sigSelect, mount HomeEditor, Lưu ghi events/<id>/meta/home (store giả), thanh tab đáy mobile đủ 5 tab 1 hàng,
 // đổi sự kiện khi còn thay đổi chưa lưu (Huỷ ⇒ ở lại, Đồng ý ⇒ chuyển). admin.html CHƯA chèn HOOK ⇒ tự bỏ qua.
 const fs = require('fs'), path = require('path');

@@ -4,9 +4,9 @@ Mục tiêu: mở một sự kiện mới **chỉ bằng dữ liệu** — skin,
 nằm trong `events/{eventId}/meta/config.profile`, không sửa code, không deploy. Chỉ phải đụng code khi cần **skin mới**
 (một biến thể CSS + chữ) hoặc tính năng mới.
 
-Code: [`fe/js/config/profile.js`](../fe/js/config/profile.js) (áp hồ sơ), [`fe/js/config/theme.js`](../fe/js/config/theme.js)
-(skin lúc vẽ đầu, `?e=`), [`fe/js/config/config.js`](../fe/js/config/config.js) (`AVAILABLE_VARIANTS`, `DEFAULT_BRAND`),
-[`fe/js/app.js`](../fe/js/app.js) (`boot()` chọn sự kiện), [`backend/scripts/hosts.js`](../backend/scripts/hosts.js).
+Code: [`fe/js/config/profile.js`](../../fe/js/config/profile.js) (áp hồ sơ), [`fe/js/config/theme.js`](../../fe/js/config/theme.js)
+(skin lúc vẽ đầu, `?e=`), [`fe/js/config/config.js`](../../fe/js/config/config.js) (`AVAILABLE_VARIANTS`, `DEFAULT_BRAND`),
+[`fe/js/app.js`](../../fe/js/app.js) (`boot()` chọn sự kiện), [`backend/scripts/hosts.js`](../../backend/scripts/hosts.js).
 
 ## 1. Chọn sự kiện — mỗi sự kiện một link
 

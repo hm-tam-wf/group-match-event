@@ -1,5 +1,5 @@
 'use strict';
-// Trang home dùng chung fe/home.html (nội dung từ events/{id}/meta/home — schema documentation/HOME-TEMPLATE.md):
+// Trang home dùng chung fe/home.html (nội dung từ events/{id}/meta/home — schema documentation/md/HOME-TEMPLATE.md):
 // render đủ seed TNT, CTA index.html?e=<id>, màn thông báo (?e= sai / thiếu doc / lỗi mạng), chọn sự kiện ?e= → config/hosts
 // (domain có mục mà id hỏng ⇒ CHẶN) → config/active, hồ sơ (biến thể/ngôn ngữ/logo qua profile.js), XSS, link sâu, Back,
 // và màn đầu giống travel.html (so ảnh). Chỉ tính lỗi console của chính home.html.

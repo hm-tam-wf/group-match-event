@@ -19,8 +19,8 @@ updated: 2026-11-10
   `demo-icon-picker`, KHÔNG chạm production. Chạy lẻ: `npm run test:unit|test:rules|test:scripts|test:admin|test:e2e`.
   Cần Java 21+ (`JAVA_HOME`), Edge/Chrome (tự dò hoặc `TEST_BROWSER`), firebase-tools đúng bản `package.json → config.firebaseTools`.
   Cổng = `TEST_PORT_BASE` + offset (mặc định 21000 ⇒ 21080…); chạy song song nhiều đợt ⇒ mỗi đợt một base.
-  Thêm case = thêm 1 file `tests/<suite>/cases/<tên>.js` (runner tự nhận) — hướng dẫn: [TESTING.md](../../documentation/TESTING.md).
-  CI: `.github/workflows/ci.yml` (PR + push master); deploy production theo tag `v*`: `deploy.yml` + [DEPLOY.md](../../documentation/DEPLOY.md).
+  Thêm case = thêm 1 file `tests/<suite>/cases/<tên>.js` (runner tự nhận) — hướng dẫn: [TESTING.md](../../documentation/md/TESTING.md).
+  CI: `.github/workflows/ci.yml` (PR + push master); deploy production theo tag `v*`: `deploy.yml` + [DEPLOY.md](../../documentation/md/DEPLOY.md).
   2026-11-10: unit 69 · rules 3 · scripts 22 · admin 10 · e2e 62 — PASS hết (gồm case bước 2).
 - Deploy (SONG SONG 2 hosting, cùng serve `fe/`, cùng Firestore project `icon-picker`):
   - **Firebase Hosting** (thủ công): `firebase deploy --only hosting` → https://pickyourgroup.web.app (site `pickyourgroup`, không build step). Site cũ `pickyoursquad-faraday.web.app` redirect 301 sang đây.

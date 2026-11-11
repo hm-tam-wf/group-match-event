@@ -1,7 +1,7 @@
 # Deploy PRODUCTION theo tag: push tag v* (vd v1.4.0) trỏ vào commit THUỘC master
 #   ⇒ chạy lại toàn bộ test (ci.yml) trên đúng commit đó
 #   ⇒ firebase deploy --only hosting,firestore:rules (cả 2 site trong firebase.json + backend/firestore.rules).
-# Cần secret FIREBASE_SERVICE_ACCOUNT (JSON key của service account quyền tối thiểu) — xem documentation/DEPLOY.md.
+# Cần secret FIREBASE_SERVICE_ACCOUNT (JSON key của service account quyền tối thiểu) — xem documentation/md/DEPLOY.md.
 # KHÔNG đụng GitHub Pages (pages.yml tự deploy fe/ khi push master) và KHÔNG ghi dữ liệu Firestore.
 
 name: Deploy production
@@ -41,7 +41,7 @@ jobs:
           SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           if [ -z "$SA_JSON" ]; then
-            echo "::error title=Thiếu secret FIREBASE_SERVICE_ACCOUNT::Chưa có JSON key service account để deploy. Thêm secret FIREBASE_SERVICE_ACCOUNT vào environment 'production' (Settings → Environments) hoặc Settings → Secrets and variables → Actions. Hướng dẫn: documentation/DEPLOY.md"
+            echo "::error title=Thiếu secret FIREBASE_SERVICE_ACCOUNT::Chưa có JSON key service account để deploy. Thêm secret FIREBASE_SERVICE_ACCOUNT vào environment 'production' (Settings → Environments) hoặc Settings → Secrets and variables → Actions. Hướng dẫn: documentation/md/DEPLOY.md"
             exit 1
           fi
 

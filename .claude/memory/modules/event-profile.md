@@ -1,14 +1,14 @@
 ---
 title: event-profile
 tags: [module, config, reuse]
-code: [fe/js/config/profile.js, fe/js/config/theme.js, fe/js/config/config.js, fe/js/app.js, fe/js/ui/ui-utils.js, fe/js/ui/ui-render.js, fe/themes/tech/variants/tnt/strings.js, fe/themes/tech/variants/tnt/tnt.css, fe/index.html, backend/scripts/hosts.js, documentation/EVENT-PROFILE.md]
+code: [fe/js/config/profile.js, fe/js/config/theme.js, fe/js/config/config.js, fe/js/app.js, fe/js/ui/ui-utils.js, fe/js/ui/ui-render.js, fe/themes/tech/variants/tnt/strings.js, fe/themes/tech/variants/tnt/tnt.css, fe/index.html, backend/scripts/hosts.js, documentation/md/EVENT-PROFILE.md]
 related: [[theme-system]], [[i18n-system]], [[ui-pipeline]], [[firestore-schema]], [[admin-panel]], [[conventions]]
 updated: 2026-11-10
 ---
 
 # Hồ sơ sự kiện + link riêng (bước 2 lộ trình "dùng lại cho nhiều sự kiện")
 
-Tài liệu đầy đủ cho người vận hành: [EVENT-PROFILE.md](../../documentation/EVENT-PROFILE.md). Note này giữ phần dev cần nhớ.
+Tài liệu đầy đủ cho người vận hành: [EVENT-PROFILE.md](../../documentation/md/EVENT-PROFILE.md). Note này giữ phần dev cần nhớ.
 
 ## Chọn sự kiện (`boot()` app.js)
 `?e=<id>` (regex `EVENT_ID_RE` ở theme.js, = bộ ký tự ID admin, ≤100) > `config/hosts.byHost[location.hostname]` >
