@@ -32,9 +32,19 @@ gỡ; không ai tự thêm mình; UID gốc không gỡ được). Cần DEPLOY 
   xem trước dùng `window.eventSiteBase()`.
 - **Site admin riêng** `pickyourgroup-admin` (firebase.json; predeploy `backend/scripts/build-admin-site.js` chép admin.html +
   file nó tham chiếu → `hosting-admin/`, gitignored). `EVENT_SITE`/`eventSiteBase()` (admin.html): trên domain admin, link xem
-  trước trỏ https://pickyourgroup.web.app/. CHƯA tạo site — thứ tự lệnh ở ADMIN.md; KHÔNG deploy hosting:pickyourgroup trước.
-- UI helper: `confirmModal` nhận `list`/`select`; `actionSheet`. Gotcha test: đổi tab bằng View Transition ⇒ lớp phủ nuốt
+  trước trỏ https://pickyourgroup.web.app/. Site đã tạo + deploy 2026-11-11 (https://pickyourgroup-admin.web.app, deploy tay
+  `firebase deploy --only hosting:pickyourgroup-admin`).
+- UI helper: `confirmModal` nhận `list`/`select` + (2026-11-11) `person {name, meta}` (thẻ người), `badge`, `render(slot, ctl)`
+  (nội dung tự dựng, `ctl.set(value, valid)`; `[data-autofocus]`; thân `.cm-body` cuộn riêng — `.cm-rich`), `safeFocus`
+  (focus Hủy, Enter không tự xác nhận). Enter trên nút/summary để trình duyệt tự kích hoạt (trước đó Enter ở nút Hủy = XÁC NHẬN).
+  `actionSheet` nhận `person` + `icon` (SVG hằng số) mỗi thao tác. Gotcha test: đổi tab bằng View Transition ⇒ lớp phủ nuốt
   click ~300ms; thanh tab đáy mobile chia cột theo số tab (`grid-auto-flow: column`).
+- **Hộp thao tác từng người** (tab Đăng ký, `pd-*` trong admin.html + admin.css): thẻ người → lưới chọn phòng (radio thật trong
+  fieldset; phòng đang ở khoá "Đang ở", "Đầy", "Khác giới" khi bật check giới) → thẻ phòng Từ → Đến (TRƯỚC → SAU / sức chứa)
+  → cảnh báo (`pdAlert`) → "Sau khi …" bằng lời thường (`pdSection`, kind keep/lose/info/warn = icon + màu) → "Chi tiết kỹ thuật"
+  thu gọn (`pdTech`, giữ tên collection). Transaction ghi Firestore không đổi. Hồ sơ trùng mã (`regShared`/`k1Shared`) ⇒ cảnh báo
+  thay cho "đăng ký lại được". Gotcha test: `modalText` = innerText ⇒ KHÔNG chứa `<details>` đang đóng và h4 bị UPPERCASE —
+  đọc `.pd-tech` bằng textContent, so tiêu đề mục qua textContent của h4.
 
 ## Export
 - `export.js` — Node.js script local, dùng `firebase-admin` SDK

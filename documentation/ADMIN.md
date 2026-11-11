@@ -10,7 +10,7 @@ Quyền admin do `backend/firestore.rules` quyết định (hàm `isAdmin()`), t
 | Form sự kiện → tab **Nhận diện** | Soạn `meta/config.profile`: giao diện (biến thể / theme gốc), ngôn ngữ, logo, nút Huỷ / trang home, thời gian màn chào, chữ ghi đè vi/en (+ ô JSON nâng cao). Nút **Lưu & xem trước** mở `index.html?e=<id>` sau khi lưu. |
 | Trang **Danh sách cho phép** → **Nạp Nhân sự + Phòng từ file mẫu** | Một file .xlsx: sheet *Nhân sự* → danh sách cho phép, sheet *Phòng* → danh sách đội (tên, số giường, giới tính). Xem trước + lỗi từng dòng. Thay cho `backend/scripts/tnt-import.js`. |
 | Thẻ sự kiện → **Nhân bản** | Như `backend/scripts/clone-event.js`: chép mọi key cấu hình + hồ sơ, tuỳ chọn chép danh sách cho phép và trang home; KHÔNG chép đăng ký. |
-| Trang **Đăng ký** → nút `⋯` mỗi dòng | Chuyển phòng · Gỡ khỏi phòng · Bỏ chặn (kèm khoá ghi lúc chọn phòng) · Xoá đăng ký. Mỗi thao tác là 1 transaction giữ đồng bộ đội / khoá chống trùng. |
+| Trang **Đăng ký** → nút `⋯` mỗi dòng | Chuyển phòng · Gỡ khỏi phòng · Bỏ chặn · Xoá đăng ký. Mỗi thao tác là 1 transaction giữ đồng bộ đội / khoá chống trùng. Hộp xác nhận: thẻ người (tên + phòng + mã) → Chuyển phòng chọn trên lưới phòng (phòng đang ở bị khoá; nhãn *Đầy* / *Khác giới* — vẫn chuyển được, có cảnh báo) và xem trước sĩ số **Từ → Đến** → "Sau khi …" bằng lời thường → *Chi tiết kỹ thuật* (thu gọn, ghi rõ collection). Hộp Gỡ / Bỏ chặn / Xoá focus sẵn nút Hủy, Enter không tự xác nhận. |
 | Thẻ sự kiện → **Mở sự kiện** | Kiểm tra trước: giờ đóng đã qua, danh sách cho phép bật mà rỗng, thiếu ô `name`, ô kiểm tra trùng không tồn tại ⇒ chặn; chưa đặt giờ đóng ⇒ cảnh báo. |
 | Trang **Quản trị** | Xem UID của mình, thêm / gỡ quản trị viên theo UID (`admins/{uid}`). |
 

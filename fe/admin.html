@@ -473,18 +473,38 @@
   const auth = firebase.auth();
   const FV   = firebase.firestore.FieldValue;
 
+  let cmSeq = 0;                                    // id riêng cho aria-labelledby của từng hộp
+  // Thẻ người (đầu hộp xác nhận / hộp thao tác): chữ cái đầu của TÊN (từ cuối — tên riêng tiếng Việt) + họ tên + 1 dòng phụ.
+  function fillPerson(el, { name, meta } = {}) {
+    const nm = String(name == null ? "" : name).trim(), last = nm.split(/\s+/).pop() || "";
+    const av = document.createElement("span"), info = document.createElement("div"), b = document.createElement("b");
+    av.className = "cm-av"; av.setAttribute("aria-hidden", "true"); av.textContent = (Array.from(last)[0] || "?").toUpperCase();
+    info.className = "cm-pinfo"; b.className = "cm-pname"; b.textContent = nm || "(chưa có tên)"; info.appendChild(b);
+    if (meta) { const m = document.createElement("span"); m.className = "cm-pmeta"; m.textContent = meta; info.appendChild(m); }
+    el.append(av, info);
+  }
+
   // requireText: nếu có, hiện ô input — phải gõ ĐÚNG chuỗi này (vd ID sự kiện) thì nút Xác nhận mới bật.
   // list: [{ kind: "err"|"warn"|"ok"|"", text }] — danh sách hậu quả / kết quả kiểm tra hiện dưới message (chữ qua textContent).
   // select: { label, options: [{ value, label, disabled }], value, onChange(value) → list mới } — Xác nhận trả về GIÁ TRỊ đang chọn.
-  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "", list = null, select = null }) {
+  // person: { name, meta } — thẻ người ở đầu hộp (tên tách khỏi tiêu đề, không lẫn với chữ khác) · badge: nhãn cạnh tiêu đề ("Không hoàn tác").
+  // render(slot, ctl): tự dựng nội dung (vd lưới chọn phòng + xem trước); ctl.set(value, valid): Xác nhận trả value, valid=false ⇒ khoá nút.
+  //   Phần tử [data-autofocus] trong slot được focus trước. Thân hộp cuộn riêng, hàng nút luôn thấy.
+  // safeFocus: focus nút Hủy + Enter KHÔNG tự xác nhận (hộp xoá / gỡ — tránh lỡ tay).
+  function confirmModal({ title, message, confirmText = "Xác nhận", cancelText = "Hủy", danger = false, requireText = "", list = null, select = null,
+                          person = null, badge = "", render = null, safeFocus = false }) {
     return new Promise(resolve => {
       const bg = document.createElement("div");
       bg.className = "cm-bg";
       const hasList = !!(list && list.length) || !!(select && select.onChange);
+      const rich = typeof render === "function";
+      const tid = "cmTitle" + (++cmSeq);
       bg.innerHTML = `
-        <div class="cm-box${hasList ? " wide" : ""}" role="dialog" aria-modal="true">
-          <h3 class="cm-title"></h3>
+        <div class="cm-box${hasList || rich ? " wide" : ""}${rich ? " cm-rich" : ""}" role="dialog" aria-modal="true" aria-labelledby="${tid}">
+          <div class="cm-head"><h3 class="cm-title" id="${tid}"></h3>${badge ? `<span class="cm-badge"></span>` : ""}</div>
           <p class="cm-msg"></p>
+          ${person ? `<div class="cm-person"></div>` : ""}
+          ${rich ? `<div class="cm-body"></div>` : ""}
           ${select ? `<label class="field cm-select"><span></span><select class="cm-sel"></select></label>` : ""}
           ${hasList ? `<ul class="cm-list"></ul>` : ""}
           ${requireText ? `<input class="cm-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />` : ""}
@@ -498,6 +518,8 @@
       bg.querySelector(".cm-cancel").textContent  = cancelText;
       bg.querySelector(".cm-confirm").textContent = confirmText;
       if (!message) bg.querySelector(".cm-msg").hidden = true;
+      if (badge) bg.querySelector(".cm-badge").textContent = badge;
+      if (person) fillPerson(bg.querySelector(".cm-person"), person);
       const fillList = items => {
         const ul = bg.querySelector(".cm-list");
         if (!ul) return;
@@ -508,8 +530,12 @@
       fillList(list);
       if (!cancelText) bg.querySelector(".cm-cancel").hidden = true;
       const confirmBtn = bg.querySelector(".cm-confirm");
+      const cancelBtn  = bg.querySelector(".cm-cancel");
       const input      = bg.querySelector(".cm-input");
       const sel        = bg.querySelector(".cm-sel");
+      const body       = bg.querySelector(".cm-body");
+      let rVal = true;
+      if (rich) render(body, { set(v, valid = true) { rVal = v; confirmBtn.disabled = !valid; } });
       if (sel) {
         bg.querySelector(".cm-select > span").textContent = select.label || "";
         (select.options || []).forEach(o => { const op = document.createElement("option"); op.value = o.value; op.textContent = o.label; op.disabled = !!o.disabled; sel.appendChild(op); });
@@ -532,35 +558,55 @@
         bg.classList.add("is-leaving");
         setTimeout(() => bg.remove(), REDUCED ? 0 : 170);
       };
-      const okVal = () => sel ? sel.value : true;
+      const okVal = () => sel ? sel.value : (rich ? rVal : true);
+      // Enter trên nút / summary / link: để trình duyệt tự kích hoạt ĐÚNG phần tử đang focus
+      // (trước đây Enter khi đang đứng ở nút Hủy lại XÁC NHẬN — keydown chạy trước click của nút).
       const onKey = e => {
-        if (e.key === "Escape") close(false);
-        if (e.key === "Enter" && !confirmBtn.disabled && e.target !== sel) close(okVal());
+        if (e.key === "Escape") { close(false); return; }
+        if (e.key !== "Enter" || e.isComposing || confirmBtn.disabled) return;
+        const t = e.target;
+        if (t === sel || (t && t.closest && t.closest("button, summary, a, textarea"))) return;
+        if (safeFocus) return;
+        e.preventDefault();
+        close(okVal());
       };
-      bg.querySelector(".cm-cancel").onclick = () => close(false);
+      cancelBtn.onclick = () => close(false);
       confirmBtn.onclick = () => { if (!confirmBtn.disabled) close(okVal()); };
       bg.addEventListener("click", e => { if (e.target === bg) close(false); });
       document.addEventListener("keydown", onKey);
-      setTimeout(() => (input || sel || confirmBtn).focus(), 30);
+      setTimeout(() => {
+        const auto = body && body.querySelector("[data-autofocus]");
+        (input || sel || auto || (safeFocus && !cancelBtn.hidden ? cancelBtn : confirmBtn)).focus();
+      }, 30);
     });
   }
 
-  // Hộp chọn THAO TÁC (mỗi nút: tên + 1 dòng giải thích; nút bị khoá hiện lý do). Trả id thao tác, null = đóng.
-  function actionSheet({ title, sub, actions }) {
+  // Hộp chọn THAO TÁC (mỗi nút: icon + tên + 1 dòng giải thích; nút bị khoá hiện lý do). person: { name, meta } như confirmModal.
+  // a.icon: chuỗi SVG HẰNG SỐ trong code (không bao giờ là dữ liệu người dùng). Trả id thao tác, null = đóng.
+  function actionSheet({ title, sub, person = null, actions }) {
     return new Promise(resolve => {
       const bg = document.createElement("div");
       bg.className = "cm-bg";
-      bg.innerHTML = `<div class="cm-box" role="dialog" aria-modal="true"><h3 class="cm-title"></h3><p class="cm-msg"></p>
+      const tid = "cmTitle" + (++cmSeq);
+      bg.innerHTML = `<div class="cm-box" role="dialog" aria-modal="true" aria-labelledby="${tid}"><div class="cm-head"><h3 class="cm-title" id="${tid}"></h3></div>
+        <p class="cm-msg"></p>${person ? `<div class="cm-person"></div>` : ""}
         <div class="act-list"></div><div class="cm-row"><button class="cm-cancel" type="button">Đóng</button></div></div>`;
       bg.querySelector(".cm-title").textContent = title || "";
-      bg.querySelector(".cm-msg").textContent = sub || "";
+      const msg = bg.querySelector(".cm-msg");
+      msg.textContent = sub || ""; msg.hidden = !sub;
+      if (person) fillPerson(bg.querySelector(".cm-person"), person);
       const list = bg.querySelector(".act-list");
       actions.forEach(a => {
         const b = document.createElement("button");
-        b.type = "button"; b.className = "act-btn" + (a.danger ? " danger" : ""); b.dataset.act = a.id; b.disabled = !!a.disabled;
+        b.type = "button"; b.className = "act-btn" + (a.danger ? " danger" : "") + (a.icon ? " has-ic" : ""); b.dataset.act = a.id; b.disabled = !!a.disabled;
         const t = document.createElement("span"), s = document.createElement("small");
         t.textContent = a.label; s.textContent = a.disabled && a.why ? a.why : (a.desc || "");
-        b.append(t, s); list.appendChild(b);
+        if (a.icon) {
+          const ic = document.createElement("span"), tx = document.createElement("span");
+          ic.className = "act-ic"; ic.innerHTML = a.icon; tx.className = "act-tx"; tx.append(t, s);
+          b.append(ic, tx);
+        } else b.append(t, s);
+        list.appendChild(b);
       });
       document.body.appendChild(bg);
       let closed = false;
@@ -2677,21 +2723,100 @@
     return L;
   }
 
+  // ── Nội dung hộp thao tác từng người: dựng DOM, mọi chữ qua textContent (SVG là hằng số trong code) ──
+  // Bố cục chung: thẻ người → (lưới chọn phòng) → thẻ phòng TRƯỚC → SAU → cảnh báo → "Sau khi …" bằng lời thường
+  // → "Chi tiết kỹ thuật" thu gọn (dedup_keys / reg_keys / m~ — cho người cần soi dữ liệu, đối chiếu ADMIN.md).
+  const PD_SVG = {
+    keep:   "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M5 12.5l4.2 4.2L19 7'/></svg>",
+    lose:   "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M7 7l10 10M17 7 7 17'/></svg>",
+    info:   "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='9'/><path d='M12 11v5M12 7.6v.4'/></svg>",
+    warn:   "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 3.5 2.5 20h19L12 3.5Z'/><path d='M12 10v4.2M12 17v.4'/></svg>",
+    arrow:  "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 12h15M13 6l6 6-6 6'/></svg>",
+    chev:   "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M9 6l6 6-6 6'/></svg>",
+    move:   "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4'/></svg>",
+    leave:  "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10'/></svg>",
+    unlock: "<svg viewBox='0 0 24 24' aria-hidden='true'><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 0 1 7.6-1.8'/></svg>",
+    trash:  "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/></svg>",
+  };
+  const pdEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; };
+  const pdIc = (k, cls = "pd-ic") => { const s = pdEl("span", cls); s.innerHTML = PD_SVG[k] || ""; return s; };
+  const pdAppend = (slot, ...nodes) => nodes.forEach(n => { if (n) slot.appendChild(n); });
+  // Tên phòng: emoji tách riêng (bỏ nếu tên đã chứa emoji — vd "🦊 Cáo") + tên.
+  function pdRoomName(cfg, ic) {
+    const g = (Array.isArray(cfg.icons) ? cfg.icons : []).find(x => x && x.icon === ic) || {}, nm = String(g.name || ic || "—");
+    const w = pdEl("span", "pd-rname");
+    if (ic && !nm.includes(ic)) w.appendChild(pdEl("span", "pd-emoji", ic));
+    w.appendChild(pdEl("span", "", nm));
+    return w;
+  }
+  const pdFieldLabel = P => { const f = (Array.isArray(P.cfg.fields) ? P.cfg.fields : []).find(x => x && x.key === P.field); return String((f && f.label) || P.field || "mã"); };
+  // Dòng phụ dưới tên: phòng hiện tại + giá trị ô kiểm tra trùng (bỏ khi trùng với họ tên — khỏi lặp chữ).
+  function pdMeta(roomText, fieldLabel, value, name) {
+    const parts = [roomText ? "Đang ở " + roomText : "Chưa chọn phòng"], v = String(value == null ? "" : value).trim();
+    if (v && v !== String(name == null ? "" : name).trim()) parts.push(fieldLabel + ": " + v);
+    return parts.join(" · ");
+  }
+  const pdPerson = P => ({ name: P.name, meta: pdMeta(P.row.icon ? teamNameOf(P.cfg, P.row.icon) : "", pdFieldLabel(P), P.raw, P.name) });
+  // Thẻ phòng: số người TRƯỚC → SAU / sức chứa + thanh lấp đầy (theo SAU). role: nhãn "Từ"/"Đến"; sub: chú thích nhỏ.
+  function pdRoomCard(cfg, ic, before, after, { role = "", sub = "", cls = "" } = {}) {
+    const cap = capOfCfg(cfg, ic), over = cap > 0 && after > cap;
+    const card = pdEl("div", "pd-room" + (cls ? " " + cls : "") + (over ? " over" : ""));
+    card.dataset.icon = ic || "";
+    if (role) card.appendChild(pdEl("span", "pd-role", role));
+    card.appendChild(pdRoomName(cfg, ic));
+    const cnt = pdEl("div", "pd-count");
+    cnt.append(pdEl("span", "pd-old", before), document.createTextNode(" → "), pdEl("b", "", after), document.createTextNode(cap ? " / " + cap + " người" : " người"));
+    card.appendChild(cnt);
+    if (cap) {
+      const bar = pdEl("div", "pd-bar" + (after >= cap ? " full" : "")), fill = pdEl("i");
+      fill.style.setProperty("--w", Math.min(100, Math.round(after / cap * 100)) + "%");
+      bar.appendChild(fill); card.appendChild(bar);
+    }
+    if (sub) card.appendChild(pdEl("span", "pd-sub", sub));
+    return card;
+  }
+  // Nhóm hậu quả: items [{ kind: keep|lose|info|warn, text }] (null bị bỏ qua). Không còn dòng nào ⇒ null (không vẽ).
+  function pdSection(title, items, cls = "") {
+    const its = (items || []).filter(Boolean);
+    if (!its.length) return null;
+    const sec = pdEl("section", "pd-sec" + (cls ? " " + cls : "")), ul = pdEl("ul", "pd-items");
+    if (title) sec.appendChild(pdEl("h4", "", title));
+    its.forEach(it => { const k = it.kind || "info", li = pdEl("li", k); li.append(pdIc(k), pdEl("span", "", it.text)); ul.appendChild(li); });
+    sec.appendChild(ul);
+    return sec;
+  }
+  function pdAlert(title, text) {
+    const a = pdEl("div", "pd-alert"), tx = pdEl("div", "pd-alert-tx");
+    if (title) tx.appendChild(pdEl("b", "", title));
+    tx.appendChild(pdEl("span", "", text));
+    a.append(pdIc("warn"), tx);
+    return a;
+  }
+  // Có hồ sơ khác CÙNG mã ⇒ khoá chống trùng / giữ-chỗ thuộc hồ sơ đó (giải thích bằng lời; chi tiết ở phần kỹ thuật).
+  const pdDupAlert = (P, text) => pdAlert(`Có hồ sơ khác cùng ${pdFieldLabel(P).toLowerCase()} "${P.raw}"`, text);
+  function pdTech(lines) {
+    const d = pdEl("details", "pd-tech"), s = pdEl("summary"), ul = pdEl("ul");
+    s.append(pdIc("chev"), pdEl("span", "", "Chi tiết kỹ thuật"));
+    (lines || []).filter(Boolean).forEach(l => ul.appendChild(pdEl("li", "", typeof l === "string" ? l : l.text)));
+    d.append(s, ul);
+    return d;
+  }
+
   async function personMenu(pid) {
     const eid = sigShownEid, row = sigRows.find(r => r._id === pid);
     if (!eid || !row) return;
     const joined = !!row.icon;
     const fLabel = (sigFields.find(f => f.key === sigDedupField) || {}).label || sigDedupField;
+    const g = sigIcons[row.icon], rn = joined ? String((g && g.name) || row.icon) : "";
     const act = await actionSheet({
-      title: String(row.name || "(chưa có tên)"),
-      sub: (joined ? "Đang ở " + String((sigIcons[row.icon] && sigIcons[row.icon].name) || row.icon) : "Chưa chọn phòng")
-        + (sigDedupField && row[sigDedupField] ? ` · ${fLabel}: ${row[sigDedupField]}` : ""),
+      title: "Thao tác với đăng ký",
+      person: { name: String(row.name || ""), meta: pdMeta(joined ? (rn.includes(row.icon) ? rn : row.icon + " " + rn) : "", fLabel, sigDedupField ? row[sigDedupField] : "", row.name) },
       actions: [
-        { id: "move", label: "Chuyển phòng…", desc: "Sang phòng khác; khoá chống trùng đi theo, vẫn không đăng ký lần 2 được.", disabled: !joined, why: "Chưa ở phòng nào để chuyển." },
-        { id: "unjoin", label: "Gỡ khỏi phòng", desc: "Trả 1 chỗ; giữ hồ sơ. Người này chọn lại phòng được trên thiết bị đã đăng ký.", disabled: !joined, why: "Chưa ở phòng nào." },
-        { id: "unblock", label: "Bỏ chặn (kèm khoá ghi lúc chọn phòng)", desc: "Gỡ giữ-chỗ điền form + khoá chống trùng ⇒ đăng ký lại được trên mọi thiết bị.",
+        { id: "move", icon: PD_SVG.move, label: "Chuyển phòng…", desc: "Đổi sang phòng khác. Vẫn tính là đã đăng ký.", disabled: !joined, why: "Chưa ở phòng nào để chuyển." },
+        { id: "unjoin", icon: PD_SVG.leave, label: "Gỡ khỏi phòng", desc: "Trả lại chỗ, giữ hồ sơ. Người này tự chọn lại phòng trên máy đã đăng ký.", disabled: !joined, why: "Chưa ở phòng nào." },
+        { id: "unblock", icon: PD_SVG.unlock, label: "Bỏ chặn", desc: "Cho đăng ký lại tên này trên mọi máy, giữ hồ sơ.",
           disabled: joined, why: "Đang ở phòng — gỡ khỏi phòng trước (gỡ khoá khi còn ở phòng sẽ cho chọn thêm phòng thứ hai)." },
-        { id: "delete", label: "Xoá đăng ký", desc: "Xoá hồ sơ + chỗ trong phòng + mọi khoá chặn. Không hoàn tác.", danger: true },
+        { id: "delete", icon: PD_SVG.trash, label: "Xoá đăng ký", desc: "Xoá hẳn hồ sơ và chỗ trong phòng. Không hoàn tác.", danger: true },
       ],
     });
     if (!act) return;
@@ -2716,28 +2841,66 @@
   }
 
   async function personMove(P) {
-    const from = P.row.icon, cfg = P.cfg, icons = Array.isArray(cfg.icons) ? cfg.icons : [];
+    const from = P.row.icon, cfg = P.cfg, icons = (Array.isArray(cfg.icons) ? cfg.icons : []).filter(g => g && g.icon);
     const cnt = ic => (P.teams[ic] ? P.teams[ic].count : 0);
+    const gx = g => { const gd = normGender(g.gender); return !!(cfg.allowlistGenderCheck && gd && P.gender && gd !== P.gender); };   // lệch giới theo danh sách
     const to = await confirmModal({
-      title: `Chuyển ${P.name || "người này"} sang phòng khác?`,
-      message: `Đang ở ${teamNameOf(cfg, from)} (${cnt(from)}/${capOfCfg(cfg, from)}).`,
-      confirmText: "Chuyển phòng",
-      select: {
-        label: "Phòng mới", value: "",
-        options: [{ value: "", label: "— Chọn phòng —" }].concat(icons.map(g => {
-          const c = cnt(g.icon), cap = capOfCfg(cfg, g.icon), gd = normGender(g.gender);
-          return { value: g.icon, disabled: g.icon === from, label: `${teamNameOf(cfg, g.icon)} · ${c}/${cap}${c >= cap ? " (đầy)" : ""}${gd ? " · Phòng " + gd : ""}${g.icon === from ? " — đang ở" : ""}` };
-        })),
-        onChange: v => {
-          if (!v) return [];
-          const g = icons.find(x => x.icon === v) || {}, c = cnt(v), cap = capOfCfg(cfg, v), gd = normGender(g.gender);
-          const L = [{ text: `${teamNameOf(cfg, from)}: ${cnt(from)} → ${Math.max(0, cnt(from) - 1)} người (trả 1 chỗ).` },
-                     { kind: c >= cap ? "warn" : "", text: `${teamNameOf(cfg, v)}: ${c} → ${c + 1}/${cap} người` + (c >= cap ? " — VƯỢT số chỗ (admin vẫn chuyển được)." : ".") }];
-          if (cfg.allowlistGenderCheck && gd && P.gender && gd !== P.gender) L.push({ kind: "warn", text: `Người này là ${P.gender} theo danh sách, phòng mới chỉ dành cho ${gd}.` });
-          if (P.k1Exists) L.push({ text: `Khoá chống trùng "${P.raw}" chuyển theo sang phòng mới — vẫn chặn đăng ký lần 2.` });
-          L.push({ text: "Máy người này thấy phòng mới khi tải lại trang." });
-          return L;
-        },
+      title: "Chuyển phòng", message: "", confirmText: "Chuyển phòng", person: pdPerson(P),
+      render: (slot, ctl) => {
+        // 1) lưới chọn phòng — radio thật trong <fieldset> (phím mũi tên đổi lựa chọn, đọc được bằng trình đọc màn hình)
+        const fs = pdEl("fieldset", "pd-pick"), grid = pdEl("div", "pd-grid");
+        fs.appendChild(pdEl("legend", "", "Chọn phòng mới"));
+        icons.forEach(g => {
+          const ic = g.icon, c = cnt(ic), cap = capOfCfg(cfg, ic), gd = normGender(g.gender), cur = ic === from;
+          const opt = pdEl("label", "pd-opt" + (cur ? " is-cur" : "")), inp = pdEl("input"), meta = pdEl("span", "pd-opt-meta");
+          opt.dataset.icon = ic;
+          inp.type = "radio"; inp.name = "pdRoom"; inp.value = ic; inp.disabled = cur;
+          meta.appendChild(pdEl("span", "pd-cnt", cap ? c + "/" + cap : String(c)));
+          if (gd) meta.appendChild(pdEl("span", "pd-tag", gd));
+          if (cur) meta.appendChild(pdEl("span", "pd-tag cur", "Đang ở"));
+          else {
+            if (cap && c >= cap) meta.appendChild(pdEl("span", "pd-tag warn", "Đầy"));
+            if (gx(g)) meta.appendChild(pdEl("span", "pd-tag warn", "Khác giới"));
+          }
+          const bar = pdEl("span", "pd-bar" + (cap && c >= cap ? " full" : "")), fill = pdEl("i");
+          fill.style.setProperty("--w", (cap ? Math.min(100, Math.round(c / cap * 100)) : 0) + "%");
+          bar.appendChild(fill);
+          opt.append(inp, pdRoomName(cfg, ic), meta, bar, pdIc("keep", "pd-check"));
+          grid.appendChild(opt);
+        });
+        fs.appendChild(grid);
+        // 2) xem trước — vẽ lại mỗi lần chọn
+        const prev = pdEl("div", "pd-preview");
+        prev.setAttribute("aria-live", "polite");
+        const show = v => {
+          prev.textContent = "";
+          grid.querySelectorAll(".pd-opt").forEach(o => o.classList.toggle("is-sel", o.dataset.icon === v));
+          if (!v) { prev.appendChild(pdEl("p", "pd-hint", "Chọn một phòng để xem trước thay đổi.")); ctl.set("", false); return; }
+          const g = icons.find(x => x.icon === v) || {}, c = cnt(v), cap = capOfCfg(cfg, v), full = cap > 0 && c >= cap, f0 = cnt(from);
+          const tr = pdEl("div", "pd-transfer");
+          tr.append(pdRoomCard(cfg, from, f0, Math.max(0, f0 - 1), { role: "Từ", sub: "trả 1 chỗ" }), pdIc("arrow", "pd-arrow"),
+                    pdRoomCard(cfg, v, c, c + 1, { role: "Đến", cls: "to", sub: full ? "vượt " + (c + 1 - cap) + " chỗ" : "thêm 1 người" }));
+          pdAppend(prev, tr,
+            full ? pdAlert("Phòng đã đủ người", `${teamNameOf(cfg, v)} đang ${c}/${cap}. Chuyển vào sẽ thành ${c + 1}/${cap} — admin vẫn chuyển được.`) : null,
+            gx(g) ? pdAlert("Khác giới", `Theo danh sách, người này là ${P.gender}; phòng này dành cho ${normGender(g.gender)}.`) : null,
+            pdSection("Sau khi chuyển", [
+              P.k1Exists ? { kind: "keep", text: "Vẫn tính là đã đăng ký — không đăng ký thêm lần nữa được." } : null,
+              { kind: "info", text: "Người này thấy phòng mới sau khi tải lại trang." },
+            ]));
+          ctl.set(v, true);
+        };
+        grid.addEventListener("change", e => { if (e.target && e.target.name === "pdRoom") show(e.target.value); });
+        const first = grid.querySelector("input:not(:disabled)");
+        if (first) first.dataset.autofocus = "";
+        pdAppend(slot, fs, prev, pdTech([
+          `teams: bớt 1 người ở ${teamNameOf(cfg, from)}, nối tên vào cuối phòng mới.`,
+          `members/${P.row._id} + signups/${P.row._id}: đổi icon sang phòng mới.`,
+          P.k1Exists ? (P.k1Shared ? `Giữ khoá chống trùng "${P.raw}" (thuộc hồ sơ khác cùng mã đang ở phòng).`
+                                   : `Khoá chống trùng "${P.raw}" chuyển theo sang phòng mới (dedup_keys/${P.k1}: đổi icon, giữ thời điểm).`) : "",
+          P.mExists ? (P.mKeep ? `Giữ khoá tên không dấu (${P.M}): còn người khác cùng gốc không dấu.` : `Khoá tên không dấu (${P.M}) đổi icon theo.`) : "",
+          P.k1 ? `Giữ giữ-chỗ khi điền form (reg_keys/${P.k1}).` : "",
+        ]));
+        show("");
       },
     });
     if (!to) return "";
@@ -2765,11 +2928,19 @@
   async function personUnjoin(P) {
     const from = P.row.icon, t = P.teams[from] || { count: 0 };
     const ok = await confirmModal({
-      title: `Gỡ ${P.name || "người này"} khỏi phòng?`, message: `${teamNameOf(P.cfg, from)}:`, confirmText: "Gỡ khỏi phòng", danger: true,
-      list: [{ text: `${teamNameOf(P.cfg, from)}: ${t.count} → ${Math.max(0, t.count - 1)} người (trả 1 chỗ cho người khác).` },
-             { text: "Giữ hồ sơ trong danh sách đăng ký (chưa có phòng)." }]
-        .concat(keyLines(P, { regDelete: false }))
-        .concat([{ text: "Giữ giữ-chỗ khi điền form (reg_keys): máy đã đăng ký chọn lại phòng được; máy khác vẫn bị chặn tới khi Bỏ chặn." }]),
+      title: "Gỡ khỏi phòng", message: "Trả lại 1 chỗ trong phòng, giữ hồ sơ đăng ký.", confirmText: "Gỡ khỏi phòng", danger: true, safeFocus: true,
+      person: pdPerson(P),
+      render: slot => pdAppend(slot,
+        pdRoomCard(P.cfg, from, t.count, Math.max(0, t.count - 1), { cls: "solo", sub: "trả 1 chỗ cho người khác" }),
+        P.k1Exists && P.k1Shared ? pdDupAlert(P, "Hồ sơ đó đang ở phòng nên khoá chống trùng được giữ lại.") : null,
+        pdSection("Sau khi gỡ", [
+          { kind: "keep", text: "Hồ sơ vẫn còn trong danh sách đăng ký (chưa có phòng)." },
+          { kind: "info", text: "Máy đã đăng ký của người này chọn lại phòng được." },
+          P.k1 ? { kind: "info", text: "Máy khác vẫn chưa đăng ký được tên này — cần thì dùng Bỏ chặn." } : null,
+        ]),
+        pdTech([`teams/${from}: bớt 1 người (về 0 ⇒ xoá doc đội).`, `members/${P.row._id}: xoá · signups/${P.row._id}: bỏ icon.`]
+          .concat(keyLines(P, { regDelete: false }))
+          .concat(P.k1 ? ["Giữ giữ-chỗ khi điền form (reg_keys): máy đã đăng ký chọn lại phòng được; máy khác vẫn bị chặn tới khi Bỏ chặn."] : []))),
     });
     if (!ok) return "";
     const ev = P.ev, pid = P.row._id;
@@ -2789,10 +2960,17 @@
 
   async function personUnblock(P) {
     if (!P.k1) { await confirmModal({ title: "Không có khoá để gỡ", message: "Sự kiện không có ô kiểm tra trùng hoặc hồ sơ này để trống ô đó.", confirmText: "Đóng", cancelText: "" }); return ""; }
+    const held = P.k1Exists && P.k1Shared;                                   // khoá chống trùng thuộc hồ sơ khác đang ở phòng
     const ok = await confirmModal({
-      title: `Bỏ chặn ${P.name || P.raw}?`, message: "Người này chưa ở phòng nào. Sẽ:", confirmText: "Bỏ chặn", danger: true,
-      list: [{ text: `Gỡ giữ-chỗ khi điền form (reg_keys/${P.k1}).` }].concat(keyLines(P, { regDelete: false }))
-        .concat([{ text: "Giữ hồ sơ. Tải lại trang là đăng ký / chọn phòng được (kể cả máy khác)." }]),
+      title: "Bỏ chặn", message: "Cho phép đăng ký lại tên này trên mọi máy.", confirmText: "Bỏ chặn", danger: true, safeFocus: true,
+      person: pdPerson(P),
+      render: slot => pdAppend(slot,
+        held ? pdDupAlert(P, "Hồ sơ đó đang ở phòng nên khoá chống trùng được giữ — người này điền lại form được nhưng chưa chọn phòng được.") : null,
+        pdSection("Sau khi bỏ chặn", [
+          { kind: "keep", text: "Hồ sơ giữ nguyên (chưa có phòng)." },
+          held ? null : { kind: "info", text: "Tải lại trang là đăng ký / chọn phòng được, trên mọi máy." },
+        ]),
+        pdTech([`Gỡ giữ-chỗ khi điền form (reg_keys/${P.k1}).`].concat(keyLines(P, { regDelete: false })))),
     });
     if (!ok) return "";
     const ev = P.ev, pid = P.row._id;
@@ -2809,13 +2987,21 @@
 
   async function personDelete(P) {
     const from = P.row.icon, t = from ? (P.teams[from] || { count: 0 }) : null;
-    const fLabel = (Array.isArray(P.cfg.fields) ? P.cfg.fields : []).find(f => f && f.key === P.field);
+    const labels = (Array.isArray(P.cfg.fields) ? P.cfg.fields : []).map(f => f && (f.label || f.key)).filter(Boolean);
+    const cap = from ? capOfCfg(P.cfg, from) : 0;
+    const blocked = !!P.k1 && (P.regShared || (P.k1Exists && P.k1Shared));   // hồ sơ khác cùng mã vẫn giữ khoá / giữ-chỗ
     const ok = await confirmModal({
-      title: `Xoá đăng ký của ${P.name || "người này"}?`, message: "Không hoàn tác được. Sẽ:", confirmText: "Xoá đăng ký", danger: true,
-      list: (t ? [{ kind: "warn", text: `${teamNameOf(P.cfg, from)}: ${t.count} → ${Math.max(0, t.count - 1)} người.` }] : [])
-        .concat([{ kind: "warn", text: `Xoá hồ sơ (họ tên${fLabel ? ", " + fLabel.label : ""}, thời gian) khỏi danh sách đăng ký và file xuất.` }])
-        .concat(keyLines(P, { regDelete: "ifAlone" }))
-        .concat([{ text: "Người này đăng ký lại được từ đầu." }]),
+      title: "Xoá đăng ký", badge: "Không hoàn tác", message: "Xoá hẳn hồ sơ này khỏi sự kiện.", confirmText: "Xoá đăng ký", danger: true, safeFocus: true,
+      person: pdPerson(P),
+      render: slot => pdAppend(slot,
+        pdSection("Sẽ mất", [
+          { kind: "lose", text: `Hồ sơ đăng ký (${(labels.length ? labels : ["họ tên"]).join(", ")}, thời gian đăng ký) — mất khỏi danh sách và file xuất.` },
+          t ? { kind: "lose", text: `Chỗ trong ${teamNameOf(P.cfg, from)} — phòng còn ${Math.max(0, t.count - 1)}${cap ? "/" + cap : ""} người.` } : null,
+        ], "danger"),
+        blocked ? pdDupAlert(P, "Khoá chống trùng / giữ-chỗ thuộc hồ sơ đó nên vẫn được giữ — tên này chưa đăng ký mới được.") : null,
+        pdSection("Sau khi xoá", [blocked ? null : { kind: "keep", text: "Người này đăng ký lại được từ đầu, trên mọi máy." }]),
+        pdTech((from ? [`teams/${from}: bớt 1 người.`] : []).concat([`members/${P.row._id} + signups/${P.row._id}: xoá.`])
+          .concat(keyLines(P, { regDelete: "ifAlone" })))),
     });
     if (!ok) return "";
     const ev = P.ev, pid = P.row._id;
