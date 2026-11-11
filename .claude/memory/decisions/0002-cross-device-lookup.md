@@ -83,7 +83,7 @@ Backfill quét **toàn bộ `dedup_keys`** (không dựa vào members/signups): 
 - Static server vá `firebase-config.js`/`config.js` trong bộ nhớ để trỏ emulator, không sửa repo.
 
 ## Open work
-- **Phase B — ĐÃ LÀM 2026-11-10 (nhánh `fix/hardening-phase0`, chờ deploy rules):** bỏ nhánh `hasOnly(['at'])` + cờ
+- **Phase B — ĐÃ LÀM + DEPLOY 2026-11-10 (commit ffe57d7, ruleset 98d47162; nay nằm trong ruleset ad25cca7):** bỏ nhánh `hasOnly(['at'])` + cờ
   `DEDUP_STORE_ICON`; `teams` client chỉ +1/nối 1 tên ⇒ muốn chiếm khoá phải tốn 1 chỗ thật + tên hiện công khai (không còn
   "rác giá rẻ"); `signups/seed_*` chỉ admin. Còn mở: `reg_keys` create/delete (chốt mềm — admin "Bỏ chặn" gỡ được).
 - **Script un-join** phải xoá: `members/{pid}`, `signups/{pid}`, `dedup_keys/k1`, `reg_keys`, gỡ tên khỏi `teams`. Doc `M` CHỈ xoá khi không còn người có dấu nào khác cùng `_foldKey` (vì `M` giữ chỗ cho bản không dấu).
