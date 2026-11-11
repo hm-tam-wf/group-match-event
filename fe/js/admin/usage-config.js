@@ -12,5 +12,5 @@
 //   checkBilling: true,      // false ⇒ không xin quyền billing, không biết gói Spark/Blaze
 //   loginHint: "",           // email Google gợi ý sẵn khi kết nối
 window.ADMIN_USAGE_CONFIG = {
-  oauthClientId: ""
+  oauthClientId: "587236027049-n017hk9ucumdgsv426b414ieljbi9vg0.apps.googleusercontent.com"
 };
