@@ -1,6 +1,9 @@
-# Deploy thư mục fe/ lên GitHub Pages (chạy SONG SONG với Firebase Hosting).
-# Cơ chế: upload fe/ làm artifact rồi deploy-pages — KHÔNG cần dời file vào /docs,
-# KHÔNG cần branch gh-pages, KHÔNG cần secret. Firebase deploy vẫn làm thủ công.
+# Deploy thư mục fe/ lên GitHub Pages (chạy SONG SONG với Firebase Hosting) — vai trò: staging / demo.
+# Cơ chế: chép fe/ ra _site/ (bỏ file CHỈ admin dùng) rồi upload artifact + deploy-pages — KHÔNG cần dời file vào /docs,
+# KHÔNG cần branch gh-pages, KHÔNG cần secret. Firebase deploy vẫn làm thủ công / theo tag (deploy.yml).
+#
+# Admin KHÔNG chạy trên Pages nữa (2026-11-11): admin.html ở đây chỉ là trang chuyển hướng sang ADMIN_URL
+# (giữ bookmark cũ /admin.html, /admin). Admin thật: site Firebase pickyourgroup-admin — xem documentation/ADMIN.md.
 #
 # ⚠️ Bắt buộc 1 lần: GitHub repo → Settings → Pages → Build and deployment →
 #    Source = "GitHub Actions" (nếu chưa bật, lần chạy đầu sẽ fail; bật rồi Re-run).
@@ -33,6 +36,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      ADMIN_URL: https://pickyourgroup-admin.web.app/   # nơi admin chạy thật (site Firebase pickyourgroup-admin)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,10 +45,34 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload fe/ as Pages artifact
+      - name: Build _site (fe/ trừ admin; admin.html = trang chuyển hướng)
+        run: |
+          rm -rf _site && cp -r fe _site
+          # file CHỈ admin dùng — file dùng chung (js/config, js/data, themes…) giữ nguyên
+          rm -rf _site/js/admin _site/assets/admin.css _site/assets/admin-home.css
+          cat > _site/admin.html <<EOF
+          <!doctype html>
+          <html lang="vi">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta name="robots" content="noindex">
+          <title>Trang quản trị đã chuyển</title>
+          <link rel="canonical" href="${ADMIN_URL}">
+          <meta http-equiv="refresh" content="0; url=${ADMIN_URL}">
+          <script>location.replace("${ADMIN_URL}");</script>
+          <style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:#06070D;color:#EDF0FF;font:16px/1.5 system-ui,sans-serif}a{color:#8B97FF}</style>
+          </head>
+          <body><p>Trang quản trị đã chuyển sang <a href="${ADMIN_URL}">${ADMIN_URL}</a>.</p></body>
+          </html>
+          EOF
+          # tự kiểm: không còn file admin, admin.html là trang chuyển hướng
+          test ! -e _site/assets/admin.css && test ! -e _site/js/admin && grep -q "url=${ADMIN_URL}" _site/admin.html
+
+      - name: Upload _site as Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: fe          # serve nguyên thư mục fe/ (artifact không qua Jekyll)
+          path: _site       # artifact không qua Jekyll
 
       - name: Deploy to GitHub Pages
         id: deployment

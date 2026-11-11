@@ -10,8 +10,8 @@ updated: 2026-06-04
 
 ## Overview
 `fe/admin.html` là trang riêng biệt (không link từ index). Admin đăng nhập Firebase → xem danh sách signups → export.
-**Chỉ chạy trên GitHub Pages** (https://hm-tam-wf.github.io/group-match-event/admin.html): Firebase Hosting `ignore` file này
-và redirect 301 `/admin.html` sang Pages — xem [[conventions]] §Deploy.
+**Chỉ chạy trên site Firebase riêng** https://pickyourgroup-admin.web.app (từ 2026-11-11): site sự kiện `ignore` file này và
+redirect 302 `/admin.html`, `/admin` sang đó; GitHub Pages chỉ còn trang chuyển hướng (pages.yml) — xem [[conventions]] §Deploy.
 
 ## Auth flow
 Firebase Authentication (email/password). **Từ bước 3A (2026-11-11):** admin = UID GỐC hardcode (`isRootAdmin()` trong rules,

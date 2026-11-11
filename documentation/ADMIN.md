@@ -78,9 +78,10 @@ Làm theo ĐÚNG thứ tự (deploy site sự kiện trước bước 3 sẽ là
    ```
    firebase deploy --only hosting:pickyourgroup --project icon-picker
    ```
-6. Chạy ổn vài ngày ⇒ gỡ admin khỏi GitHub Pages: sửa `.github/workflows/pages.yml` để không đăng `admin.html` / `assets/admin.css`
-   (hoặc thay bằng trang chuyển hướng sang https://pickyourgroup-admin.web.app/). Người từng vào `/admin` của site cũ có thể còn nhớ
-   redirect 301 cũ sang Pages ⇒ báo mọi người lưu link mới.
+6. **Đã làm 2026-11-11** — gỡ admin khỏi GitHub Pages: `.github/workflows/pages.yml` dựng `_site/` từ `fe/` bỏ file chỉ admin dùng
+   (`js/admin/`, `assets/admin.css`, `assets/admin-home.css`) và thay `admin.html` bằng trang chuyển hướng sang `ADMIN_URL`
+   (https://pickyourgroup-admin.web.app/). Người từng vào `/admin` của site cũ có thể còn nhớ redirect 301 cũ sang Pages ⇒ trang
+   chuyển hướng đưa tiếp sang site admin; vẫn nên báo mọi người lưu link mới.
 
 Chạy thử bản dựng ở máy: `node backend/scripts/build-admin-site.js` (ra `hosting-admin/`, đã tự git-ignore).
 Quay lại như cũ: trả 2 redirect của site `pickyourgroup` về link GitHub Pages rồi deploy site đó.

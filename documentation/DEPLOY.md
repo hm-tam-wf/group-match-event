@@ -5,7 +5,7 @@
 
 | Có deploy | Không deploy |
 |---|---|
-| Cả 2 site trong `firebase.json`: `pickyourgroup` (trang sự kiện, `fe/`) + `pickyoursquad-faraday` (redirect 301) | GitHub Pages (admin + demo) — vẫn do `pages.yml` tự deploy khi push `master` |
+| Cả 3 site trong `firebase.json`: `pickyourgroup` (trang sự kiện, `fe/`), `pickyourgroup-admin` (admin, predeploy dựng `hosting-admin/`), `pickyoursquad-faraday` (redirect 301) | GitHub Pages (staging/demo, không còn admin) — vẫn do `pages.yml` tự deploy khi push `master` |
 | `backend/firestore.rules` | Dữ liệu Firestore, indexes, mọi script backend |
 
 - Mỗi lúc 1 lần deploy (`concurrency: deploy-production`); tag đến sau xếp hàng, không huỷ lần đang chạy.
