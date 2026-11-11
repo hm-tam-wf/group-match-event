@@ -1,0 +1,481 @@
+<!doctype html>
+<!-- Bản HTML của documentation/USAGE-MONITORING.md (cùng nội dung, thêm mục lục + nút chép). Sửa nội dung thì sửa cả 2 file. -->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Hướng dẫn bật thẻ Mức dùng Firestore trong admin: bật API, màn hình đồng ý OAuth, tạo Client ID, bỏ qua billing, xử lý sự cố.">
+<title>Thẻ Mức dùng Firestore</title>
+<style>
+  :root {
+    --bg:#F5F6FB; --surface:#FFFFFF; --surface-2:#EEF0FA; --ink:#141833; --mut:#4A5072; --line:#DCE0F0;
+    --accent:#4F5BD5; --accent-ink:#FFFFFF; --accent-soft:#E8EAFE; --code-bg:#EEF0FA; --code-ink:#272B52;
+    --ok:#0F7B5F; --warn:#8A5A00; --warn-soft:#FFF4DE; --warn-line:#EFC06A; --info-soft:#EDF0FF; --info-line:#B9C1FF;
+    --ring:0 0 0 3px rgba(79,91,213,.45);
+    --shadow:0 1px 2px rgba(20,24,51,.06), 0 10px 28px -16px rgba(20,24,51,.22);
+    --r:14px; --r-sm:10px;
+    --font:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono:ui-monospace, 'Cascadia Code', Consolas, monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#06070D; --surface:#0D1020; --surface-2:#121629; --ink:#EDF0FF; --mut:#9BA3C7; --line:rgba(148,160,255,.18);
+      --accent:#8B97FF; --accent-ink:#0B0E1F; --accent-soft:rgba(99,112,255,.16); --code-bg:#121629; --code-ink:#C9CFFF;
+      --ok:#3DD6A9; --warn:#F5B454; --warn-soft:rgba(245,180,84,.09); --warn-line:rgba(245,180,84,.45);
+      --info-soft:rgba(99,112,255,.09); --info-line:rgba(139,151,255,.40);
+      --ring:0 0 0 3px rgba(139,151,255,.55);
+      --shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px -24px rgba(0,0,0,.85);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#06070D; --surface:#0D1020; --surface-2:#121629; --ink:#EDF0FF; --mut:#9BA3C7; --line:rgba(148,160,255,.18);
+    --accent:#8B97FF; --accent-ink:#0B0E1F; --accent-soft:rgba(99,112,255,.16); --code-bg:#121629; --code-ink:#C9CFFF;
+    --ok:#3DD6A9; --warn:#F5B454; --warn-soft:rgba(245,180,84,.09); --warn-line:rgba(245,180,84,.45);
+    --info-soft:rgba(99,112,255,.09); --info-line:rgba(139,151,255,.40);
+    --ring:0 0 0 3px rgba(139,151,255,.55);
+    --shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px -24px rgba(0,0,0,.85);
+    color-scheme:dark;
+  }
+
+  *, *::before, *::after { box-sizing:border-box; }
+  html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } *, *::before, *::after { transition:none !important; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 var(--font); }
+  a { color:var(--accent); text-underline-offset:2px; }
+  a:hover { text-decoration-thickness:2px; }
+  :focus-visible { outline:none; box-shadow:var(--ring); border-radius:6px; }
+  code, kbd { font-family:var(--mono); font-size:.88em; }
+  :not(pre) > code { background:var(--code-bg); color:var(--code-ink); padding:1px 6px; border-radius:6px; overflow-wrap:anywhere; }
+  .skip { position:absolute; left:16px; top:-48px; background:var(--accent); color:var(--accent-ink); padding:8px 14px; border-radius:var(--r-sm); z-index:10; }
+  .skip:focus { top:12px; }
+
+  .wrap { max-width:1180px; margin:0 auto; padding:32px 24px 72px; display:grid; grid-template-columns:220px minmax(0,1fr); gap:40px; }
+  header.top { grid-column:1 / -1; }
+  .eyebrow { margin:0 0 6px; color:var(--mut); font-size:13px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+  h1 { margin:0; font-size:clamp(28px, 4vw, 38px); line-height:1.2; letter-spacing:-.02em; text-wrap:balance; }
+  .lede { margin:10px 0 0; color:var(--mut); max-width:66ch; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0; padding:0; list-style:none; }
+  .chips li { font-size:13px; font-weight:600; padding:4px 12px; border-radius:999px; background:var(--accent-soft); color:var(--ink); border:1px solid var(--line); }
+
+  nav.toc { position:sticky; top:24px; align-self:start; font-size:14px; }
+  nav.toc h2 { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); margin:4px 0 10px; }
+  nav.toc ol { list-style:none; margin:0; padding:0; border-left:2px solid var(--line); }
+  nav.toc a { display:block; padding:6px 0 6px 14px; margin-left:-2px; border-left:2px solid transparent; color:var(--mut); text-decoration:none; line-height:1.35; }
+  nav.toc a:hover { color:var(--ink); border-left-color:var(--accent); }
+  nav.toc details summary { display:none; }
+
+  main { min-width:0; }
+  section { scroll-margin-top:20px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:24px 28px; margin:0 0 20px; }
+  h2 { font-size:22px; line-height:1.3; margin:0 0 12px; letter-spacing:-.01em; }
+  h3 { font-size:16px; margin:20px 0 8px; }
+  p { margin:0 0 12px; }
+  ul, ol { margin:0 0 12px; padding-left:22px; }
+  li { margin:0 0 8px; }
+  li::marker { color:var(--mut); }
+
+  .step-head { display:flex; align-items:center; gap:14px; margin:0 0 14px; }
+  .step-head h2 { margin:0; }
+  .num { flex:none; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:16px; }
+  .time { margin-left:auto; flex:none; font-size:13px; color:var(--mut); font-weight:600; }
+  ol.steps { padding-left:0; list-style:none; counter-reset:s; }
+  ol.steps > li { counter-increment:s; position:relative; padding-left:38px; margin:0 0 14px; }
+  ol.steps > li::before { content:counter(s); position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:8px; display:grid; place-items:center;
+    font-size:13px; font-weight:700; color:var(--accent); background:var(--accent-soft); }
+
+  .ui { font-weight:600; padding:1px 7px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line); white-space:nowrap;
+    -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+  .ui.long { white-space:normal; }
+  .opt { display:inline-block; font-size:12px; font-weight:700; padding:0 8px; border-radius:999px; border:1px solid var(--line); color:var(--mut); vertical-align:1px; }
+
+  .note { border:1px solid var(--info-line); background:var(--info-soft); border-radius:var(--r-sm); padding:12px 16px; margin:14px 0; display:flex; gap:12px; }
+  .note.warn { border-color:var(--warn-line); background:var(--warn-soft); }
+  .note svg { flex:none; width:20px; height:20px; margin-top:3px; color:var(--accent); }
+  .note.warn svg { color:var(--warn); }
+  .note p { margin:0; }
+  .note p + p { margin-top:6px; }
+
+  .code { position:relative; margin:10px 0 14px; }
+  .code pre { margin:0; background:var(--code-bg); color:var(--code-ink); border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:14px 16px; padding-right:92px; overflow-x:auto; font:13.5px/1.6 var(--mono); }
+  .code.wrapline pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+  .copy { position:absolute; top:8px; right:8px; min-height:32px; padding:4px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); font:600 13px/1 var(--font); cursor:pointer; }
+  .copy:hover { border-color:var(--accent); color:var(--accent); }
+  .copy.is-done { border-color:var(--ok); color:var(--ok); }
+
+  .tbl-wrap { overflow-x:auto; margin:10px 0 14px; border:1px solid var(--line); border-radius:var(--r-sm); }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  th, td { text-align:left; vertical-align:top; padding:10px 14px; border-bottom:1px solid var(--line); }
+  th { font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); background:var(--surface-2); }
+  tr:last-child td { border-bottom:0; }
+  td:first-child { font-weight:600; }
+
+  .probe { display:grid; gap:12px; margin:12px 0 4px; }
+  .field label { display:block; font-weight:600; font-size:14px; margin:0 0 6px; }
+  .field input { width:100%; min-height:44px; padding:10px 12px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink); font:14px/1.4 var(--mono); }
+  .field input[aria-invalid="true"] { border-color:var(--warn); }
+  .row { display:flex; flex-wrap:wrap; gap:10px; }
+  .btn { min-height:44px; padding:10px 18px; border-radius:var(--r-sm); border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink);
+    font:600 14px/1 var(--font); cursor:pointer; }
+  .btn.ghost { background:transparent; color:var(--accent); }
+  .btn:hover { filter:brightness(1.06); }
+  #probeMsg { margin:0; min-height:1.65em; font-size:14px; color:var(--mut); }
+  #probeMsg.is-err { color:var(--warn); font-weight:600; }
+
+  footer.end { color:var(--mut); font-size:14px; }
+  .sr-only { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+  @media (max-width: 1023.98px) {
+    .wrap { grid-template-columns:minmax(0,1fr); gap:20px; padding:24px 16px 56px; }
+    nav.toc { position:static; }
+    nav.toc h2 { display:none; }
+    nav.toc details { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:4px 16px; }
+    nav.toc details summary { display:block; list-style:none; cursor:pointer; font-weight:600; padding:10px 0; min-height:44px; }
+    nav.toc details summary::-webkit-details-marker { display:none; }
+    nav.toc details summary::after { content:"+"; float:right; color:var(--mut); font-weight:700; }
+    nav.toc details[open] summary::after { content:"\2212"; }
+    nav.toc ol { margin:0 0 10px; }
+  }
+  @media (max-width: 640px) {
+    .card { padding:18px 16px; border-radius:12px; }
+    .step-head { flex-wrap:wrap; gap:10px; }
+    .time { margin:-6px 0 0 50px; width:calc(100% - 50px); }
+    ol.steps > li { padding-left:34px; }
+    .code pre { padding-top:46px; padding-right:16px; }   /* code cuộn ngang ⇒ để nút Chép nằm phía trên chữ, không đè */
+    .tbl-wrap.stack { border:0; overflow:visible; }
+    .stack table, .stack tbody, .stack tr, .stack td { display:block; width:100%; }
+    .stack thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+    .stack tr { border:1px solid var(--line); border-radius:var(--r-sm); margin:0 0 10px; background:var(--surface); }
+    .stack td { border-bottom:1px solid var(--line); padding:8px 12px; }
+    .stack td::before { content:attr(data-label); display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); }
+    .stack td:first-child { font-weight:600; }
+    .stack tr td:last-child { border-bottom:0; }
+  }
+  @media print {
+    nav.toc, .copy, .probe, .skip { display:none !important; }
+    .wrap { display:block; }
+    .card { box-shadow:none; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#noi-dung">Bỏ qua tới nội dung</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Admin Pick group</p>
+    <h1>Bật thẻ Mức dùng Firestore</h1>
+    <p class="lede">Hướng dẫn từng bước cho Owner của project Google Cloud <code>icon-picker</code>. Làm xong, cuối trang <b>Tổng quan</b> của admin hiện số đọc, ghi, xoá thật của cả project.</p>
+    <ul class="chips" aria-label="Thông tin nhanh">
+      <li>Khoảng 10 phút</li>
+      <li>Làm 1 lần</li>
+      <li>Tài khoản Owner</li>
+      <li>Không cần server</li>
+    </ul>
+  </header>
+
+  <nav class="toc" aria-label="Mục lục">
+    <h2>Mục lục</h2>
+    <details id="tocDetails" open>
+      <summary>Mục lục</summary>
+      <ol>
+        <li><a href="#tong-quan">Thẻ hiện gì</a></li>
+        <li><a href="#chuan-bi">Chuẩn bị</a></li>
+        <li><a href="#buoc-1">Bước 1: Bật API</a></li>
+        <li><a href="#buoc-2">Bước 2: Màn hình đồng ý OAuth</a></li>
+        <li><a href="#buoc-3">Bước 3: Tạo Client ID</a></li>
+        <li><a href="#buoc-4">Bước 4: Quyền xem</a></li>
+        <li><a href="#buoc-5">Bước 5: Dán Client ID, deploy</a></li>
+        <li><a href="#buoc-6">Bước 6: Thử</a></li>
+        <li><a href="#bo-qua-billing">Bỏ qua billing</a></li>
+        <li><a href="#su-co">Sự cố</a></li>
+        <li><a href="#kiem-origin">Kiểm origin</a></li>
+        <li><a href="#ghi-chu">Ghi chú số liệu</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <main id="noi-dung">
+    <section id="tong-quan" class="card">
+      <h2>Thẻ hiện gì</h2>
+      <ul>
+        <li>Lượt <b>đọc / ghi / xoá</b> Firestore hôm nay so với quota miễn phí (50.000 / 20.000 / 20.000 mỗi ngày) và đếm ngược tới giờ reset.</li>
+        <li>Biểu đồ lượt đọc 7 ngày quota gần nhất và hôm nay, kèm bảng số liệu.</li>
+        <li>Gói <b>Spark</b> (miễn phí, 0 ₫) hay <b>Blaze</b> (trả theo mức dùng, ước tính chi phí phần vượt quota).</li>
+      </ul>
+      <p>Ngày quota tính theo giờ Pacific: reset lúc 00:00 giờ Pacific, tức <b>15:00 giờ VN</b> (14:00 khi Mỹ theo giờ mùa hè, khoảng giữa tháng 3 đến đầu tháng 11).</p>
+      <div class="note">
+        <svg aria-hidden="true"><use href="#i-info"/></svg>
+        <div>
+          <p>Bấm <b>Kết nối Google</b> trên thẻ thì trang nhận một <b>token chỉ đọc</b>, chỉ giữ trong tab, tự hết hạn sau khoảng 1 giờ. Không đụng đăng nhập admin, không ghi gì vào Firestore, mở trang admin không gọi Google.</p>
+          <p>Client ID không phải bí mật: chỉ chạy trên origin đã khai báo, với tài khoản được phép, và chỉ xem được project mà tài khoản đó có quyền.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="chuan-bi" class="card">
+      <h2>Chuẩn bị</h2>
+      <ul>
+        <li>Đăng nhập Google bằng tài khoản <b>Owner</b> của project <code>icon-picker</code>. Thường là tài khoản Firebase CLI đang dùng: chạy <code>firebase login:list</code> để xem.</li>
+        <li>Trang báo không có quyền hoặc không thấy project thì đổi tài khoản (ảnh đại diện góc phải trên).</li>
+        <li>Các link dưới đã chọn sẵn project và thêm <code>hl=en</code> để giao diện tiếng Anh, khớp tên nút trong hướng dẫn.</li>
+      </ul>
+    </section>
+
+    <section id="buoc-1" class="card" aria-labelledby="h-b1">
+      <div class="step-head"><span class="num" aria-hidden="true">1</span><h2 id="h-b1">Bật API</h2><span class="time">2 phút</span></div>
+      <ol class="steps">
+        <li>Mở <a href="https://console.cloud.google.com/apis/library/monitoring.googleapis.com?project=icon-picker&amp;hl=en" target="_blank" rel="noopener">Cloud Monitoring API</a> → bấm <span class="ui">Enable</span>. Thấy nút <span class="ui">Manage</span> nghĩa là đã bật sẵn.</li>
+        <li><span class="opt">Tuỳ chọn</span> Mở <a href="https://console.cloud.google.com/apis/library/cloudbilling.googleapis.com?project=icon-picker&amp;hl=en" target="_blank" rel="noopener">Cloud Billing API</a> → <span class="ui">Enable</span>, để thẻ biết gói Spark hay Blaze. Không cần thì xem <a href="#bo-qua-billing">Bỏ qua billing</a>.</li>
+        <li>Trang báo cần billing account thì dừng lại, ghi nguyên văn thông báo.</li>
+      </ol>
+    </section>
+
+    <section id="buoc-2" class="card" aria-labelledby="h-b2">
+      <div class="step-head"><span class="num" aria-hidden="true">2</span><h2 id="h-b2">Màn hình đồng ý OAuth</h2><span class="time">3 phút</span></div>
+      <ol class="steps">
+        <li>Mở <a href="https://console.cloud.google.com/auth/overview?project=icon-picker&amp;hl=en" target="_blank" rel="noopener">Google Auth Platform</a> → <span class="ui">Get started</span>. Không thấy nút này nghĩa là đã cấu hình từ trước: nhảy tới mục 5.</li>
+        <li><b>App Information</b>: App name <code>Pick group admin</code>, User support email chọn email của bạn → <span class="ui">Next</span>.</li>
+        <li><b>Audience</b>: chọn <span class="ui">Internal</span> nếu bấm được (project thuộc Google Workspace của công ty, khỏi thêm Test users); không thì <span class="ui">External</span> → <span class="ui">Next</span>.</li>
+        <li><b>Contact Information</b>: nhập email của bạn → <span class="ui">Next</span> → tick <span class="ui long">I agree to the Google API Services: User Data Policy</span> → <span class="ui">Continue</span> → <span class="ui">Create</span>.</li>
+        <li><span class="opt">External</span> Menu trái <b>Audience</b> → mục <b>Test users</b> → <span class="ui">+ Add users</span> → nhập email Google của những người sẽ xem thẻ → <span class="ui">Save</span>. Giữ trạng thái <b>Testing</b> (không cần Google xác minh, tối đa 100 người), không bấm <span class="ui">Publish app</span>.</li>
+        <li>Menu trái <b>Data Access</b> → <span class="ui">Add or remove scopes</span> → kéo xuống ô <b>Manually add scopes</b>, dán 2 dòng:
+          <div class="code"><pre><code>https://www.googleapis.com/auth/monitoring.read
+https://www.googleapis.com/auth/cloud-billing.readonly</code></pre><button type="button" class="copy" data-copy aria-label="Chép 2 scope">Chép</button></div>
+          → <span class="ui">Add to table</span> → <span class="ui">Update</span> → về trang Data Access bấm <span class="ui">Save</span>. Có cảnh báo "cần xác minh" thì bỏ qua (app đang Testing). Bỏ qua billing thì chỉ dán dòng đầu.
+        </li>
+      </ol>
+    </section>
+
+    <section id="buoc-3" class="card" aria-labelledby="h-b3">
+      <div class="step-head"><span class="num" aria-hidden="true">3</span><h2 id="h-b3">Tạo OAuth Client ID</h2><span class="time">2 phút</span></div>
+      <ol class="steps">
+        <li>Mở <a href="https://console.cloud.google.com/auth/clients?project=icon-picker&amp;hl=en" target="_blank" rel="noopener">Clients</a> → <span class="ui">+ Create client</span>.</li>
+        <li><b>Application type</b>: <span class="ui">Web application</span>. <b>Name</b>: <code>admin usage</code>.</li>
+        <li>Mục <b>Authorized JavaScript origins</b> → <span class="ui">+ Add URI</span> → dán (không có <code>/</code> cuối):
+          <div class="code"><pre><code>https://pickyourgroup-admin.web.app</code></pre><button type="button" class="copy" data-copy aria-label="Chép origin">Chép</button></div>
+          Có dùng domain <code>https://pickyourgroup-admin.firebaseapp.com</code> thì thêm dòng thứ hai.
+        </li>
+        <li>Để trống <b>Authorized redirect URIs</b> (đừng điền origin vào đây). Có ô <b>Use this client for an AI-powered agent</b> thì không tick.</li>
+        <li><span class="ui">Create</span> → copy <b>Client ID</b> (dạng <code>123456789-abc….apps.googleusercontent.com</code>). Không cần Client secret.</li>
+        <li>Kiểm nhanh: dãy số đầu Client ID (trước dấu <code>-</code>) phải trùng <code>messagingSenderId</code> trong <code>fe/js/config/firebase-config.js</code>. Khác nghĩa là đã tạo nhầm project.</li>
+      </ol>
+      <div class="note warn">
+        <svg aria-hidden="true"><use href="#i-warn"/></svg>
+        <div><p>Google ghi chú: thiết lập client có thể mất <b>5 phút đến vài giờ</b> mới có hiệu lực. Lần bật đầu tiên của project này mất khoảng 15 phút; trong lúc chờ, cửa sổ Google báo <code>Lỗi 401: invalid_client</code> kèm "no registered origin". Cứ đợi rồi thử lại, hoặc <a href="#kiem-origin">kiểm origin</a>.</p></div>
+      </div>
+    </section>
+
+    <section id="buoc-4" class="card" aria-labelledby="h-b4">
+      <div class="step-head"><span class="num" aria-hidden="true">4</span><h2 id="h-b4">Quyền xem</h2><span class="time">Chỉ khi cần</span></div>
+      <p>Bỏ qua nếu người xem là Owner, Editor hoặc Viewer của project. Người khác:</p>
+      <ol class="steps">
+        <li>Mở <a href="https://console.cloud.google.com/iam-admin/iam?project=icon-picker&amp;hl=en" target="_blank" rel="noopener">IAM</a> → <span class="ui">Grant access</span> → nhập email Google của họ.</li>
+        <li>Vai trò <span class="ui">Monitoring Viewer</span>, thêm <span class="ui">Browser</span> để thẻ đọc được trạng thái billing → <span class="ui">Save</span>.</li>
+        <li>App External thì thêm họ vào Test users (bước 2, mục 5).</li>
+      </ol>
+    </section>
+
+    <section id="buoc-5" class="card" aria-labelledby="h-b5">
+      <div class="step-head"><span class="num" aria-hidden="true">5</span><h2 id="h-b5">Dán Client ID và deploy</h2><span class="time">Người deploy làm</span></div>
+      <ol class="steps">
+        <li>Dán vào <code>fe/js/admin/usage-config.js</code>. Client ID không phải bí mật, commit được.
+          <div class="code"><pre><code>window.ADMIN_USAGE_CONFIG = {
+  oauthClientId: "123456789-abc....apps.googleusercontent.com"
+};</code></pre><button type="button" class="copy" data-copy aria-label="Chép mẫu cấu hình">Chép</button></div>
+        </li>
+        <li>Deploy site admin:
+          <div class="code"><pre><code>firebase deploy --only hosting:pickyourgroup-admin</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh deploy">Chép</button></div>
+          Muốn kiểm trước rồi mới lên live:
+          <div class="code"><pre><code>firebase hosting:channel:deploy &lt;tên&gt; --only pickyourgroup-admin --expires 1h
+firebase hosting:clone pickyourgroup-admin:&lt;tên&gt; pickyourgroup-admin:live</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh preview channel">Chép</button></div>
+          Preview channel có origin khác nên không bấm Kết nối Google được ở đó; chỉ kiểm trang tải được và thẻ hiện nút Kết nối.
+        </li>
+      </ol>
+    </section>
+
+    <section id="buoc-6" class="card" aria-labelledby="h-b6">
+      <div class="step-head"><span class="num" aria-hidden="true">6</span><h2 id="h-b6">Thử</h2><span class="time">1 phút</span></div>
+      <ol class="steps">
+        <li>Mở <a href="https://pickyourgroup-admin.web.app" target="_blank" rel="noopener">pickyourgroup-admin.web.app</a> → đăng nhập admin như mọi khi → <b>Tổng quan</b> → kéo xuống cuối, thẻ <b>Mức dùng Firestore</b> → <span class="ui">Kết nối Google</span>.</li>
+        <li>Chọn tài khoản → màn <b>Google hasn't verified this app</b> → <span class="ui">Continue</span> (app của chính bạn, đang Testing; app Internal không có màn này) → tick cả 2 quyền → <span class="ui">Continue</span>.</li>
+        <li>Thẻ hiện số đọc / ghi / xoá và biểu đồ là xong. Nút ↻ trên thẻ để lấy số mới; số liệu Cloud Monitoring trễ vài phút.</li>
+      </ol>
+    </section>
+
+    <section id="bo-qua-billing" class="card">
+      <h2>Bỏ qua billing</h2>
+      <p>Thẻ vẫn chạy đủ phần đọc / ghi / xoá khi bỏ phần billing; chỉ không biết gói Spark hay Blaze: thẻ hiện "Gói chưa rõ" và dòng chi phí nêu cả 2 khả năng. Chọn 1 trong 3 cách:</p>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Cách</th><th scope="col">Làm gì</th><th scope="col">Thẻ hiện</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Cách">Không bật Cloud Billing API</td><td data-label="Làm gì">Bỏ bước 1, mục 2</td><td data-label="Thẻ hiện">"Chưa biết gói vì Cloud Billing API chưa bật" kèm link bật</td></tr>
+            <tr><td data-label="Cách">Bỏ tick quyền billing khi kết nối</td><td data-label="Làm gì">Bước 6, mục 2: chỉ tick quyền Monitoring</td><td data-label="Thẻ hiện">"Chưa biết gói vì chưa cấp quyền xem billing khi kết nối"</td></tr>
+            <tr><td data-label="Cách">Tắt hẳn</td><td data-label="Làm gì">Thêm <code>checkBilling: false</code> vào <code>usage-config.js</code> rồi deploy</td><td data-label="Thẻ hiện">Không xin quyền billing nữa, cửa sổ Google chỉ hỏi 1 quyền</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code"><pre><code>window.ADMIN_USAGE_CONFIG = {
+  oauthClientId: "…",
+  checkBilling: false
+};</code></pre><button type="button" class="copy" data-copy aria-label="Chép cấu hình tắt billing">Chép</button></div>
+      <p>Tắt hẳn thì cũng bỏ dòng <code>cloud-billing.readonly</code> ở bước 2 (mục 6) và quyền <b>Browser</b> ở bước 4.</p>
+    </section>
+
+    <section id="su-co" class="card">
+      <h2>Sự cố</h2>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Thấy</th><th scope="col">Nguyên nhân</th><th scope="col">Sửa</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Thấy">Cửa sổ Google: <code>Error 400: origin_mismatch</code></td><td data-label="Nguyên nhân">Origin admin chưa có trong Client ID</td><td data-label="Sửa">Bước 3, mục 3: thêm đúng <code>https://pickyourgroup-admin.web.app</code>, đợi vài phút</td></tr>
+            <tr><td data-label="Thấy"><code>Lỗi 401: invalid_client</code> kèm <b>no registered origin</b></td><td data-label="Nguyên nhân">Client vừa tạo chưa có hiệu lực, hoặc origin chưa được lưu (điền nhầm vào Authorized redirect URIs, chưa bấm Save)</td><td data-label="Sửa">Mở client, kiểm mục Authorized JavaScript origins. Có rồi thì đợi 5 đến 15 phút, tải lại trang admin (F5), thử lại. Hoặc <a href="#kiem-origin">kiểm origin</a></td></tr>
+            <tr><td data-label="Thấy"><code>invalid_client</code> kèm <b>The OAuth client was not found</b></td><td data-label="Nguyên nhân">Client ID sai hoặc client đã bị xoá</td><td data-label="Sửa">So <code>usage-config.js</code> với trang Clients</td></tr>
+            <tr><td data-label="Thấy"><code>Error 403: access_denied</code> / "has not completed the Google verification process"</td><td data-label="Nguyên nhân">Tài khoản chưa là Test user (External)</td><td data-label="Sửa">Bước 2, mục 5</td></tr>
+            <tr><td data-label="Thấy">"Cloud Monitoring API chưa bật cho project"</td><td data-label="Nguyên nhân">Bước 1 chưa làm</td><td data-label="Sửa">Bấm link "Bật …" trên thẻ, đợi 1 đến 2 phút, Thử lại</td></tr>
+            <tr><td data-label="Thấy">"Tài khoản Google này không có quyền đọc số liệu"</td><td data-label="Nguyên nhân">Thiếu IAM</td><td data-label="Sửa">Bước 4</td></tr>
+            <tr><td data-label="Thấy">"Gói chưa rõ"</td><td data-label="Nguyên nhân">Billing bị bỏ qua (cố ý, hoặc thiếu Cloud Billing API / quyền Browser)</td><td data-label="Sửa">Muốn biết gói: làm ngược lại mục <a href="#bo-qua-billing">Bỏ qua billing</a>, kết nối lại và giữ tick</td></tr>
+            <tr><td data-label="Thấy">"Trình duyệt chặn cửa sổ đăng nhập Google"</td><td data-label="Nguyên nhân">Chặn popup</td><td data-label="Sửa">Cho phép popup với <code>pickyourgroup-admin.web.app</code></td></tr>
+            <tr><td data-label="Thấy">"Google yêu cầu project bật billing mới cho đọc số liệu qua API"</td><td data-label="Nguyên nhân">Project gói Spark (chưa thử thực tế; một báo cáo trên diễn đàn Google thấy chỉ token service account bị chặn)</td><td data-label="Sửa">Xem số ở Usage and billing của Firebase; hoặc nâng Blaze (vẫn giữ quota miễn phí mỗi ngày, chỉ tính phần vượt)</td></tr>
+            <tr><td data-label="Thấy">Lỗi khác</td><td data-label="Nguyên nhân">Chưa gặp</td><td data-label="Sửa">Gửi lại nguyên văn thông báo trên thẻ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="kiem-origin" class="card">
+      <h2>Kiểm origin đã có hiệu lực chưa</h2>
+      <p>Không cần đăng nhập admin. Dán Client ID (giá trị trong <code>usage-config.js</code>), bấm <b>Chép link</b>, rồi mở link trong <b>cửa sổ ẩn danh</b>. Thấy trang đăng nhập Google nghĩa là origin đã nhận; thấy trang lỗi "Access blocked" / "register the JavaScript origin" nghĩa là chưa.</p>
+      <form id="probe" class="probe" novalidate>
+        <div class="field">
+          <label for="cid">Client ID</label>
+          <input id="cid" type="text" autocomplete="off" spellcheck="false" placeholder="123456789-abc....apps.googleusercontent.com" aria-describedby="probeMsg">
+        </div>
+        <div class="field">
+          <label for="org">Origin của trang admin</label>
+          <input id="org" type="text" autocomplete="off" spellcheck="false" value="https://pickyourgroup-admin.web.app" aria-describedby="probeMsg">
+        </div>
+        <div class="row">
+          <button type="submit" class="btn">Chép link</button>
+          <button type="button" class="btn ghost" id="probeOpen">Mở trong tab mới</button>
+        </div>
+        <p id="probeMsg" role="status" aria-live="polite"></p>
+      </form>
+      <p>Mở trong tab thường (đang đăng nhập Google) thì thấy màn chọn tài khoản cũng nghĩa là origin đã nhận. Link mẫu, thay <code>CLIENT_ID</code>:</p>
+      <div class="code wrapline"><pre><code>https://accounts.google.com/o/oauth2/v2/auth?gsiwebsdk=3&amp;client_id=CLIENT_ID&amp;scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fmonitoring.read&amp;redirect_uri=storagerelay%3A%2F%2Fhttps%2Fpickyourgroup-admin.web.app%3Fid%3Dauth1&amp;prompt=&amp;response_type=token&amp;include_granted_scopes=true&amp;hl=en</code></pre><button type="button" class="copy" data-copy aria-label="Chép link mẫu">Chép</button></div>
+    </section>
+
+    <section id="ghi-chu" class="card">
+      <h2>Ghi chú số liệu</h2>
+      <ul>
+        <li>Số lấy từ metric <code>firestore.googleapis.com/document/{read,write,delete}_count</code> (giống tab Usage của Firebase console), gần đúng số tính phí; trang <a href="https://console.firebase.google.com/project/icon-picker/usage" target="_blank" rel="noopener">Usage and billing</a> là nguồn chính thức.</li>
+        <li>Chi phí "ước tính" chỉ có nghĩa khi project ở Blaze (<code>icon-picker</code> đang ở Blaze): cộng theo ngày (số vượt quota ÷ 100.000 × giá). Giá mặc định là mức <b>trần</b> phổ biến ($0.06 / $0.18 / $0.02 cho 100.000 đọc / ghi / xoá), <b>chưa xác minh</b> cho vùng <code>asia-southeast1</code>: sửa <code>pricePer100k</code> trong <code>usage-config.js</code> theo <a href="https://cloud.google.com/firestore/pricing" target="_blank" rel="noopener">bảng giá Firestore</a> (chọn Singapore). Chưa gồm lưu trữ, băng thông.</li>
+        <li>Spark không bao giờ tính tiền: vượt quota thì Firestore từ chối yêu cầu tới giờ reset (trang sự kiện có thể lỗi); thẻ cảnh báo khi vượt.</li>
+        <li>Đọc metric qua API tính theo số time series trả về, 1 triệu đầu miễn phí mỗi billing account; mỗi lần làm mới khoảng 6 time series, coi như 0.</li>
+      </ul>
+    </section>
+
+    <footer class="end">
+      <p>Bản Markdown cùng nội dung: <a href="USAGE-MONITORING.md">USAGE-MONITORING.md</a>. Sửa nội dung thì sửa cả 2 file.</p>
+      <p>Code: <code>fe/js/admin/usage-core.js</code>, <code>fe/js/admin/usage-panel.js</code>, <code>fe/js/admin/usage-config.js</code>; test: <code>tests/unit/cases/usage-core.js</code>, <code>tests/admin/cases/usage-card.js</code>.</p>
+    </footer>
+  </main>
+</div>
+<p id="live" class="sr-only" aria-live="polite"></p>
+
+<script>
+(function () {
+  "use strict";
+  var live = document.getElementById("live");
+  function say(m) { if (!live) return; live.textContent = ""; setTimeout(function () { live.textContent = m; }, 40); }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { if (document.execCommand("copy")) resolve(); else reject(new Error("copy")); }
+      catch (e) { reject(e); }
+      finally { document.body.removeChild(ta); }
+    });
+  }
+  function flash(btn, ok) {
+    if (!btn.getAttribute("data-text")) btn.setAttribute("data-text", btn.textContent);
+    btn.textContent = ok ? "Đã chép" : "Không chép được";
+    btn.classList.toggle("is-done", ok);
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { btn.textContent = btn.getAttribute("data-text"); btn.classList.remove("is-done"); }, 1600);
+    say(ok ? "Đã chép vào clipboard" : "Không chép được, hãy bôi đen rồi chép tay");
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest ? e.target.closest("[data-copy]") : null;
+    if (!btn) return;
+    var code = btn.parentNode.querySelector("code");
+    if (!code) return;
+    copyText(code.textContent).then(function () { flash(btn, true); }, function () { flash(btn, false); });
+  });
+
+  // Mục lục: màn rộng luôn mở; màn hẹp thu gọn (bấm "Mục lục" để mở)
+  var toc = document.getElementById("tocDetails");
+  try {
+    var mq = window.matchMedia("(max-width: 1023.98px)");
+    var syncToc = function () { if (toc) toc.open = !mq.matches; };
+    syncToc();
+    if (mq.addEventListener) mq.addEventListener("change", syncToc);
+  } catch (err) { /* trình duyệt cũ: giữ mở */ }
+
+  // Tạo link kiểm origin từ Client ID
+  var form = document.getElementById("probe");
+  if (!form) return;
+  var cid = document.getElementById("cid"), org = document.getElementById("org"), msg = document.getElementById("probeMsg");
+  var SCOPE = "https://www.googleapis.com/auth/monitoring.read";
+  function setMsg(text, isErr, field) {
+    msg.textContent = text;
+    msg.classList.toggle("is-err", !!isErr);
+    [cid, org].forEach(function (f) { f.setAttribute("aria-invalid", f === field ? "true" : "false"); });
+    if (field) field.focus();
+  }
+  function build() {
+    var id = cid.value.trim(), o = org.value.trim().replace(/\/+$/, "");
+    if (!/^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/i.test(id)) {
+      setMsg("Client ID cần có dạng 123456789-abc….apps.googleusercontent.com", true, cid); return "";
+    }
+    if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(o)) {
+      setMsg("Origin cần có dạng https://tên-miền, không có đường dẫn hay dấu / cuối", true, org); return "";
+    }
+    var relay = "storagerelay://https/" + o.replace(/^https:\/\//i, "") + "?id=auth1";
+    return "https://accounts.google.com/o/oauth2/v2/auth?gsiwebsdk=3&client_id=" + encodeURIComponent(id)
+      + "&scope=" + encodeURIComponent(SCOPE) + "&redirect_uri=" + encodeURIComponent(relay)
+      + "&prompt=&response_type=token&include_granted_scopes=true&hl=en";
+  }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var url = build();
+    if (!url) return;
+    copyText(url).then(function () {
+      setMsg("Đã chép link. Mở cửa sổ ẩn danh (Ctrl+Shift+N) rồi dán vào thanh địa chỉ.", false, null);
+    }, function () {
+      setMsg("Không chép được. Bấm \"Mở trong tab mới\" thay thế.", true, null);
+    });
+  });
+  document.getElementById("probeOpen").addEventListener("click", function () {
+    var url = build();
+    if (!url) return;
+    window.open(url, "_blank", "noopener");
+    setMsg("Đã mở tab mới. Thấy trang đăng nhập hoặc chọn tài khoản Google là origin đã nhận.", false, null);
+  });
+})();
+</script>
+</body>
+</html>
