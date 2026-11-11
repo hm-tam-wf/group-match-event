@@ -39,7 +39,7 @@ backend/
   firestore.rules         ← Security Rules (DÁN vào Firebase Console). cap()=10 phải khớp CAPACITY
   scripts/export.js · loadtest.js
 documentation/
-  md/                     ← tài liệu Markdown: EXPORT.md (xuất signups ra CSV), SETUP-FIREBASE.md (dựng Firestore + deploy), ADMIN.md, DEPLOY.md, TESTING.md…
+  md/                     ← tài liệu Markdown: EVENT-PLAYBOOK.md (quy trình làm sự kiện mới — đọc trước), EXPORT.md (xuất signups ra CSV), SETUP-FIREBASE.md (dựng Firestore + deploy), ADMIN.md, DEPLOY.md, TESTING.md…
   html/                   ← bản HTML để xem trên trình duyệt (cùng nội dung bản .md tương ứng)
 legacy/apps-script/       ← backend Apps Script CŨ — KHÔNG còn dùng (giữ làm dự phòng)
 ```

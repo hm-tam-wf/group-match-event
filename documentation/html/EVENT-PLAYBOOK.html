@@ -1,0 +1,583 @@
+<!doctype html>
+<!-- Bản HTML của documentation/md/EVENT-PLAYBOOK.md (cùng nội dung, thêm mục lục, nút chép, checklist bấm được). Sửa nội dung thì sửa cả 2 file. -->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Quy trình chung để làm một sự kiện mới trên Pick group: xác định phạm vi, tạo sự kiện, làm code khi cần, giao diện, nạp danh sách, chạy thử, mở, theo dõi, kết thúc.">
+<title>Quy trình sự kiện mới</title>
+<style>
+  :root {
+    --bg:#F5F6FB; --surface:#FFFFFF; --surface-2:#EEF0FA; --ink:#141833; --mut:#4A5072; --line:#DCE0F0;
+    --accent:#4F5BD5; --accent-ink:#FFFFFF; --accent-soft:#E8EAFE; --code-bg:#EEF0FA; --code-ink:#272B52;
+    --ok:#0F7B5F; --ok-soft:#E3F5EE; --warn:#8A5A00; --warn-soft:#FFF4DE; --warn-line:#EFC06A; --info-soft:#EDF0FF; --info-line:#B9C1FF;
+    --ring:0 0 0 3px rgba(79,91,213,.45);
+    --shadow:0 1px 2px rgba(20,24,51,.06), 0 10px 28px -16px rgba(20,24,51,.22);
+    --r:14px; --r-sm:10px;
+    --font:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono:ui-monospace, 'Cascadia Code', Consolas, monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#06070D; --surface:#0D1020; --surface-2:#121629; --ink:#EDF0FF; --mut:#9BA3C7; --line:rgba(148,160,255,.18);
+      --accent:#8B97FF; --accent-ink:#0B0E1F; --accent-soft:rgba(99,112,255,.16); --code-bg:#121629; --code-ink:#C9CFFF;
+      --ok:#3DD6A9; --ok-soft:rgba(61,214,169,.10); --warn:#F5B454; --warn-soft:rgba(245,180,84,.09); --warn-line:rgba(245,180,84,.45);
+      --info-soft:rgba(99,112,255,.09); --info-line:rgba(139,151,255,.40);
+      --ring:0 0 0 3px rgba(139,151,255,.55);
+      --shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px -24px rgba(0,0,0,.85);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#06070D; --surface:#0D1020; --surface-2:#121629; --ink:#EDF0FF; --mut:#9BA3C7; --line:rgba(148,160,255,.18);
+    --accent:#8B97FF; --accent-ink:#0B0E1F; --accent-soft:rgba(99,112,255,.16); --code-bg:#121629; --code-ink:#C9CFFF;
+    --ok:#3DD6A9; --ok-soft:rgba(61,214,169,.10); --warn:#F5B454; --warn-soft:rgba(245,180,84,.09); --warn-line:rgba(245,180,84,.45);
+    --info-soft:rgba(99,112,255,.09); --info-line:rgba(139,151,255,.40);
+    --ring:0 0 0 3px rgba(139,151,255,.55);
+    --shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px -24px rgba(0,0,0,.85);
+    color-scheme:dark;
+  }
+
+  *, *::before, *::after { box-sizing:border-box; }
+  html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } *, *::before, *::after { transition:none !important; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 var(--font); }
+  a { color:var(--accent); text-underline-offset:2px; }
+  a:hover { text-decoration-thickness:2px; }
+  :focus-visible { outline:none; box-shadow:var(--ring); border-radius:6px; }
+  code, kbd { font-family:var(--mono); font-size:.88em; }
+  :not(pre) > code { background:var(--code-bg); color:var(--code-ink); padding:1px 6px; border-radius:6px; overflow-wrap:anywhere; }
+  .skip { position:absolute; left:16px; top:-48px; background:var(--accent); color:var(--accent-ink); padding:8px 14px; border-radius:var(--r-sm); z-index:10; }
+  .skip:focus { top:12px; }
+
+  .wrap { max-width:1180px; margin:0 auto; padding:32px 24px 72px; display:grid; grid-template-columns:220px minmax(0,1fr); gap:40px; }
+  header.top { grid-column:1 / -1; }
+  .eyebrow { margin:0 0 6px; color:var(--mut); font-size:13px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+  h1 { margin:0; font-size:clamp(28px, 4vw, 38px); line-height:1.2; letter-spacing:-.02em; text-wrap:balance; }
+  .lede { margin:10px 0 0; color:var(--mut); max-width:66ch; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0; padding:0; list-style:none; }
+  .chips li { font-size:13px; font-weight:600; padding:4px 12px; border-radius:999px; background:var(--accent-soft); color:var(--ink); border:1px solid var(--line); }
+
+  nav.toc { position:sticky; top:24px; align-self:start; font-size:14px; }
+  nav.toc h2 { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); margin:4px 0 10px; }
+  nav.toc ol { list-style:none; margin:0; padding:0; border-left:2px solid var(--line); }
+  nav.toc a { display:block; padding:5px 0 5px 14px; margin-left:-2px; border-left:2px solid transparent; color:var(--mut); text-decoration:none; line-height:1.35; }
+  nav.toc a:hover { color:var(--ink); border-left-color:var(--accent); }
+  nav.toc details summary { display:none; }
+
+  main { min-width:0; }
+  section { scroll-margin-top:20px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:24px 28px; margin:0 0 20px; }
+  h2 { font-size:22px; line-height:1.3; margin:0 0 12px; letter-spacing:-.01em; }
+  h3 { font-size:16px; margin:22px 0 8px; scroll-margin-top:20px; }
+  p { margin:0 0 12px; }
+  ul, ol { margin:0 0 12px; padding-left:22px; }
+  li { margin:0 0 8px; }
+  li::marker { color:var(--mut); }
+
+  .step-head { display:flex; align-items:center; gap:14px; margin:0 0 14px; }
+  .step-head h2 { margin:0; }
+  .num { flex:none; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:16px; }
+  .step-head.maybe .num { background:transparent; color:var(--accent); border:2px dashed var(--accent); }
+  .who { margin-left:auto; flex:none; font-size:13px; color:var(--mut); font-weight:600; }
+  ol.steps { padding-left:0; list-style:none; counter-reset:s; }
+  ol.steps > li { counter-increment:s; position:relative; padding-left:38px; margin:0 0 14px; }
+  ol.steps > li::before { content:counter(s); position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:8px; display:grid; place-items:center;
+    font-size:13px; font-weight:700; color:var(--accent); background:var(--accent-soft); }
+
+  .ui { font-weight:600; padding:1px 7px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line); white-space:nowrap;
+    -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+  .ui.long { white-space:normal; }
+
+  /* Sơ đồ 9 bước */
+  ol.flow { list-style:none; margin:4px 0 14px; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+  ol.flow li { margin:0; }
+  ol.flow a { display:flex; gap:12px; align-items:flex-start; height:100%; min-height:44px; padding:12px 14px; border:1px solid var(--line);
+    border-radius:var(--r-sm); background:var(--surface-2); color:var(--ink); text-decoration:none; }
+  ol.flow a:hover { border-color:var(--accent); }
+  ol.flow li.maybe a { border-style:dashed; border-color:var(--accent); background:transparent; }
+  .fnum { flex:none; width:28px; height:28px; border-radius:8px; display:grid; place-items:center; font-weight:700; font-size:14px; color:var(--accent); background:var(--accent-soft); }
+  .ftxt { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .ftxt b { font-size:15px; line-height:1.35; }
+  .tag { align-self:flex-start; font-size:12px; font-weight:600; line-height:1.6; color:var(--mut); padding:0 8px; border-radius:999px; border:1px solid var(--line); }
+  li.maybe .tag { color:var(--accent); border-color:var(--accent); }
+
+  .yn { display:inline-block; font-size:13px; font-weight:700; padding:0 9px; border-radius:999px; border:1px solid var(--line); white-space:nowrap; }
+  .yn.no { color:var(--ok); background:var(--ok-soft); }
+  .yn.yes { color:var(--warn); background:var(--warn-soft); border-color:var(--warn-line); }
+
+  .note { border:1px solid var(--info-line); background:var(--info-soft); border-radius:var(--r-sm); padding:12px 16px; margin:14px 0; display:flex; gap:12px; }
+  .note.warn { border-color:var(--warn-line); background:var(--warn-soft); }
+  .note svg { flex:none; width:20px; height:20px; margin-top:3px; color:var(--accent); }
+  .note.warn svg { color:var(--warn); }
+  .note p { margin:0; }
+  .note p + p { margin-top:6px; }
+
+  .code { position:relative; margin:10px 0 14px; }
+  .code pre { margin:0; background:var(--code-bg); color:var(--code-ink); border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:14px 16px; padding-right:92px; overflow-x:auto; font:13.5px/1.6 var(--mono); }
+  .code .c { color:var(--mut); }
+  .copy { position:absolute; top:8px; right:8px; min-height:32px; padding:4px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); font:600 13px/1 var(--font); cursor:pointer; }
+  .copy:hover { border-color:var(--accent); color:var(--accent); }
+  .copy.is-done { border-color:var(--ok); color:var(--ok); }
+
+  .tbl-wrap { overflow-x:auto; margin:10px 0 14px; border:1px solid var(--line); border-radius:var(--r-sm); }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  th, td { text-align:left; vertical-align:top; padding:10px 14px; border-bottom:1px solid var(--line); }
+  th { font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); background:var(--surface-2); }
+  tr:last-child td { border-bottom:0; }
+  td:first-child { font-weight:600; }
+  td.nowrap { white-space:nowrap; }
+
+  .check-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:0 0 4px; }
+  .check-head h2 { margin:0; }
+  #checkCount { margin:0; color:var(--mut); font-size:14px; font-weight:600; }
+  h3.grp { margin:16px 0 2px; }
+  ul.check { list-style:none; padding:0; margin:0 0 8px; }
+  ul.check li { margin:0; border-bottom:1px solid var(--line); }
+  ul.check li:last-child { border-bottom:0; }
+  ul.check label { display:flex; gap:12px; align-items:flex-start; padding:10px 2px; min-height:44px; cursor:pointer; }
+  ul.check input { flex:none; width:20px; height:20px; margin:3px 0 0; accent-color:var(--accent); cursor:pointer; }
+  ul.check input:checked + span { color:var(--mut); text-decoration:line-through; text-decoration-color:var(--mut); }
+  .btn { min-height:44px; padding:10px 18px; border-radius:var(--r-sm); border:1px solid var(--accent); background:transparent; color:var(--accent);
+    font:600 14px/1 var(--font); cursor:pointer; }
+  .btn:hover { background:var(--accent-soft); }
+
+  footer.end { color:var(--mut); font-size:14px; }
+  .sr-only { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+  @media (max-width: 1023.98px) {
+    .wrap { grid-template-columns:minmax(0,1fr); gap:20px; padding:24px 16px 56px; }
+    nav.toc { position:static; }
+    nav.toc h2 { display:none; }
+    nav.toc details { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:4px 16px; }
+    nav.toc details summary { display:block; list-style:none; cursor:pointer; font-weight:600; padding:10px 0; min-height:44px; }
+    nav.toc details summary::-webkit-details-marker { display:none; }
+    nav.toc details summary::after { content:"+"; float:right; color:var(--mut); font-weight:700; }
+    nav.toc details[open] summary::after { content:"\2212"; }
+    nav.toc ol { margin:0 0 10px; }
+  }
+  @media (max-width: 860px) { ol.flow { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 640px) {
+    .card { padding:18px 16px; border-radius:12px; }
+    ol.flow { grid-template-columns:minmax(0,1fr); }
+    .step-head { flex-wrap:wrap; gap:10px; }
+    .who { margin:-6px 0 0 50px; width:calc(100% - 50px); }
+    ol.steps > li { padding-left:34px; }
+    .code pre { padding-top:46px; padding-right:16px; }   /* code cuộn ngang ⇒ để nút Chép nằm phía trên chữ, không đè */
+    .tbl-wrap.stack { border:0; overflow:visible; }
+    .stack table, .stack tbody, .stack tr, .stack td { display:block; width:100%; }
+    .stack thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+    .stack tr { border:1px solid var(--line); border-radius:var(--r-sm); margin:0 0 10px; background:var(--surface); }
+    .stack td { border-bottom:1px solid var(--line); padding:8px 12px; }
+    .stack td::before { content:attr(data-label); display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); }
+    .stack td:first-child { font-weight:600; }
+    .stack tr td:last-child { border-bottom:0; }
+  }
+  @media print {
+    nav.toc, .copy, .skip, #checkReset { display:none !important; }
+    .wrap { display:block; }
+    .card { box-shadow:none; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#noi-dung">Bỏ qua tới nội dung</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Pick group</p>
+    <h1>Quy trình làm một sự kiện mới</h1>
+    <p class="lede">Áp dụng cho mọi sự kiện, có đổi giao diện hay không. Đi từ lúc nhận yêu cầu tới khi dọn dẹp xong. Mỗi bước nói làm gì, ở đâu; chi tiết kỹ thuật nằm ở các tài liệu cuối trang.</p>
+    <ul class="chips" aria-label="Thông tin nhanh">
+      <li>Mọi sự kiện</li>
+      <li>9 bước</li>
+      <li>Bước 2 chỉ khi sửa code</li>
+      <li>Có checklist</li>
+    </ul>
+  </header>
+
+  <nav class="toc" aria-label="Mục lục">
+    <h2>Mục lục</h2>
+    <details id="tocDetails" open>
+      <summary>Mục lục</summary>
+      <ol>
+        <li><a href="#toan-canh">Toàn cảnh</a></li>
+        <li><a href="#nguyen-tac">Nguyên tắc</a></li>
+        <li><a href="#he-thong">Hệ thống gồm gì</a></li>
+        <li><a href="#buoc-0">Bước 0: Phạm vi</a></li>
+        <li><a href="#buoc-1">Bước 1: Tạo sự kiện</a></li>
+        <li><a href="#buoc-2">Bước 2: Code (khi cần)</a></li>
+        <li><a href="#buoc-3">Bước 3: Giao diện</a></li>
+        <li><a href="#buoc-4">Bước 4: Người, đội</a></li>
+        <li><a href="#buoc-5">Bước 5: Chạy thử</a></li>
+        <li><a href="#buoc-6">Bước 6: Mở, gửi link</a></li>
+        <li><a href="#buoc-7">Bước 7: Theo dõi</a></li>
+        <li><a href="#buoc-8">Bước 8: Kết thúc</a></li>
+        <li><a href="#khi-loi">Khi bản mới bị lỗi</a></li>
+        <li><a href="#checklist">Checklist</a></li>
+        <li><a href="#tai-lieu">Tài liệu chi tiết</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <main id="noi-dung">
+    <section id="toan-canh" class="card">
+      <h2>Toàn cảnh</h2>
+      <ol class="flow">
+        <li><a href="#buoc-0"><span class="fnum" aria-hidden="true">0</span><span class="ftxt"><b>Xác định phạm vi</b><span class="tag">Phụ trách + code</span></span></a></li>
+        <li><a href="#buoc-1"><span class="fnum" aria-hidden="true">1</span><span class="ftxt"><b>Tạo sự kiện</b><span class="tag">Trang admin</span></span></a></li>
+        <li class="maybe"><a href="#buoc-2"><span class="fnum" aria-hidden="true">2</span><span class="ftxt"><b>Làm phần code</b><span class="tag">Chỉ khi cần</span></span></a></li>
+        <li><a href="#buoc-3"><span class="fnum" aria-hidden="true">3</span><span class="ftxt"><b>Giao diện, trang thông tin</b><span class="tag">Trang admin</span></span></a></li>
+        <li><a href="#buoc-4"><span class="fnum" aria-hidden="true">4</span><span class="ftxt"><b>Nạp người tham gia, đội</b><span class="tag">Trang admin</span></span></a></li>
+        <li><a href="#buoc-5"><span class="fnum" aria-hidden="true">5</span><span class="ftxt"><b>Chạy thử</b><span class="tag">Điện thoại + admin</span></span></a></li>
+        <li><a href="#buoc-6"><span class="fnum" aria-hidden="true">6</span><span class="ftxt"><b>Mở sự kiện, gửi link</b><span class="tag">Trang admin</span></span></a></li>
+        <li><a href="#buoc-7"><span class="fnum" aria-hidden="true">7</span><span class="ftxt"><b>Theo dõi khi diễn ra</b><span class="tag">Trang admin</span></span></a></li>
+        <li><a href="#buoc-8"><span class="fnum" aria-hidden="true">8</span><span class="ftxt"><b>Kết thúc, dọn dẹp</b><span class="tag">Trang admin</span></span></a></li>
+      </ol>
+      <p>Bước 1, 3, 4 do người phụ trách làm trên trang admin, song song với Bước 2 được. Riêng việc chọn skin mới ở Bước 3 phải đợi code lên production. Bước 2 do người làm code thực hiện; người có quyền Firebase deploy.</p>
+    </section>
+
+    <section id="nguyen-tac" class="card">
+      <h2>Nguyên tắc</h2>
+      <ul>
+        <li>Một bộ code dùng cho mọi sự kiện; mỗi sự kiện là một bộ dữ liệu riêng, gọi bằng <b>ID</b>.</li>
+        <li>Làm được trên trang admin thì không sửa code.</li>
+        <li>Phải sửa code thì <b>thêm mới, không sửa đè</b>: skin mới nằm trong thư mục riêng; tính năng mới là tuỳ chọn, sự kiện không bật thì chạy y như cũ.</li>
+        <li>Code chỉ đi một đường: nhánh riêng → test → <code>master</code> (staging) → production.</li>
+        <li>Repo công khai: không commit họ tên thật, file nhân sự, khoá service account.</li>
+      </ul>
+    </section>
+
+    <section id="he-thong" class="card">
+      <h2>Hệ thống gồm gì</h2>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Phần</th><th scope="col">Dùng để</th><th scope="col">Cập nhật bằng</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Phần">Trang sự kiện</td><td data-label="Dùng để">Người tham gia đăng ký, xem trang thông tin</td><td data-label="Cập nhật bằng">Deploy site sự kiện</td></tr>
+            <tr><td data-label="Phần">Trang admin</td><td data-label="Dùng để">Người phụ trách cấu hình, theo dõi</td><td data-label="Cập nhật bằng">Deploy site admin</td></tr>
+            <tr><td data-label="Phần">Staging</td><td data-label="Dùng để">Xem trước code mới nhất trên <code>master</code></td><td data-label="Cập nhật bằng">Tự động khi push <code>master</code></td></tr>
+            <tr><td data-label="Phần">Firestore</td><td data-label="Dùng để">Cấu hình, danh sách, đăng ký của mọi sự kiện</td><td data-label="Cập nhật bằng">Trang admin hoặc script; rules deploy riêng</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Địa chỉ hiện tại</h3>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Phần</th><th scope="col">Địa chỉ</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Phần">Trang sự kiện</td><td data-label="Địa chỉ"><a href="https://pickyourgroup.web.app" target="_blank" rel="noopener">pickyourgroup.web.app</a></td></tr>
+            <tr><td data-label="Phần">Trang admin</td><td data-label="Địa chỉ"><a href="https://pickyourgroup-admin.web.app" target="_blank" rel="noopener">pickyourgroup-admin.web.app</a></td></tr>
+            <tr><td data-label="Phần">Staging</td><td data-label="Địa chỉ"><a href="https://hm-tam-wf.github.io/group-match-event/" target="_blank" rel="noopener">hm-tam-wf.github.io/group-match-event</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><b>Link riêng</b> <code>&lt;trang sự kiện&gt;/?e=&lt;id&gt;</code> luôn mở đúng sự kiện đó, kể cả khi chưa Mở. <b>Link gốc</b> (không có <code>?e=</code>) mở sự kiện đang được Mở.</li>
+      </ul>
+      <div class="note warn">
+        <svg aria-hidden="true"><use href="#i-warn"/></svg>
+        <div><p>Máy local, staging và production đọc ghi <b>cùng một dữ liệu thật</b>. Đăng ký thử ở đâu cũng là ghi thật vào sự kiện đó.</p></div>
+      </div>
+    </section>
+
+    <section id="buoc-0" class="card" aria-labelledby="h-b0">
+      <div class="step-head"><span class="num" aria-hidden="true">0</span><h2 id="h-b0">Xác định phạm vi</h2><span class="who">Phụ trách + code</span></div>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Cần gì</th><th scope="col">Làm ở đâu</th><th scope="col">Phải deploy</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Cần gì">Tên, mô tả, đội (tên, màu, sĩ số, giới tính), giờ mở và đóng, ô người đăng ký điền, chống trùng, danh sách cho phép</td><td data-label="Làm ở đâu">Admin, tab Thiết lập</td><td data-label="Phải deploy"><span class="yn no">Không</span></td></tr>
+            <tr><td data-label="Cần gì">Chọn giao diện có sẵn, ngôn ngữ (vi, en), logo, nút Huỷ / Quay lại, chữ trên trang, thời gian màn chào</td><td data-label="Làm ở đâu">Admin, tab Nhận diện</td><td data-label="Phải deploy"><span class="yn no">Không</span></td></tr>
+            <tr><td data-label="Cần gì">Trang thông tin: lịch trình, lưu ý, trang phục, di chuyển, văn bản</td><td data-label="Làm ở đâu">Admin, trang Trang thông tin</td><td data-label="Phải deploy"><span class="yn no">Không</span></td></tr>
+            <tr><td data-label="Cần gì">Danh sách người tham gia và đội</td><td data-label="Làm ở đâu">Admin, trang Danh sách cho phép</td><td data-label="Phải deploy"><span class="yn no">Không</span></td></tr>
+            <tr><td data-label="Cần gì">Màu, ảnh nền, font, logo vẽ bằng CSS, bố cục khác</td><td data-label="Làm ở đâu">Skin mới (<a href="#buoc-2">Bước 2</a>)</td><td data-label="Phải deploy"><span class="yn yes">Có</span></td></tr>
+            <tr><td data-label="Cần gì">Loại mục mới cho trang thông tin</td><td data-label="Làm ở đâu">Code (<a href="#buoc-2">Bước 2</a>)</td><td data-label="Phải deploy"><span class="yn yes">Có</span></td></tr>
+            <tr><td data-label="Cần gì">Ngôn ngữ ngoài vi và en, trang mới, tính năng mới, luật đăng ký mới</td><td data-label="Làm ở đâu">Code (<a href="#buoc-2">Bước 2</a>), có thể cả rules</td><td data-label="Phải deploy"><span class="yn yes">Có</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>Mọi thứ cần đều thuộc nhóm "Không" thì bỏ qua Bước 2.</li>
+        <li>Logo, ảnh: dùng link <code>https://</code> có sẵn thì không cần deploy; muốn để file ảnh trong repo thì đi qua Bước 2.</li>
+      </ul>
+    </section>
+
+    <section id="buoc-1" class="card" aria-labelledby="h-b1">
+      <div class="step-head"><span class="num" aria-hidden="true">1</span><h2 id="h-b1">Tạo sự kiện</h2><span class="who">Trang admin</span></div>
+      <ol class="steps">
+        <li>Admin → <b>Sự kiện</b> → <span class="ui">Tạo sự kiện</span>, hoặc <span class="ui">Nhân bản</span> sự kiện gần giống nhất (chép cấu hình và hồ sơ; tuỳ chọn chép danh sách cho phép, trang thông tin; không chép đăng ký).</li>
+        <li>Đặt <b>ID</b>: chữ thường, số, gạch ngang. ID nằm trong link riêng, đặt rồi đừng đổi.</li>
+        <li>Tab <b>Thiết lập</b>: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký điền. Nên đặt cả <b>giờ đóng</b> (lý do ở <a href="#buoc-8">Bước 8</a>).</li>
+        <li>Lưu. <b>Chưa bấm Mở.</b></li>
+      </ol>
+      <div class="note">
+        <svg aria-hidden="true"><use href="#i-info"/></svg>
+        <div><p>Nhân bản chép cả giờ mở và đóng của sự kiện cũ: nhớ sửa lại phần Thời gian.</p></div>
+      </div>
+    </section>
+
+    <section id="buoc-2" class="card" aria-labelledby="h-b2">
+      <div class="step-head maybe"><span class="num" aria-hidden="true">2</span><h2 id="h-b2">Làm phần code</h2><span class="who">Chỉ khi cần</span></div>
+
+      <h3 id="b2-nhanh">2.1 Tạo nhánh riêng</h3>
+      <div class="code"><pre><code>git switch master
+git pull
+git switch -c event/&lt;id&gt;</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh tạo nhánh">Chép</button></div>
+      <p>Không sửa thẳng <code>master</code>, không làm tiếp trên nhánh của sự kiện cũ.</p>
+
+      <h3 id="b2-skin">2.2 Skin mới (giao diện khác)</h3>
+      <p><code>&lt;theme&gt;</code> là theme nền đang dùng (hiện là <code>tech</code>), <code>&lt;skin&gt;</code> là tên skin mới.</p>
+      <ol class="steps">
+        <li>Tạo thư mục <code>fe/themes/&lt;theme&gt;/variants/&lt;skin&gt;/</code>:
+          <ul>
+            <li><code>&lt;skin&gt;.css</code>: mọi selector bắt đầu bằng <code>[data-theme="&lt;theme&gt;"][data-variant="&lt;skin&gt;"]</code>. Muốn khác hẳn thì đè lại token màu, nền, font của theme nền.</li>
+            <li><code>strings.js</code>: gọi <code>registerVariantCopy("&lt;skin&gt;", { vi: {…}, en: {…} })</code> để đổi chữ (không sửa <code>STRINGS</code> gốc).</li>
+            <li><code>img/</code>: ảnh của skin.</li>
+          </ul>
+        </li>
+        <li>Thêm 1 dòng vào <code>AVAILABLE_VARIANTS</code> trong <code>fe/js/config/config.js</code> (<code>{ id, label, theme, defaultLang }</code>). Trang admin lấy danh sách skin từ đây.</li>
+        <li>Nạp file của skin:
+          <ul>
+            <li>CSS vào <code>fe/index.html</code> và <code>fe/home.html</code>.</li>
+            <li><code>strings.js</code> vào <code>fe/index.html</code> (sau <code>themes/&lt;theme&gt;/strings.js</code>, trước <code>js/config/profile.js</code>) và <code>fe/admin.html</code>.</li>
+          </ul>
+        </li>
+        <li>Lưu ý:
+          <ul>
+            <li>Logo vẽ bằng CSS: thêm <code>:not([data-brand="custom"])</code> để sự kiện khai logo riêng vẫn đổi được.</li>
+            <li>Tiêu đề chữ gradient có dấu chồng (Ố, Ấ, Ề…) dễ mất dấu: thêm <code>padding-top</code> cho <code>h1</code> trong skin.</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h3 id="b2-tinh-nang">2.3 Tính năng mới, sửa phần dùng chung</h3>
+      <ul>
+        <li>Thêm thành tuỳ chọn trong cấu hình hoặc hồ sơ sự kiện; <b>thiếu tuỳ chọn thì giữ hành vi cũ</b>, để sự kiện khác không đổi.</li>
+        <li>Đổi cách ghi dữ liệu: sửa <code>backend/firestore.rules</code> và test rules.</li>
+        <li>Loại mục mới cho trang thông tin: <code>fe/js/home/home-schema.js</code> (<code>TYPES</code>), <code>fe/js/home/home-render.js</code>, trình soạn trong admin.</li>
+        <li>Viết test cho phần mới (<a href="../md/TESTING.md">TESTING.md</a>, mục "Thêm case mới").</li>
+      </ul>
+
+      <h3 id="b2-xem-truoc">2.4 Xem trước ở máy</h3>
+      <div class="code"><pre><code>npx serve fe</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh chạy site ở máy">Chép</button></div>
+      <ul>
+        <li>Mở <code>http://localhost:3000/?e=&lt;id&gt;&amp;variant=&lt;skin&gt;&amp;lang=vi</code>. <code>?variant=</code> và <code>?lang=</code> chỉ ép tạm để xem, chưa ghi gì vào hồ sơ. Trang thông tin: <code>home.html?e=&lt;id&gt;&amp;variant=&lt;skin&gt;</code>.</li>
+        <li>Kiểm ở bề ngang điện thoại (360 đến 390px) và máy tính: màn chờ, màn chào, form, lưới đội, popup xác nhận, màn đã tham gia, đếm ngược.</li>
+      </ul>
+
+      <h3 id="b2-test">2.5 Test</h3>
+      <div class="code"><pre><code>npm test</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh chạy test">Chép</button></div>
+      <p>Cần Node, Java 21+, Chrome hoặc Edge (<a href="../md/TESTING.md">TESTING.md</a>). Push nhánh và mở Pull Request: CI chạy lại toàn bộ test.</p>
+
+      <h3 id="b2-master">2.6 Đưa vào master (staging)</h3>
+      <p>Merge khi CI xanh. Vài phút sau staging chạy code mới: kiểm <code>&lt;staging&gt;/?e=&lt;id&gt;&amp;variant=&lt;skin&gt;</code>.</p>
+
+      <h3 id="b2-deploy">2.7 Deploy production</h3>
+      <p>Người có quyền Firebase của project chạy. Mỗi site: deploy ra preview channel → mở link preview CLI in ra, thêm <code>?e=&lt;id&gt;</code>, chỉ xem (không đăng ký) → clone đúng bản vừa xem lên live. <code>&lt;tên&gt;</code> là tên kênh tạm, vd <code>ev-&lt;id&gt;</code>.</p>
+      <div class="code"><pre><code><span class="c"># Trang sự kiện</span>
+firebase hosting:channel:deploy &lt;tên&gt; --only pickyourgroup --expires 1h --project icon-picker
+firebase hosting:clone pickyourgroup:&lt;tên&gt; pickyourgroup:live --project icon-picker</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh deploy trang sự kiện">Chép</button></div>
+      <div class="code"><pre><code><span class="c"># Trang admin (cần khi có skin mới, vì danh sách skin của admin nằm trong code)</span>
+firebase hosting:channel:deploy &lt;tên&gt; --only pickyourgroup-admin --expires 1h --project icon-picker
+firebase hosting:clone pickyourgroup-admin:&lt;tên&gt; pickyourgroup-admin:live --project icon-picker</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh deploy trang admin">Chép</button></div>
+      <div class="code"><pre><code><span class="c"># Rules (chỉ khi có sửa)</span>
+npm run deploy:rules</code></pre><button type="button" class="copy" data-copy aria-label="Chép lệnh deploy rules">Chép</button></div>
+      <ul>
+        <li>Deploy trang sự kiện trước, trang admin sau.</li>
+        <li>Rules và code đi cùng nhau: deploy lúc không có sự kiện đang chạy; rollback thì rollback cả hai.</li>
+        <li>Khi đã bật deploy theo tag (<a href="../md/DEPLOY.md">DEPLOY.md</a>): thay các lệnh trên bằng push tag <code>vX.Y.Z</code>.</li>
+      </ul>
+      <div class="note warn">
+        <svg aria-hidden="true"><use href="#i-warn"/></svg>
+        <div><p>Xong sớm hơn giờ mở <b>ít nhất 1 giờ</b>: trang sự kiện gửi kèm <code>Cache-Control: max-age=3600</code>, trình duyệt có thể giữ bản cũ tới 1 giờ (staging: 10 phút).</p></div>
+      </div>
+    </section>
+
+    <section id="buoc-3" class="card" aria-labelledby="h-b3">
+      <div class="step-head"><span class="num" aria-hidden="true">3</span><h2 id="h-b3">Giao diện, trang thông tin</h2><span class="who">Trang admin</span></div>
+      <ol class="steps">
+        <li><b>Sự kiện</b> → <span class="ui">Sửa</span> → tab <b>Nhận diện</b>: giao diện, ngôn ngữ, logo, nút Huỷ / Quay lại, chữ trên trang, thời gian màn chào → <span class="ui">Lưu &amp; xem trước</span>.</li>
+        <li>Có trang thông tin: menu <b>Trang thông tin</b> → chọn sự kiện → soạn từng mục, hoặc <span class="ui">Nạp Excel</span> / JSON → <span class="ui">Lưu</span> → <span class="ui">Xem trang</span>. Rồi ở tab Nhận diện, chọn nút Huỷ "Về trang home của sự kiện".</li>
+        <li>Sự kiện tạo mới (không nhân bản) mang hồ sơ mặc định trong code: luôn mở tab Nhận diện kiểm lại.</li>
+      </ol>
+    </section>
+
+    <section id="buoc-4" class="card" aria-labelledby="h-b4">
+      <div class="step-head"><span class="num" aria-hidden="true">4</span><h2 id="h-b4">Nạp người tham gia, đội</h2><span class="who">Trang admin</span></div>
+      <p>Chỉ khi bật danh sách cho phép ở Bước 1.</p>
+      <ol class="steps">
+        <li><b>Danh sách cho phép</b> → chọn sự kiện → <span class="ui">Tải file mẫu</span> (sinh theo sự kiện, có sheet Hướng dẫn).</li>
+        <li>Điền sheet <b>Nhân sự</b> (người) và sheet <b>Phòng</b> (đội). Có sheet Phòng thì thay toàn bộ danh sách đội; không muốn đổi đội thì xoá sheet đó.</li>
+        <li>Chọn file → xem trước, sửa hết lỗi từng dòng → <span class="ui">Xoá cũ &amp; nạp mới</span> (lần đầu) hoặc <span class="ui">Nạp thêm</span> (bổ sung). Muốn xếp đội sẵn: điền cột Phòng và tích <span class="ui">Xếp sẵn</span>.</li>
+        <li>File thật để ngoài git (<code>btc-data/</code> đã được ignore); repo chỉ giữ file mẫu tên giả.</li>
+      </ol>
+    </section>
+
+    <section id="buoc-5" class="card" aria-labelledby="h-b5">
+      <div class="step-head"><span class="num" aria-hidden="true">5</span><h2 id="h-b5">Chạy thử</h2><span class="who">Điện thoại + admin</span></div>
+      <ol class="steps">
+        <li>Mở link riêng <code>&lt;trang sự kiện&gt;/?e=&lt;id&gt;</code> trên điện thoại.</li>
+        <li>Đăng ký thử vài trường hợp: người hợp lệ, người không có trong danh sách, đội đầy, đội bị khoá theo luật của sự kiện.</li>
+        <li>Giờ mở ở tương lai thì trang chỉ hiện đếm ngược: tạm để trống giờ mở, thử xong đặt lại.</li>
+        <li>Thử xong: <b>Sự kiện</b> → <span class="ui">Xóa dữ liệu</span> (gõ lại ID). Danh sách cho phép được giữ.</li>
+      </ol>
+    </section>
+
+    <section id="buoc-6" class="card" aria-labelledby="h-b6">
+      <div class="step-head"><span class="num" aria-hidden="true">6</span><h2 id="h-b6">Mở sự kiện, gửi link</h2><span class="who">Trang admin</span></div>
+      <ol class="steps">
+        <li><b>Sự kiện</b> → <span class="ui">Mở</span>. Trang admin tự kiểm trước: giờ đóng đã qua, danh sách cho phép trống, thiếu ô <code>name</code>, ô kiểm trùng không tồn tại, chưa có đội thì chưa cho mở.</li>
+        <li>Chỉ một sự kiện ở trạng thái Mở: Mở sự kiện mới là thay sự kiện cũ trên link gốc.</li>
+        <li>Gửi link gốc (theo sự kiện đang Mở) hoặc link riêng <code>?e=&lt;id&gt;</code> (luôn đúng sự kiện này). Trang thông tin: <code>&lt;trang sự kiện&gt;/home.html?e=&lt;id&gt;</code>.</li>
+      </ol>
+    </section>
+
+    <section id="buoc-7" class="card" aria-labelledby="h-b7">
+      <div class="step-head"><span class="num" aria-hidden="true">7</span><h2 id="h-b7">Theo dõi khi diễn ra</h2><span class="who">Trang admin</span></div>
+      <ul>
+        <li><b>Tổng quan</b>: sĩ số, đăng ký mới nhất, thẻ Mức dùng Firestore.</li>
+        <li>Sửa 1 người trong danh sách: trang <b>Danh sách cho phép</b>. Người đã vào đội: trang <b>Đăng ký</b> → nút <span class="ui">⋯</span> (Chuyển phòng, Gỡ khỏi phòng, Bỏ chặn, Xoá đăng ký).</li>
+        <li>Đổi đội, sĩ số, danh sách khi đang chạy: người tham gia phải tải lại trang mới thấy. Không đổi hay xoá đội đã có người.</li>
+        <li>Không deploy code khi sự kiện đang chạy, trừ sửa lỗi gấp (vẫn qua preview channel).</li>
+      </ul>
+    </section>
+
+    <section id="buoc-8" class="card" aria-labelledby="h-b8">
+      <div class="step-head"><span class="num" aria-hidden="true">8</span><h2 id="h-b8">Kết thúc, dọn dẹp</h2><span class="who">Trang admin</span></div>
+      <ol class="steps">
+        <li><b>Sự kiện</b> → <span class="ui">Kết thúc</span>: gỡ sự kiện khỏi link gốc.</li>
+        <li>Xuất kết quả: <b>Đăng ký</b> → chọn sự kiện → <span class="ui">Xuất Excel</span> (hoặc script, <a href="../md/EXPORT.md">EXPORT.md</a>).</li>
+        <li>File thật của người phụ trách: giữ ngoài git, xoá khi hết cần.</li>
+        <li>Xoá hẳn sự kiện (tuỳ chọn): <span class="ui">Xóa dữ liệu</span> → <span class="ui">Xóa sự kiện</span> (xoá cả danh sách cho phép).</li>
+        <li>Giữ skin, code mới để sự kiện sau chọn lại. Lỗi hay bài học mới: ghi vào tài liệu.</li>
+      </ol>
+      <div class="note warn">
+        <svg aria-hidden="true"><use href="#i-warn"/></svg>
+        <div><p><b>Link riêng <code>?e=&lt;id&gt;</code> vẫn nhận đăng ký tới giờ đóng</b>, kể cả sau khi bấm Kết thúc. Chưa đặt giờ đóng thì sửa giờ đóng về hiện tại.</p></div>
+      </div>
+    </section>
+
+    <section id="khi-loi" class="card">
+      <h2>Khi bản mới bị lỗi</h2>
+      <ul>
+        <li><b>Trang sự kiện, trang admin</b>: Firebase Console → Hosting → chọn site → Release history → bản trước → Rollback.</li>
+        <li><b>Rules</b>: Firebase Console → Firestore → Rules → lịch sử phiên bản → khôi phục bản trước. Rules đi kèm code thì rollback cả hai.</li>
+        <li><b>Cấu hình sự kiện sai</b>: sửa lại trên trang admin, không cần deploy.</li>
+      </ul>
+    </section>
+
+    <section id="checklist" class="card">
+      <div class="check-head"><h2>Checklist</h2><p id="checkCount" aria-live="polite">Đã xong 0/11</p></div>
+      <h3 class="grp">Trước khi Mở</h3>
+      <ul class="check">
+        <li><label><input type="checkbox"><span>Đã chốt phạm vi (Bước 0)</span></label></li>
+        <li><label><input type="checkbox"><span>Code mới (nếu có) đã lên production, sớm hơn giờ mở ít nhất 1 giờ</span></label></li>
+        <li><label><input type="checkbox"><span>Thiết lập: tên, đội, sĩ số, giờ mở và giờ đóng, chống trùng, ô nhập</span></label></li>
+        <li><label><input type="checkbox"><span>Nhận diện: giao diện, ngôn ngữ, logo, nút Huỷ, chữ</span></label></li>
+        <li><label><input type="checkbox"><span>Trang thông tin (nếu có) đã lưu và xem được</span></label></li>
+        <li><label><input type="checkbox"><span>Danh sách người và đội nạp không lỗi</span></label></li>
+        <li><label><input type="checkbox"><span>Chạy thử trên điện thoại, xong bấm Xóa dữ liệu</span></label></li>
+        <li><label><input type="checkbox"><span>Đã Mở, bấm thử đúng link sẽ gửi</span></label></li>
+      </ul>
+      <h3 class="grp">Sau sự kiện</h3>
+      <ul class="check">
+        <li><label><input type="checkbox"><span>Kết thúc, giờ đóng đã qua</span></label></li>
+        <li><label><input type="checkbox"><span>Xuất Excel</span></label></li>
+        <li><label><input type="checkbox"><span>Dọn file thật; (tuỳ chọn) xoá sự kiện</span></label></li>
+      </ul>
+      <button type="button" class="btn" id="checkReset">Bỏ chọn hết</button>
+    </section>
+
+    <section id="tai-lieu" class="card">
+      <h2>Tài liệu chi tiết</h2>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Tài liệu</th><th scope="col">Nội dung</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Tài liệu"><a href="../md/EVENT-PROFILE.md">EVENT-PROFILE.md</a></td><td data-label="Nội dung">Hồ sơ sự kiện, link <code>?e=</code>, thêm skin</td></tr>
+            <tr><td data-label="Tài liệu"><a href="../md/ADMIN.md">ADMIN.md</a></td><td data-label="Nội dung">Tính năng admin, file mẫu, thao tác từng người</td></tr>
+            <tr><td data-label="Tài liệu"><a href="../md/HOME-TEMPLATE.md">HOME-TEMPLATE.md</a></td><td data-label="Nội dung">Trang thông tin: cấu trúc, file Excel, script</td></tr>
+            <tr><td data-label="Tài liệu"><a href="../md/TESTING.md">TESTING.md</a></td><td data-label="Nội dung">Chạy test, thêm case</td></tr>
+            <tr><td data-label="Tài liệu"><a href="../md/DEPLOY.md">DEPLOY.md</a></td><td data-label="Nội dung">Deploy theo tag, rollback</td></tr>
+            <tr><td data-label="Tài liệu"><a href="../md/EXPORT.md">EXPORT.md</a></td><td data-label="Nội dung">Xuất danh sách đăng ký</td></tr>
+            <tr><td data-label="Tài liệu"><a href="USAGE-MONITORING.html">USAGE-MONITORING.html</a></td><td data-label="Nội dung">Thẻ Mức dùng Firestore</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="end">
+      <p>Bản Markdown cùng nội dung: <a href="../md/EVENT-PLAYBOOK.md">documentation/md/EVENT-PLAYBOOK.md</a>. Sửa nội dung thì sửa cả 2 file.</p>
+    </footer>
+  </main>
+</div>
+<p id="live" class="sr-only" aria-live="polite"></p>
+
+<script>
+(function () {
+  "use strict";
+  var live = document.getElementById("live");
+  function say(m) { if (!live) return; live.textContent = ""; setTimeout(function () { live.textContent = m; }, 40); }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { if (document.execCommand("copy")) resolve(); else reject(new Error("copy")); }
+      catch (e) { reject(e); }
+      finally { document.body.removeChild(ta); }
+    });
+  }
+  function flash(btn, ok) {
+    if (!btn.getAttribute("data-text")) btn.setAttribute("data-text", btn.textContent);
+    btn.textContent = ok ? "Đã chép" : "Không chép được";
+    btn.classList.toggle("is-done", ok);
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { btn.textContent = btn.getAttribute("data-text"); btn.classList.remove("is-done"); }, 1600);
+    say(ok ? "Đã chép vào clipboard" : "Không chép được, hãy bôi đen rồi chép tay");
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest ? e.target.closest("[data-copy]") : null;
+    if (!btn) return;
+    var code = btn.parentNode.querySelector("code");
+    if (!code) return;
+    // Dòng chú thích (# …) chỉ để đọc: bỏ khi chép để dán thẳng vào terminal
+    var text = code.textContent.split("\n").filter(function (l) { return !/^\s*#/.test(l); }).join("\n").trim();
+    copyText(text).then(function () { flash(btn, true); }, function () { flash(btn, false); });
+  });
+
+  // Mục lục: màn rộng luôn mở; màn hẹp thu gọn (bấm "Mục lục" để mở)
+  var toc = document.getElementById("tocDetails");
+  try {
+    var mq = window.matchMedia("(max-width: 1023.98px)");
+    var syncToc = function () { if (toc) toc.open = !mq.matches; };
+    syncToc();
+    if (mq.addEventListener) mq.addEventListener("change", syncToc);
+  } catch (err) { /* trình duyệt cũ: giữ mở */ }
+
+  // Checklist: đếm số mục đã tick; nút bỏ chọn hết
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("#checklist input[type=checkbox]"));
+  var count = document.getElementById("checkCount");
+  function sync() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    if (count) count.textContent = "Đã xong " + done + "/" + boxes.length;
+  }
+  boxes.forEach(function (b) { b.addEventListener("change", sync); });
+  var reset = document.getElementById("checkReset");
+  if (reset) reset.addEventListener("click", function () { boxes.forEach(function (b) { b.checked = false; }); sync(); say("Đã bỏ chọn hết"); });
+  sync();
+})();
+</script>
+</body>
+</html>
