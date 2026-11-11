@@ -318,7 +318,7 @@
       <ol class="steps">
         <li>Admin → <b>Sự kiện</b> → <span class="ui">Tạo sự kiện</span>, hoặc <span class="ui">Nhân bản</span> sự kiện gần giống nhất (chép cấu hình và hồ sơ; tuỳ chọn chép danh sách cho phép, trang thông tin; không chép đăng ký).</li>
         <li>Đặt <b>ID</b>: chữ thường, số, gạch ngang. ID nằm trong link riêng, đặt rồi đừng đổi.</li>
-        <li>Tab <b>Thiết lập</b>: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký điền. Nên đặt cả <b>giờ đóng</b> (lý do ở <a href="#buoc-8">Bước 8</a>).
+        <li>Tab <b>Thiết lập</b>: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký điền. Nên đặt cả <b>giờ đóng</b> để sự kiện tự đóng đúng giờ, kể cả khi quên bấm Kết thúc.
           <ul>
             <li>Mô tả hiển thị được HTML đơn giản (<code>&lt;b&gt;</code>, <code>&lt;ul&gt;&lt;li&gt;</code>).</li>
             <li>Mỗi đội: emoji (không trùng nhau), tên, màu, sĩ số riêng (trống = dùng sĩ số chung), giới tính nếu chia theo giới.</li>
@@ -461,7 +461,7 @@ npm run deploy:rules</code></pre><button type="button" class="copy" data-copy ar
       <div class="step-head"><span class="num" aria-hidden="true">6</span><h2 id="h-b6">Mở sự kiện, gửi link</h2><span class="who">Trang admin</span></div>
       <ol class="steps">
         <li><b>Sự kiện</b> → <span class="ui">Mở</span>. Trang admin tự kiểm trước: giờ đóng đã qua, danh sách cho phép trống, thiếu ô <code>name</code>, ô kiểm trùng không tồn tại, chưa có đội thì chưa cho mở.</li>
-        <li>Chỉ một sự kiện ở trạng thái Mở: Mở sự kiện mới là thay sự kiện cũ trên link gốc.</li>
+        <li>Chỉ một sự kiện ở trạng thái Mở: Mở sự kiện mới là thay sự kiện cũ trên link gốc. Việc này <b>không đóng</b> sự kiện cũ: nó vẫn nhận đăng ký qua link riêng tới giờ đóng, nên bấm Kết thúc sự kiện cũ trước khi Mở sự kiện mới.</li>
         <li>Gửi link gốc (theo sự kiện đang Mở) hoặc link riêng <code>?e=&lt;id&gt;</code> (luôn đúng sự kiện này). Trang thông tin: <code>&lt;trang sự kiện&gt;/home.html?e=&lt;id&gt;</code>.</li>
       </ol>
     </section>
@@ -479,16 +479,12 @@ npm run deploy:rules</code></pre><button type="button" class="copy" data-copy ar
     <section id="buoc-8" class="card" aria-labelledby="h-b8">
       <div class="step-head"><span class="num" aria-hidden="true">8</span><h2 id="h-b8">Kết thúc, dọn dẹp</h2><span class="who">Trang admin</span></div>
       <ol class="steps">
-        <li><b>Sự kiện</b> → <span class="ui">Kết thúc</span>: gỡ sự kiện khỏi link gốc.</li>
+        <li><b>Sự kiện</b> → <span class="ui">Kết thúc</span>: giờ đóng đặt về lúc bấm và sự kiện được gỡ khỏi link gốc. Mọi link, kể cả link riêng <code>?e=&lt;id&gt;</code> và trang đang mở sẵn, ngừng nhận đăng ký. Dữ liệu giữ nguyên. Muốn mở lại: sửa giờ đóng rồi bấm Mở.</li>
         <li>Xuất kết quả: <b>Đăng ký</b> → chọn sự kiện → <span class="ui">Xuất Excel</span> (hoặc script, <a href="../md/EXPORT.md">EXPORT.md</a>).</li>
         <li>File thật của người phụ trách: giữ ngoài git, xoá khi hết cần.</li>
         <li>Xoá hẳn sự kiện (tuỳ chọn): <span class="ui">Xóa dữ liệu</span> → <span class="ui">Xóa sự kiện</span> (xoá cả danh sách cho phép).</li>
         <li>Giữ skin, code mới để sự kiện sau chọn lại. Lỗi hay bài học mới: ghi vào tài liệu.</li>
       </ol>
-      <div class="note warn">
-        <svg aria-hidden="true"><use href="#i-warn"/></svg>
-        <div><p><b>Link riêng <code>?e=&lt;id&gt;</code> vẫn nhận đăng ký tới giờ đóng</b>, kể cả sau khi bấm Kết thúc. Chưa đặt giờ đóng thì sửa giờ đóng về hiện tại.</p></div>
-      </div>
     </section>
 
     <section id="loi-thuong-gap" class="card">
@@ -533,7 +529,7 @@ npm run deploy:rules</code></pre><button type="button" class="copy" data-copy ar
       </ul>
       <h3 class="grp">Sau sự kiện</h3>
       <ul class="check">
-        <li><label><input type="checkbox"><span>Kết thúc, giờ đóng đã qua</span></label></li>
+        <li><label><input type="checkbox"><span>Đã bấm Kết thúc</span></label></li>
         <li><label><input type="checkbox"><span>Xuất Excel</span></label></li>
         <li><label><input type="checkbox"><span>Dọn file thật; (tuỳ chọn) xoá sự kiện</span></label></li>
       </ul>

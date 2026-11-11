@@ -1409,22 +1409,43 @@
     }
   }
 
+  // Kết thúc = đóng đăng ký THẬT. Rules chỉ chặn join theo openAt/closeAt (không xem config/active); link riêng ?e=<id> và tab
+  // đã mở sẵn cũng không đọc lại config/active ⇒ chỉ gỡ config/active thì đăng ký vẫn lọt. Nên trong 1 transaction:
+  //   - closeAt = giờ MÁY CHỦ (serverTimestamp, khỏi lệch đồng hồ máy admin) khi chưa có hoặc còn ở tương lai; đã qua ⇒ giữ nguyên;
+  //   - openAt còn ở tương lai ⇒ bỏ (null): trang công khai xét "pre" trước "closed" (app.js) ⇒ không bỏ thì vẫn hiện đếm ngược;
+  //   - gỡ config/active CHỈ khi còn trỏ vào sự kiện này (admin khác vừa Mở sự kiện khác ⇒ không gỡ nhầm).
+  // Mở lại = sửa giờ đóng (openChecks chặn "giờ đóng đã qua", đưa tới form Sửa). Xong tải lại danh sách: editEvent đọc cachedEvents
+  // ⇒ còn cache cũ (chưa có closeAt) mà bấm Sửa → Lưu sẽ ghi đè mất giờ đóng vừa đặt.
   async function endEvent(eid, name) {
     const ok = await confirmModal({
       title: "Kết thúc sự kiện?",
-      message: `Đóng đăng ký cho "${name}". Trang công khai sẽ không nhận đăng ký nữa cho tới khi bạn mở một sự kiện khác. Dữ liệu đã đăng ký vẫn được giữ nguyên.`,
+      message: `Đóng đăng ký cho "${name}" ngay bây giờ: giờ đóng đặt về lúc này và sự kiện được gỡ khỏi link gốc. Mọi link, kể cả link riêng ?e=${eid}, ngừng nhận đăng ký. Dữ liệu đã đăng ký vẫn giữ nguyên. Muốn mở lại thì sửa giờ đóng rồi bấm Mở sự kiện.`,
       confirmText: "Kết thúc",
       danger: true,
     });
     if (!ok) return;
+    const cfgRef    = db.collection("events").doc(eid).collection("meta").doc("config");
+    const activeRef = db.collection("config").doc("active");
+    const ms = ts => (ts && typeof ts.toMillis === "function") ? ts.toMillis() : null;
     try {
-      await db.collection("config").doc("active").set({ eventId: "" });
-      activeEventId = "";
-      renderEvList(cachedEvents);
-      syncSigSelect(cachedEvents);
+      await db.runTransaction(async tx => {
+        const cfgSnap = await tx.get(cfgRef);
+        const actSnap = await tx.get(activeRef);
+        if (cfgSnap.exists) {
+          const c = cfgSnap.data() || {}, now = Date.now();
+          const closeMs = ms(c.closeAt), openMs = ms(c.openAt);
+          const patch = {};
+          if (closeMs == null || closeMs > now) patch.closeAt = FV.serverTimestamp();
+          if (openMs != null && openMs > now) patch.openAt = null;
+          if (Object.keys(patch).length) tx.update(cfgRef, Object.assign(patch, { updatedAt: FV.serverTimestamp() }));
+        }
+        if (actSnap.exists && actSnap.data().eventId === eid) tx.set(activeRef, { eventId: "" });
+      });
     } catch (err) {
       await confirmModal({ title: "Lỗi", message: err.message || String(err), confirmText: "Đóng", cancelText: "" });
+      return;
     }
+    await loadEventList();
   }
 
   // Nhân bản = form tạo mới điền sẵn cấu hình + hồ sơ của sự kiện gốc. Lưu xử lý như backend/scripts/clone-event.js

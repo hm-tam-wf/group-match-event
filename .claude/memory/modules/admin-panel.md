@@ -81,6 +81,11 @@ danger đặc `#D92D50`, `--mut #9BA3C7`). JS inline vẫn gán `var(--ok/--err/
 - **Form sự kiện = drawer** `#createCard` (`openDrawer/closeDrawer`, `flashForm()` giờ = mở drawer; Esc/nền/✕ = huỷ).
   Lưu thành công ⇒ đóng drawer + `toast()` (trước đây formOk bị resetForm xoá ngay nên không hiện).
 - Nút action (Mở/Kết thúc/Sửa/…) gắn qua `bindEvActions(root)` dùng chung cho lưới + dashboard.
+- **Kết thúc = đóng thật** (2026-11-11, `endEvent`): rules chặn join chỉ theo `openAt/closeAt`, còn `?e=<id>` và tab mở sẵn không
+  đọc `config/active` ⇒ trước đây chỉ gỡ `config/active` thì đăng ký vẫn lọt. Giờ 1 transaction: `closeAt` = serverTimestamp (chưa có /
+  còn tương lai; đã qua giữ nguyên), `openAt` tương lai ⇒ null (app.js xét "pre" trước "closed"), gỡ `config/active` chỉ khi còn trỏ
+  sự kiện này; rồi `loadEventList()` (editEvent đọc `cachedEvents` — cache cũ + Lưu sẽ ghi đè mất giờ đóng). Test: admin-e2e 55-end-event.
+  Còn hở: Mở sự kiện khác KHÔNG đóng sự kiện cũ (vẫn nhận qua `?e=` tới giờ đóng) — nút Kết thúc chỉ hiện ở sự kiện đang mở.
 - **Motion/loading** (token `--ease-*`/`--d-*` cuối admin.css; tắt hết khi `prefers-reduced-motion`):
   skeleton `skelDash/skelEvCards/skelRows` + `aria-busy` lúc tải · `stagger(root)` gán `--i` → card/hàng hiện so le ·
   `countUp(root)` cho `[data-count]` (chữ ban đầu = giá trị cuối) · donut/cột/thanh mọc bằng transform · drawer/modal/toast

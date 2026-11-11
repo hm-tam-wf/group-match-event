@@ -74,7 +74,7 @@ Bước 1, 3, 4 làm song song với Bước 2 được. Riêng việc chọn sk
    chép danh sách cho phép, trang thông tin; không chép đăng ký).
 2. Đặt **ID**: chữ thường, số, gạch ngang. ID nằm trong link riêng, đặt rồi đừng đổi.
 3. Tab **Thiết lập**: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký
-   điền. Nên đặt cả **giờ đóng** (lý do ở Bước 8).
+   điền. Nên đặt cả **giờ đóng** để sự kiện tự đóng đúng giờ, kể cả khi quên bấm Kết thúc.
    - Mô tả hiển thị được HTML đơn giản (`<b>`, `<ul><li>`).
    - Mỗi đội: emoji (không trùng nhau), tên, màu, sĩ số riêng (trống = dùng sĩ số chung), giới tính nếu chia theo giới.
    - Giờ mở trống = mở ngay; giờ đóng trống = không tự đóng.
@@ -211,7 +211,8 @@ Chỉ khi bật danh sách cho phép ở Bước 1.
 
 1. **Sự kiện** → **Mở**. Trang admin tự kiểm trước: giờ đóng đã qua, danh sách cho phép trống, thiếu ô `name`, ô kiểm
    trùng không tồn tại, chưa có đội thì chưa cho mở.
-2. Chỉ một sự kiện ở trạng thái Mở: Mở sự kiện mới là thay sự kiện cũ trên link gốc.
+2. Chỉ một sự kiện ở trạng thái Mở: Mở sự kiện mới là thay sự kiện cũ trên link gốc. Việc này **không đóng** sự kiện cũ:
+   nó vẫn nhận đăng ký qua link riêng tới giờ đóng, nên bấm Kết thúc sự kiện cũ trước khi Mở sự kiện mới.
 3. Gửi link gốc (theo sự kiện đang Mở) hoặc link riêng `?e=<id>` (luôn đúng sự kiện này). Trang thông tin:
    `<trang sự kiện>/home.html?e=<id>`.
 
@@ -225,8 +226,8 @@ Chỉ khi bật danh sách cho phép ở Bước 1.
 
 ## Bước 8: Kết thúc, dọn dẹp
 
-1. **Sự kiện** → **Kết thúc**: gỡ sự kiện khỏi link gốc. **Link riêng `?e=<id>` vẫn nhận đăng ký tới giờ đóng**: chưa
-   đặt giờ đóng thì sửa giờ đóng về hiện tại.
+1. **Sự kiện** → **Kết thúc**: giờ đóng đặt về lúc bấm và sự kiện được gỡ khỏi link gốc. Mọi link, kể cả link riêng
+   `?e=<id>` và trang đang mở sẵn, ngừng nhận đăng ký. Dữ liệu giữ nguyên. Muốn mở lại: sửa giờ đóng rồi bấm Mở.
 2. Xuất kết quả: **Đăng ký** → chọn sự kiện → **Xuất Excel** (hoặc script, [EXPORT.md](EXPORT.md)).
 3. File thật của người phụ trách: giữ ngoài git, xoá khi hết cần.
 4. Xoá hẳn sự kiện (tuỳ chọn): **Xóa dữ liệu** → **Xóa sự kiện** (xoá cả danh sách cho phép).
@@ -266,7 +267,7 @@ Trước khi Mở:
 
 Sau sự kiện:
 
-- [ ] Kết thúc, giờ đóng đã qua
+- [ ] Đã bấm Kết thúc
 - [ ] Xuất Excel
 - [ ] Dọn file thật; (tuỳ chọn) xoá sự kiện
 
