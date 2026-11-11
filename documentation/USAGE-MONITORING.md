@@ -1,6 +1,6 @@
 # Thẻ "Mức dùng Firestore" trong admin: bật từng bước
 
-> Bản HTML dễ xem hơn (có nút chép, mục lục): [USAGE-MONITORING.html](USAGE-MONITORING.html), mở bằng trình duyệt.
+> Bản HTML dễ xem hơn (có nút chép, mục lục): [html/USAGE-MONITORING.html](html/USAGE-MONITORING.html), mở bằng trình duyệt.
 > Sửa nội dung thì sửa cả 2 file.
 
 Thẻ nằm cuối trang **Tổng quan** của admin (https://pickyourgroup-admin.web.app), hiện số **thật** của cả project `icon-picker`
