@@ -221,6 +221,7 @@
         <li><a href="#buoc-6">Bước 6: Mở, gửi link</a></li>
         <li><a href="#buoc-7">Bước 7: Theo dõi</a></li>
         <li><a href="#buoc-8">Bước 8: Kết thúc</a></li>
+        <li><a href="#loi-thuong-gap">Lỗi thường gặp</a></li>
         <li><a href="#khi-loi">Khi bản mới bị lỗi</a></li>
         <li><a href="#checklist">Checklist</a></li>
         <li><a href="#tai-lieu">Tài liệu chi tiết</a></li>
@@ -282,6 +283,7 @@
       </div>
       <ul>
         <li><b>Link riêng</b> <code>&lt;trang sự kiện&gt;/?e=&lt;id&gt;</code> luôn mở đúng sự kiện đó, kể cả khi chưa Mở. <b>Link gốc</b> (không có <code>?e=</code>) mở sự kiện đang được Mở.</li>
+        <li>Link cũ <code>&lt;trang sự kiện&gt;/admin</code> và <code>admin.html</code> trên staging tự chuyển sang trang admin.</li>
       </ul>
       <div class="note warn">
         <svg aria-hidden="true"><use href="#i-warn"/></svg>
@@ -316,7 +318,15 @@
       <ol class="steps">
         <li>Admin → <b>Sự kiện</b> → <span class="ui">Tạo sự kiện</span>, hoặc <span class="ui">Nhân bản</span> sự kiện gần giống nhất (chép cấu hình và hồ sơ; tuỳ chọn chép danh sách cho phép, trang thông tin; không chép đăng ký).</li>
         <li>Đặt <b>ID</b>: chữ thường, số, gạch ngang. ID nằm trong link riêng, đặt rồi đừng đổi.</li>
-        <li>Tab <b>Thiết lập</b>: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký điền. Nên đặt cả <b>giờ đóng</b> (lý do ở <a href="#buoc-8">Bước 8</a>).</li>
+        <li>Tab <b>Thiết lập</b>: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký điền. Nên đặt cả <b>giờ đóng</b> (lý do ở <a href="#buoc-8">Bước 8</a>).
+          <ul>
+            <li>Mô tả hiển thị được HTML đơn giản (<code>&lt;b&gt;</code>, <code>&lt;ul&gt;&lt;li&gt;</code>).</li>
+            <li>Mỗi đội: emoji (không trùng nhau), tên, màu, sĩ số riêng (trống = dùng sĩ số chung), giới tính nếu chia theo giới.</li>
+            <li>Giờ mở trống = mở ngay; giờ đóng trống = không tự đóng.</li>
+            <li>Ô người đăng ký điền phải có ô key <code>name</code>; ô dùng để chống trùng phải nằm trong các ô này.</li>
+            <li><b>Danh sách cho phép</b>: chỉ người có tên trong danh sách mới tham gia được. <b>Chia theo giới tính</b>: người tham gia chỉ nhập tên, hệ thống tra giới tính trong danh sách và khoá đội khác giới.</li>
+          </ul>
+        </li>
         <li>Lưu. <b>Chưa bấm Mở.</b></li>
       </ol>
       <div class="note">
@@ -415,9 +425,24 @@ npm run deploy:rules</code></pre><button type="button" class="copy" data-copy ar
       <div class="step-head"><span class="num" aria-hidden="true">4</span><h2 id="h-b4">Nạp người tham gia, đội</h2><span class="who">Trang admin</span></div>
       <p>Chỉ khi bật danh sách cho phép ở Bước 1.</p>
       <ol class="steps">
-        <li><b>Danh sách cho phép</b> → chọn sự kiện → <span class="ui">Tải file mẫu</span> (sinh theo sự kiện, có sheet Hướng dẫn).</li>
-        <li>Điền sheet <b>Nhân sự</b> (người) và sheet <b>Phòng</b> (đội). Có sheet Phòng thì thay toàn bộ danh sách đội; không muốn đổi đội thì xoá sheet đó.</li>
-        <li>Chọn file → xem trước, sửa hết lỗi từng dòng → <span class="ui">Xoá cũ &amp; nạp mới</span> (lần đầu) hoặc <span class="ui">Nạp thêm</span> (bổ sung). Muốn xếp đội sẵn: điền cột Phòng và tích <span class="ui">Xếp sẵn</span>.</li>
+        <li><b>Danh sách cho phép</b> → chọn sự kiện → <span class="ui">Tải file mẫu</span> (sinh theo sự kiện: sheet Phòng điền sẵn các đội đang có, kèm sheet Hướng dẫn).</li>
+        <li>Sheet <b>Nhân sự</b>, mỗi dòng một người:
+          <ul>
+            <li>Cột đối chiếu (theo ô chống trùng; chống trùng theo tên thì là <code>NAME</code>): họ tên <b>có dấu đầy đủ</b>, đúng như người tham gia sẽ gõ (hoa thường, khoảng trắng không quan trọng).</li>
+            <li><code>Gender</code>: <code>Nam</code> hoặc <code>Nữ</code>; trống = vào được mọi đội.</li>
+            <li><code>Phòng</code>: trống = người đó tự chọn trên web; ghi số thứ tự đội = xếp sẵn (người được xếp sẵn không cần vào web).</li>
+          </ul>
+        </li>
+        <li>Sheet <b>Phòng</b> (đội, tuỳ chọn): <code>STT</code>, <code>Tên phòng</code>, <code>Số giường</code>, <code>Giới tính</code> (Nam, Nữ, trống = chung), <code>Team</code> (tuỳ chọn, hiện kèm tên đội), <code>Emoji</code> (tuỳ chọn). Có sheet này thì <b>thay toàn bộ</b> danh sách đội; không muốn đổi đội thì xoá sheet. Đội đang có người phải giữ đúng emoji (file mẫu đã điền sẵn), sai thì admin chặn nạp.</li>
+        <li>Chọn file → xem trước (số người theo giới, bảng đội, lỗi từng dòng như trùng tên, sai giới, quá sĩ số) → hết lỗi mới nạp:
+          <ul>
+            <li><span class="ui">Xoá cũ &amp; nạp mới</span>: lần đầu; ghi xong danh sách mới rồi mới xoá tên cũ không còn trong file.</li>
+            <li><span class="ui">Nạp thêm</span>: bổ sung, giữ người cũ.</li>
+            <li>Tích <span class="ui">Xếp sẵn</span> khi dùng cột Phòng: xoá toàn bộ đăng ký hiện có rồi xếp lại, phải gõ lại ID.</li>
+          </ul>
+        </li>
+        <li>Chỉ có danh sách người, không đổi đội: dùng khung <b>Nhập từ Excel</b> cùng trang.</li>
+        <li>Lưu file dạng <code>.xlsx</code>; dùng CSV thì chọn "CSV UTF-8", nếu không tiếng Việt bị lỗi.</li>
         <li>File thật để ngoài git (<code>btc-data/</code> đã được ignore); repo chỉ giữ file mẫu tên giả.</li>
       </ol>
     </section>
@@ -426,7 +451,7 @@ npm run deploy:rules</code></pre><button type="button" class="copy" data-copy ar
       <div class="step-head"><span class="num" aria-hidden="true">5</span><h2 id="h-b5">Chạy thử</h2><span class="who">Điện thoại + admin</span></div>
       <ol class="steps">
         <li>Mở link riêng <code>&lt;trang sự kiện&gt;/?e=&lt;id&gt;</code> trên điện thoại.</li>
-        <li>Đăng ký thử vài trường hợp: người hợp lệ, người không có trong danh sách, đội đầy, đội bị khoá theo luật của sự kiện.</li>
+        <li>Đăng ký thử vài trường hợp: người hợp lệ, người không có trong danh sách, đội đầy, đội bị khoá theo luật của sự kiện. Có chia theo giới tính: thử một người Nam và một người Nữ, chỉ đội cùng giới bấm được.</li>
         <li>Giờ mở ở tương lai thì trang chỉ hiện đếm ngược: tạm để trống giờ mở, thử xong đặt lại.</li>
         <li>Thử xong: <b>Sự kiện</b> → <span class="ui">Xóa dữ liệu</span> (gõ lại ID). Danh sách cho phép được giữ.</li>
       </ol>
@@ -463,6 +488,24 @@ npm run deploy:rules</code></pre><button type="button" class="copy" data-copy ar
       <div class="note warn">
         <svg aria-hidden="true"><use href="#i-warn"/></svg>
         <div><p><b>Link riêng <code>?e=&lt;id&gt;</code> vẫn nhận đăng ký tới giờ đóng</b>, kể cả sau khi bấm Kết thúc. Chưa đặt giờ đóng thì sửa giờ đóng về hiện tại.</p></div>
+      </div>
+    </section>
+
+    <section id="loi-thuong-gap" class="card">
+      <h2>Lỗi thường gặp</h2>
+      <div class="tbl-wrap stack">
+        <table>
+          <thead><tr><th scope="col">Hiện tượng</th><th scope="col">Nguyên nhân, cách xử lý</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Hiện tượng">Báo "không có trong danh sách" dù có tên</td><td data-label="Nguyên nhân, cách xử lý">Gõ thiếu dấu hoặc sai chính tả. Phải gõ đúng như trong danh sách (hoa thường, khoảng trắng không quan trọng).</td></tr>
+            <tr><td data-label="Hiện tượng">Hai người trùng họ tên</td><td data-label="Nguyên nhân, cách xử lý">Người thứ hai bị chặn. Sửa tên trong danh sách cho khác nhau (vd thêm phòng ban) và báo người đó gõ đúng như vậy.</td></tr>
+            <tr><td data-label="Hiện tượng">Sửa danh sách, đội, sĩ số giữa chừng mà người tham gia không thấy</td><td data-label="Nguyên nhân, cách xử lý">Người tham gia phải tải lại trang. Không đổi hay xoá đội đã có người.</td></tr>
+            <tr><td data-label="Hiện tượng">Bấm Lưu trên admin báo "Missing or insufficient permissions"</td><td data-label="Nguyên nhân, cách xử lý">Tài khoản đang đăng nhập không phải quản trị viên. Đăng nhập đúng tài khoản, hoặc nhờ người có quyền thêm ở trang Quản trị viên.</td></tr>
+            <tr><td data-label="Hiện tượng">Admin không cho Mở sự kiện</td><td data-label="Nguyên nhân, cách xử lý">Đọc danh sách lỗi admin hiện (giờ đóng đã qua, danh sách trống, thiếu ô <code>name</code>…), bấm Sửa sự kiện.</td></tr>
+            <tr><td data-label="Hiện tượng">Vẫn thấy giao diện cũ sau khi deploy</td><td data-label="Nguyên nhân, cách xử lý">Trình duyệt còn giữ bản cũ: tải lại trang (Ctrl+F5), hoặc đợi tối đa 1 giờ (staging: 10 phút).</td></tr>
+            <tr><td data-label="Hiện tượng">Trang admin không mang giao diện của sự kiện</td><td data-label="Nguyên nhân, cách xử lý">Bình thường: trang admin có giao diện riêng.</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 

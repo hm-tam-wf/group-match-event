@@ -50,6 +50,7 @@ Bước 1, 3, 4 làm song song với Bước 2 được. Riêng việc chọn sk
 
 - **Link riêng** `<trang sự kiện>/?e=<id>` luôn mở đúng sự kiện đó, kể cả khi chưa Mở. **Link gốc** (không có `?e=`)
   mở sự kiện đang được Mở.
+- Link cũ `<trang sự kiện>/admin` và `admin.html` trên staging tự chuyển sang trang admin.
 - Máy local, staging và production đọc ghi **cùng một dữ liệu thật**. Đăng ký thử ở đâu cũng là ghi thật vào sự kiện đó.
 
 ## Bước 0: Xác định phạm vi
@@ -74,6 +75,12 @@ Bước 1, 3, 4 làm song song với Bước 2 được. Riêng việc chọn sk
 2. Đặt **ID**: chữ thường, số, gạch ngang. ID nằm trong link riêng, đặt rồi đừng đổi.
 3. Tab **Thiết lập**: thông tin chung, đội, thời gian (giờ Việt Nam), chống trùng và danh sách cho phép, ô người đăng ký
    điền. Nên đặt cả **giờ đóng** (lý do ở Bước 8).
+   - Mô tả hiển thị được HTML đơn giản (`<b>`, `<ul><li>`).
+   - Mỗi đội: emoji (không trùng nhau), tên, màu, sĩ số riêng (trống = dùng sĩ số chung), giới tính nếu chia theo giới.
+   - Giờ mở trống = mở ngay; giờ đóng trống = không tự đóng.
+   - Ô người đăng ký điền phải có ô key `name`; ô dùng để chống trùng phải nằm trong các ô này.
+   - **Danh sách cho phép**: chỉ người có tên trong danh sách mới tham gia được. **Chia theo giới tính**: người tham gia
+     chỉ nhập tên, hệ thống tra giới tính trong danh sách và khoá đội khác giới.
 4. Lưu. **Chưa bấm Mở.**
 
 Nhân bản chép cả giờ mở và đóng của sự kiện cũ: nhớ sửa lại phần Thời gian.
@@ -174,17 +181,29 @@ npm run deploy:rules
 
 Chỉ khi bật danh sách cho phép ở Bước 1.
 
-1. **Danh sách cho phép** → chọn sự kiện → **Tải file mẫu** (sinh theo sự kiện, có sheet Hướng dẫn).
-2. Điền sheet **Nhân sự** (người) và sheet **Phòng** (đội). Có sheet Phòng thì thay toàn bộ danh sách đội; không muốn
-   đổi đội thì xoá sheet đó.
-3. Chọn file → xem trước, sửa hết lỗi từng dòng → **Xoá cũ & nạp mới** (lần đầu) hoặc **Nạp thêm** (bổ sung). Muốn xếp
-   đội sẵn: điền cột Phòng và tích **Xếp sẵn**.
-4. File thật để ngoài git (`btc-data/` đã được ignore); repo chỉ giữ file mẫu tên giả.
+1. **Danh sách cho phép** → chọn sự kiện → **Tải file mẫu** (sinh theo sự kiện: sheet Phòng điền sẵn các đội đang có,
+   kèm sheet Hướng dẫn).
+2. Sheet **Nhân sự**, mỗi dòng một người:
+   - Cột đối chiếu (theo ô chống trùng; chống trùng theo tên thì là `NAME`): họ tên **có dấu đầy đủ**, đúng như người
+     tham gia sẽ gõ (hoa thường, khoảng trắng không quan trọng).
+   - `Gender`: `Nam` hoặc `Nữ`; trống = vào được mọi đội.
+   - `Phòng`: trống = người đó tự chọn trên web; ghi số thứ tự đội = xếp sẵn (người được xếp sẵn không cần vào web).
+3. Sheet **Phòng** (đội, tuỳ chọn): `STT`, `Tên phòng`, `Số giường`, `Giới tính` (Nam, Nữ, trống = chung), `Team`
+   (tuỳ chọn, hiện kèm tên đội), `Emoji` (tuỳ chọn). Có sheet này thì **thay toàn bộ** danh sách đội; không muốn đổi đội
+   thì xoá sheet. Đội đang có người phải giữ đúng emoji (file mẫu đã điền sẵn), sai thì admin chặn nạp.
+4. Chọn file → xem trước (số người theo giới, bảng đội, lỗi từng dòng như trùng tên, sai giới, quá sĩ số) → hết lỗi mới nạp:
+   - **Xoá cũ & nạp mới**: lần đầu; ghi xong danh sách mới rồi mới xoá tên cũ không còn trong file.
+   - **Nạp thêm**: bổ sung, giữ người cũ.
+   - Tích **Xếp sẵn** khi dùng cột Phòng: xoá toàn bộ đăng ký hiện có rồi xếp lại, phải gõ lại ID.
+5. Chỉ có danh sách người, không đổi đội: dùng khung **Nhập từ Excel** cùng trang.
+6. Lưu file dạng `.xlsx`; dùng CSV thì chọn "CSV UTF-8", nếu không tiếng Việt bị lỗi.
+7. File thật để ngoài git (`btc-data/` đã được ignore); repo chỉ giữ file mẫu tên giả.
 
 ## Bước 5: Chạy thử
 
 1. Mở link riêng `<trang sự kiện>/?e=<id>` trên điện thoại.
 2. Đăng ký thử vài trường hợp: người hợp lệ, người không có trong danh sách, đội đầy, đội bị khoá theo luật của sự kiện.
+   Có chia theo giới tính: thử một người Nam và một người Nữ, chỉ đội cùng giới bấm được.
 3. Giờ mở ở tương lai thì trang chỉ hiện đếm ngược: tạm để trống giờ mở, thử xong đặt lại.
 4. Thử xong: **Sự kiện** → **Xóa dữ liệu** (gõ lại ID). Danh sách cho phép được giữ.
 
@@ -212,6 +231,18 @@ Chỉ khi bật danh sách cho phép ở Bước 1.
 3. File thật của người phụ trách: giữ ngoài git, xoá khi hết cần.
 4. Xoá hẳn sự kiện (tuỳ chọn): **Xóa dữ liệu** → **Xóa sự kiện** (xoá cả danh sách cho phép).
 5. Giữ skin, code mới để sự kiện sau chọn lại. Lỗi hay bài học mới: ghi vào tài liệu.
+
+## Lỗi thường gặp
+
+| Hiện tượng | Nguyên nhân, cách xử lý |
+|---|---|
+| Báo "không có trong danh sách" dù có tên | Gõ thiếu dấu hoặc sai chính tả. Phải gõ đúng như trong danh sách (hoa thường, khoảng trắng không quan trọng). |
+| Hai người trùng họ tên | Người thứ hai bị chặn. Sửa tên trong danh sách cho khác nhau (vd thêm phòng ban) và báo người đó gõ đúng như vậy. |
+| Sửa danh sách, đội, sĩ số giữa chừng mà người tham gia không thấy | Người tham gia phải tải lại trang. Không đổi hay xoá đội đã có người. |
+| Bấm Lưu trên admin báo "Missing or insufficient permissions" | Tài khoản đang đăng nhập không phải quản trị viên. Đăng nhập đúng tài khoản, hoặc nhờ người có quyền thêm ở trang Quản trị viên. |
+| Admin không cho Mở sự kiện | Đọc danh sách lỗi admin hiện (giờ đóng đã qua, danh sách trống, thiếu ô `name`…), bấm Sửa sự kiện. |
+| Vẫn thấy giao diện cũ sau khi deploy | Trình duyệt còn giữ bản cũ: tải lại trang (Ctrl+F5), hoặc đợi tối đa 1 giờ (staging: 10 phút). |
+| Trang admin không mang giao diện của sự kiện | Bình thường: trang admin có giao diện riêng. |
 
 ## Khi bản mới bị lỗi
 
