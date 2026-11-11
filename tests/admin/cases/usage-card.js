@@ -66,6 +66,13 @@ module.exports = {
     };
     const card = expr => ev(`(() => { const c = document.querySelector('#usageMount'); return ${expr}; })()`);
     const click = sel => ev(`(() => { const b = document.querySelector('#usageMount ${sel}'); if (!b) return 'missing'; b.click(); return 1; })()`);
+    // Chữ hiển thị trên thẻ không dùng dấu "·" (user yêu cầu 2026-11-11): gom mọi trạng thái đi qua, kiểm 1 lần ở U14
+    const dotHits = [];
+    const noDot = async label => {
+      const s = await card(`c.innerText + ' ' + ((c.querySelector('.us-tip:not([hidden])') || {}).textContent || '')`);
+      const m = /.{0,30}·.{0,30}/.exec(s);
+      if (m) dotHits.push(label + ': ' + m[0]);
+    };
 
     await t.navigate(t.url());
     await waitFor(`!!document.querySelector('#usageMount .us-card') && !!document.querySelector('#dashGrid .card')`, 10000);
@@ -84,11 +91,13 @@ module.exports = {
     ok('U1 chưa có Client ID ⇒ "Chưa bật", link hướng dẫn + Usage and billing (tab mới), không có nút Kết nối',
       /Chưa bật/.test(u1.txt) && /usage-config\.js/.test(u1.txt) && u1.doc && u1.usage && !u1.connect, u1);
     await shot('1-chua-bat');
+    await noDot('U1 chưa bật');
 
     // U2 — có Client ID, chưa có Google: rê chuột vào nút ⇒ tải script (src từ cấu hình); script không có GIS ⇒ báo lỗi + Thử lại
     await ev(`delete window.google; window.__gisLoaded = 0; 1`);
     await ev(MOUNT({ oauthClientId: CLIENT, gisSrc: 'data:text/javascript,window.__gisLoaded%3D1' }));
     const u2a = await card(`({ btn: (c.querySelector('[data-us="connect"]') || {}).textContent, txt: c.textContent, gis: !!document.querySelector('script[data-us-gis]') })`);
+    await noDot('U2 nút Kết nối');
     await ev(`document.querySelector('#usageMount [data-us="connect"]').dispatchEvent(new PointerEvent('pointerover', { bubbles: true })), 1`);
     const loaded = await waitFor(`window.__gisLoaded === 1`, 3000);
     ok('U2 có Client ID ⇒ nút "Kết nối Google", nêu chỉ xin quyền đọc; script Google chỉ tải khi rê chuột vào nút',
@@ -98,6 +107,7 @@ module.exports = {
     const u2b = await card(`({ txt: c.textContent, retry: !!c.querySelector('[data-us="retry"]'), role: c.querySelector('.us-empty.is-err').getAttribute('role') })`);
     ok('U2 tải script nhưng không có Google Identity Services ⇒ báo lỗi (role=alert) + nút Thử lại',
       /Không tải được Google Identity Services/.test(u2b.txt) && u2b.retry && u2b.role === 'alert', u2b);
+    await noDot('U2 lỗi tải Google');
 
     // U3 — Google + Cloud Monitoring giả ⇒ Thử lại: 1 lần xin token (2 quyền ĐỌC), 7 request kèm Bearer, số liệu gói Spark
     await ev(STUBS);
@@ -121,7 +131,7 @@ module.exports = {
       u3.n === 7 && u3.mon === 6 && u3.hist === 3 && u3.bill === 1 && u3.bearer, { n: u3.n, mon: u3.mon, hist: u3.hist, bill: u3.bill });
     ok('U3 3 thanh quota hôm nay: đọc 1.234/50.000, ghi 56/20.000, xoá 0/20.000 (mức bình thường)',
       JSON.stringify(u3.meters) === JSON.stringify(['reads:ok:1.234 / 50.000', 'writes:ok:56 / 20.000', 'deletes:ok:0 / 20.000']), u3.meters);
-    ok('U3 gói Spark ⇒ "Chi phí: 0 ₫" (vượt quota bị chặn, không tính tiền)', u3.plan === 'Spark · miễn phí' && /Chi phí: 0 ₫/.test(u3.cost), { plan: u3.plan, cost: u3.cost });
+    ok('U3 gói Spark ⇒ "Chi phí: 0 ₫" (vượt quota bị chặn, không tính tiền)', u3.plan === 'Gói Spark (miễn phí)' && /Chi phí: 0 ₫/.test(u3.cost), { plan: u3.plan, cost: u3.cost });
     ok('U3 biểu đồ 8 cột: 7 ngày quota (100 đọc × số giờ của ngày) + Hôm nay 1.234',
       u3.cols.length === 8 && /^Hôm nay \(đến giờ\): 1\.234 lượt đọc, 56 ghi, 0 xoá$/.test(u3.cols[7]) && u3.xlast === 'Hôm nay'
       && u3.cols.slice(0, 7).every(a => /^(CN|T[2-7]) \d\d\/\d\d: 2\.[345]00 lượt đọc, 2[345]0 ghi, 2[345] xoá$/.test(a)), u3.cols);
@@ -131,20 +141,22 @@ module.exports = {
     ok('U3 có đếm ngược tới giờ reset quota', /^(\d+ giờ( \d+ phút)?|\d+ phút|dưới 1 phút)$/.test(u3.reset), u3.reset);
     ok('U3 token chỉ ở bộ nhớ (không localStorage / sessionStorage)', !u3.store.includes('tok-123'));
     await shot('2-spark');
+    await noDot('U3 Spark');
 
     // U4 — tooltip + bàn phím: focus cột hôm nay ⇒ tooltip; ← sang cột trước (roving tabindex, 1 điểm dừng Tab)
     await ev(`document.querySelector('#usageMount .us-col.is-today').focus(), 1`);
     const tip1 = await card(`({ shown: !c.querySelector('.us-tip').hidden, txt: c.querySelector('.us-tip').textContent, tab: [...c.querySelectorAll('.us-col')].map(x => x.tabIndex).join('') })`);
     await ev(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })), 1`);
     const tip2 = await card(`({ i: document.activeElement.dataset.i, tab: [...c.querySelectorAll('.us-col')].map(x => x.tabIndex).join(''), txt: c.querySelector('.us-tip').textContent })`);
+    await noDot('U4 tooltip');
     ok('U4 focus cột hôm nay ⇒ tooltip (đọc + ghi/xoá); 1 điểm dừng Tab; ← sang cột trước',
-      tip1.shown && tip1.txt === 'Hôm nay (đến giờ)1.234 lượt đọc56 ghi · 0 xoá' && tip1.tab === '-1-1-1-1-1-1-10'
+      tip1.shown && tip1.txt === 'Hôm nay (đến giờ)1.234 lượt đọc56 ghi, 0 xoá' && tip1.tab === '-1-1-1-1-1-1-10'
       && tip2.i === '6' && tip2.tab === '-1-1-1-1-1-10-1' && /2\.[345]00 lượt đọc/.test(tip2.txt), { tip1, tip2 });
 
     // U5 — Blaze + vượt quota ⇒ "Vượt quota" (đỏ + chữ), vạch quota, chi phí ước tính chỉ phần vượt; làm mới không xin token lại
     await ev(`window.__mon = { mode: 'blaze', reads: 150000, writes: 30000, deletes: 0 }; 1`);
     await click('[data-us="refresh"]');
-    await waitFor(`(document.querySelector('#usageMount .us-plan') || {}).textContent === 'Blaze · trả theo dùng' && !document.querySelector('#usageMount [aria-busy]')`, 5000);
+    await waitFor(`(document.querySelector('#usageMount .us-plan') || {}).textContent === 'Gói Blaze (trả theo mức dùng)' && !document.querySelector('#usageMount [aria-busy]')`, 5000);
     const u5 = await card(`({ meters: [...c.querySelectorAll('.us-m')].map(m => m.dataset.level + ':' + m.querySelector('.us-m-foot').textContent),
       cost: c.querySelector('.us-cost').textContent, ql: !!c.querySelector('.us-ql'), calls: window.__gis.calls.length, n: window.__fetchLog.length,
       w: parseFloat(c.querySelector('.us-m[data-kind="reads"] .us-m-bar > span').style.width) })`);
@@ -152,8 +164,9 @@ module.exports = {
       /^over:300% quota ngày.*Vượt quota 100\.000$/.test(u5.meters[0]) && /^over:150% quota ngày.*Vượt quota 10\.000$/.test(u5.meters[1])
       && /^ok:/.test(u5.meters[2]) && u5.w === 100, u5.meters);
     ok('U5 Blaze: ước tính hôm nay ≈ $0.08 (chỉ phần vượt), vạch quota hiện, làm mới không xin token lại',
-      /hôm nay ≈ \$0\.08 · 8 ngày ≈ \$0\.08/.test(u5.cost) && u5.ql && u5.calls === 1 && u5.n === 14, u5);
+      /hôm nay ≈ \$0\.08, cả 8 ngày ≈ \$0\.08/.test(u5.cost) && u5.ql && u5.calls === 1 && u5.n === 14, u5);
     await shot('3-blaze-vuot');
+    await noDot('U5 Blaze');
 
     // U6 — lỗi khi đã có số cũ (API chưa bật) ⇒ dải cảnh báo role=alert + link bật API (chỉ console Google), vẫn giữ số cũ
     await ev(`window.__mon.fail = { code: 403, error: { code: 403, status: 'PERMISSION_DENIED', message: 'Cloud Monitoring API has not been used in project 1 before or it is disabled.',
@@ -167,6 +180,7 @@ module.exports = {
       /Cloud Monitoring API chưa bật cho project/.test(u6.txt) && /Bật Cloud Monitoring API/.test(u6.txt)
       && u6.href.startsWith('https://console.developers.google.com/apis/api/monitoring.googleapis.com/') && u6.meters === 3 && u6.role === 'alert', u6);
     await shot('4-loi-api');
+    await noDot('U6 cảnh báo giữ số cũ');
 
     // U7 — thiếu quyền IAM, chưa có số ⇒ thông báo + gợi ý vai trò + link IAM đúng project + Thử lại
     await ev(`window.__mon.fail = { code: 403, error: { code: 403, status: 'PERMISSION_DENIED', message: 'Permission monitoring.timeSeries.list denied (or the resource may not exist).' } }; 1`);
@@ -176,6 +190,7 @@ module.exports = {
     const u7 = await card(`({ txt: c.textContent, iam: !!c.querySelector('a[href="https://console.cloud.google.com/iam-admin/iam?project=icon-picker"]'), retry: !!c.querySelector('[data-us="retry"]') })`);
     ok('U7 thiếu quyền ⇒ "không có quyền đọc số liệu", gợi ý Monitoring Viewer + link IAM của project, nút Thử lại',
       /không có quyền đọc số liệu/.test(u7.txt) && /Monitoring Viewer/.test(u7.txt) && u7.iam && u7.retry, u7);
+    await noDot('U7 thiếu quyền');
 
     // U8 — đóng popup Google ⇒ về nút Kết nối dùng lại được + ghi chú (không kẹt "Đang chờ Google…")
     await ev(`window.__mon.fail = null; window.__gisMode = 'closed'; 1`);
@@ -194,6 +209,7 @@ module.exports = {
     ok('U9 không cấp quyền billing ⇒ 6 request (không Cloud Billing), "Gói chưa rõ", chi phí: Spark 0 ₫ / Blaze ước tính',
       u9.plan === 'Gói chưa rõ' && u9.bill === 0 && u9.n === 6 && /gói Spark thì 0 ₫; gói Blaze thì hôm nay ≈ \$0/.test(u9.cost)
       && /chưa cấp quyền xem billing/.test(u9.cost), u9);
+    await noDot('U9 gói chưa rõ');
 
     // U10 — token hết hạn + nút "Tải lại" chung của trang ⇒ KHÔNG bật popup, giữ số cũ + ghi chú + nút "Kết nối Google lại"
     const callsBefore = await ev(`window.__gis.calls.length`);
@@ -205,6 +221,7 @@ module.exports = {
     await ev(`Date.now = window.__realNow; 1`);
     ok('U10 token hết hạn + nút Tải lại chung ⇒ không bật popup, giữ số cũ, ghi chú hết hạn + nút "Kết nối Google lại"',
       u10.calls === callsBefore && /Phiên Google đã hết hạn/.test(u10.note) && u10.relog && u10.meters === 3 && !u10.disc, u10);
+    await noDot('U10 phiên hết hạn');
 
     // U11 — kết nối lại rồi "Ngắt kết nối Google" ⇒ thu hồi token, xoá số liệu, về nút Kết nối
     await ev(`window.__gisMode = 'ok'; 1`);
@@ -225,8 +242,10 @@ module.exports = {
     ok('U12 390px: thẻ không tràn ngang; 41.000 đọc = vàng "Sắp hết" (≥70%), 15.000 ghi = vàng; vạch quota hiện',
       u12.doc <= u12.vw && u12.card <= 0 && u12.levels === 'warn,warn,ok' && u12.ql, u12);
     await shot('5-mobile');
+    await noDot('U12 390px');
     await page.setViewport({ width: 1440, height: 900 });
 
+    ok('U14 chữ hiển thị trên thẻ không dùng dấu "·" (mọi trạng thái đã đi qua)', dotHits.length === 0, dotHits);
     ok('U13 không có exception JS', t.errs.length === 0, t.errs);
   }
 };

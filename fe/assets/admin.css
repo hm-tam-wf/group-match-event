@@ -923,7 +923,7 @@ button.is-loading::before{content:"";width:14px;height:14px;border-radius:50%;bo
 .us-foot{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:14px}
 .us-cost{margin:0;font-size:13px;line-height:1.55}
 .us-warn{color:var(--warn);font-weight:600}
-.us-meta{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.us-meta{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px}   /* các mục cách nhau bằng khoảng trống, không dùng "·" */
 .us-card .us-link{background:none;box-shadow:none;border:0;border-radius:4px;padding:2px 0;min-height:24px;color:var(--accent);font:inherit;font-weight:500;
   text-decoration:underline;text-underline-offset:2px}
 .us-card .us-link:hover{color:var(--ink)}

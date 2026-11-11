@@ -53,7 +53,7 @@
     S.phase = S.projectId && String(cfg.oauthClientId || "").trim() ? "ready" : "unconfigured";
     el.innerHTML = '<section class="card us-card" aria-labelledby="usTitle">'
       + '<div class="card-head us-head"><div class="us-title"><h3 id="usTitle">Mức dùng Firestore</h3>'
-      + '<span class="hint">Cả project · số thật từ Cloud Monitoring</span></div><div class="us-head-r" data-us-slot="head"></div></div>'
+      + '<span class="hint">Số liệu thật của cả project, lấy từ Cloud Monitoring</span></div><div class="us-head-r" data-us-slot="head"></div></div>'
       + '<div class="us-body" data-us-slot="body"></div><p class="sr-only" role="status" aria-live="polite" data-us-slot="live"></p></section>';
     EVENTS.forEach(function (x) { el.addEventListener(x[0], x[1], x[0] === "touchstart" ? { passive: true } : false); });
     S.tick = setInterval(tickCountdown, 30000);
@@ -105,7 +105,7 @@
     var d = S.data.days[+col.getAttribute("data-i")], chart = S.el.querySelector(".us-chart"), tip = chart && chart.querySelector(".us-tip");
     if (!d || !tip) return;
     tip.textContent = "";                                   // nội dung dựng bằng textContent (không innerHTML)
-    [["span", dayName(d)], ["b", fmtN(d.reads) + " lượt đọc"], ["span", fmtN(d.writes) + " ghi · " + fmtN(d.deletes) + " xoá"]].forEach(function (x) {
+    [["span", dayName(d)], ["b", fmtN(d.reads) + " lượt đọc"], ["span", fmtN(d.writes) + " ghi, " + fmtN(d.deletes) + " xoá"]].forEach(function (x) {
       var n = document.createElement(x[0]); n.textContent = x[1]; tip.appendChild(n);
     });
     tip.hidden = false;
@@ -316,8 +316,8 @@
     var h = "", d = S.data;
     if (d) {
       var P = {
-        spark: ["Spark · miễn phí", "Project chưa bật billing: không bao giờ bị tính tiền, vượt quota thì bị chặn tới lúc reset"],
-        blaze: ["Blaze · trả theo dùng", "Project đã bật billing: chỉ tính phần vượt quota miễn phí mỗi ngày"],
+        spark: ["Gói Spark (miễn phí)", "Project chưa bật billing: không bao giờ bị tính tiền, vượt quota thì bị chặn tới lúc reset"],
+        blaze: ["Gói Blaze (trả theo mức dùng)", "Project đã bật billing: chỉ tính phần vượt quota miễn phí mỗi ngày"],
         unknown: ["Gói chưa rõ", "Chưa đọc được trạng thái billing của project"]
       }[d.plan];
       h += '<span class="pill us-plan" data-plan="' + d.plan + '" title="' + esc(P[1]) + '">' + esc(P[0]) + '</span>';
@@ -375,16 +375,16 @@
   function viewData() {
     var d = S.data, reset = esc(fmtClock(d.resetAt));
     return '<div class="us-grid">'
-      + '<div class="us-today"><div class="us-sub"><h4>Hôm nay</h4><span class="hint">reset sau <b data-us-countdown>' + esc(countdown()) + '</b> · lúc ' + reset + '</span></div>'
+      + '<div class="us-today"><div class="us-sub"><h4>Hôm nay</h4><span class="hint">reset lúc ' + reset + ', còn <b data-us-countdown>' + esc(countdown()) + '</b></span></div>'
       + '<ul class="us-meters">' + d.meters.map(meterHtml).join("") + '</ul></div>'
-      + '<div class="us-hist"><div class="us-sub"><h4>Lượt đọc theo ngày</h4><span class="hint">mỗi cột = 1 ngày quota, đổi ngày lúc ' + reset
-      + (d.maxReads >= S.cfg.freeQuota.reads * 0.4 ? ' · vạch gạch = quota ' + esc(fmtN(S.cfg.freeQuota.reads)) : '') + '</span></div>'
+      + '<div class="us-hist"><div class="us-sub"><h4>Lượt đọc theo ngày</h4><span class="hint">mỗi cột là 1 ngày quota, đổi ngày lúc ' + reset
+      + (d.maxReads >= S.cfg.freeQuota.reads * 0.4 ? ', nét đứt là mức quota ' + esc(fmtN(S.cfg.freeQuota.reads)) : '') + '</span></div>'
       + chartHtml(d) + tableHtml(d) + '</div></div>' + footHtml(d);
   }
   function meterHtml(m) {
     var st = m.level === "over" ? '<span class="us-st">' + IC.warn + 'Vượt quota ' + fmtN(m.over) + '</span>'
-      : m.level === "danger" ? '<span class="us-st">' + IC.warn + 'Gần hết · còn ' + fmtN(m.left) + '</span>'
-      : m.level === "warn" ? '<span class="us-st">' + IC.warn + 'Sắp hết · còn ' + fmtN(m.left) + '</span>'
+      : m.level === "danger" ? '<span class="us-st">' + IC.warn + 'Gần hết, còn ' + fmtN(m.left) + '</span>'
+      : m.level === "warn" ? '<span class="us-st">' + IC.warn + 'Sắp hết, còn ' + fmtN(m.left) + '</span>'
       : '<span>còn ' + fmtN(m.left) + '</span>';
     var w = m.used > 0 ? Math.max(0.8, Math.min(100, m.ratio * 100)) : 0;
     var vt = fmtN(m.used) + " trên " + fmtN(m.free) + " " + KUNIT[m.kind] + " miễn phí (" + fmtPct(m.ratio) + ")";
@@ -424,7 +424,7 @@
   function footHtml(d) {
     var cfg = S.cfg, c = d.cost, line;
     var over = d.meters.filter(function (m) { return m.level === "over"; }).map(function (m) { return KLABEL[m.kind].toLowerCase(); });
-    var est = 'hôm nay ≈ <b>' + fmtUsd(c.today) + '</b> · ' + d.days.length + ' ngày ≈ <b>' + fmtUsd(c.period) + '</b>';
+    var est = 'hôm nay ≈ <b>' + fmtUsd(c.today) + '</b>, cả ' + d.days.length + ' ngày ≈ <b>' + fmtUsd(c.period) + '</b>';
     if (d.plan === "spark") {
       line = '<b>Chi phí: 0 ₫.</b> Gói Spark không tính tiền — vượt quota thì Firestore từ chối yêu cầu tới lúc reset.'
         + (over.length ? ' <span class="us-warn">Hôm nay đã vượt quota ' + over.join(", ") + ': trang sự kiện có thể lỗi tới lúc reset.</span>' : "");
@@ -437,8 +437,9 @@
     return '<div class="us-foot"><p class="us-cost">' + line + '</p>'
       + (S.note ? '<p class="us-note">' + esc(S.note) + '</p>' : "")
       + (!tokenValid() ? '<p class="us-actions"><button type="button" class="btn-ghost btn-sm" data-us="connect">Kết nối Google lại</button></p>' : "")
-      + '<p class="hint us-meta">Cập nhật ' + esc(fmtClock(S.at)) + ' · số liệu Cloud Monitoring trễ vài phút · ' + extLink(consoleUrl(), "Usage and billing")
-      + (tokenValid() ? ' · <button type="button" class="us-link" data-us="disconnect">Ngắt kết nối Google</button>' : "") + '</p></div>';
+      + '<p class="hint us-meta"><span>Cập nhật lúc ' + esc(fmtClock(S.at)) + ', số liệu Cloud Monitoring trễ vài phút</span>'   // các mục cách nhau bằng gap (CSS), không dùng dấu "·"
+      + extLink(consoleUrl(), "Usage and billing")
+      + (tokenValid() ? '<button type="button" class="us-link" data-us="disconnect">Ngắt kết nối Google</button>' : "") + '</p></div>';
   }
   function billingHint() {
     var e = S.billingErr;
@@ -451,7 +452,7 @@
   }
   function countdown() {
     var ms = S.data.resetAt - Date.now();
-    return ms > 0 ? Core.fmtDuration(ms) : "0 phút (đã reset — bấm làm mới)";
+    return ms > 0 ? Core.fmtDuration(ms) : "0 phút (đã reset, bấm làm mới)";
   }
   function tickCountdown() {
     if (!S || !S.data) return;
