@@ -12,5 +12,5 @@ read and write it.
   design tokens) as small linked notes and update `index.md`. Knowledge not written
   down is lost when context is compacted.
 - Build/test/lint commands and code conventions live in `.claude/memory/conventions.md`.
-- When building or restyling UI, the global `ui-design` skill applies; record chosen
-  design tokens in `.claude/memory/components/`.
+- When building or restyling UI, the `frontend-design` and `ui-ux-pro-max` skills
+  apply; record chosen design tokens in `.claude/memory/components/`.
