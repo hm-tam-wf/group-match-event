@@ -32,3 +32,8 @@ Thẻ "Mức dùng Firestore" xin **token OAuth chỉ đọc** bằng Google Ide
 - Bật Google provider của Firebase Auth rồi lấy access token từ `signInWithPopup` — bật đăng nhập Google cho cả project và tạo user
   Auth thừa; GIS tách bạch hơn.
 - Chỉ đếm lượt đọc của tab admin — dễ nhưng thiếu phần trang sự kiện (nơi tốn nhiều nhất).
+
+## Cập nhật 2026-11-11
+Chạy thật thành công trên site admin (Client ID đã cấu hình, `bedf93e`). Thẻ đọc được billing ⇒ project `icon-picker` thực tế đã ở
+**Blaze** (bối cảnh "Spark" ở trên là giả định lúc quyết định). Quyết định vẫn giữ: không cần server; nhưng vượt quota giờ bị TÍNH
+TIỀN thay vì bị chặn ⇒ con số "Ước tính" có ý nghĩa — giá mặc định vẫn chưa xác minh cho asia-southeast1.

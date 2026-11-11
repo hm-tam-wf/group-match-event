@@ -18,7 +18,7 @@ Ngày quota tính theo giờ Pacific: reset lúc 00:00 giờ Pacific = **15:00 g
 - Client ID không phải bí mật (giống apiKey của Firebase): chỉ chạy trên origin đã khai báo, với tài khoản được phép, và chỉ xem
   được project mà tài khoản đó có quyền.
 - Đọc metric qua API tính theo số time series trả về, 1 triệu đầu miễn phí mỗi billing account; mỗi lần làm mới ≈ 6 time series
-  + 1 lời gọi billing ⇒ coi như 0. Project đang ở Spark (chưa có billing account) — trường hợp này **chưa thử** trên project thật.
+  + 1 lời gọi billing ⇒ coi như 0. Đã chạy thật trên `icon-picker` (gói Blaze) ngày 2026-11-11; project gói Spark thì **chưa thử**.
 
 ## Bật (Owner của project làm, khoảng 10 phút, 1 lần)
 
