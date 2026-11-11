@@ -13,6 +13,7 @@ Quyền admin do `backend/firestore.rules` quyết định (hàm `isAdmin()`), t
 | Trang **Đăng ký** → nút `⋯` mỗi dòng | Chuyển phòng · Gỡ khỏi phòng · Bỏ chặn · Xoá đăng ký. Mỗi thao tác là 1 transaction giữ đồng bộ đội / khoá chống trùng. Hộp xác nhận: thẻ người (tên + phòng + mã) → Chuyển phòng chọn trên lưới phòng (phòng đang ở bị khoá; nhãn *Đầy* / *Khác giới* — vẫn chuyển được, có cảnh báo) và xem trước sĩ số **Từ → Đến** → "Sau khi …" bằng lời thường → *Chi tiết kỹ thuật* (thu gọn, ghi rõ collection). Hộp Gỡ / Bỏ chặn / Xoá focus sẵn nút Hủy, Enter không tự xác nhận. |
 | Thẻ sự kiện → **Mở sự kiện** | Kiểm tra trước: giờ đóng đã qua, danh sách cho phép bật mà rỗng, thiếu ô `name`, ô kiểm tra trùng không tồn tại ⇒ chặn; chưa đặt giờ đóng ⇒ cảnh báo. |
 | Trang **Quản trị** | Xem UID của mình, thêm / gỡ quản trị viên theo UID (`admins/{uid}`). |
+| Trang **Tổng quan** → thẻ **Mức dùng Firestore** | Lượt đọc / ghi / xoá THẬT của cả project hôm nay so với quota miễn phí (đếm ngược tới giờ reset 15:00 giờ VN), biểu đồ 7 ngày + bảng, gói Spark (0 ₫) hay Blaze (ước tính phần vượt). Đăng nhập Google riêng (token chỉ đọc, chỉ trong tab), không đụng Firebase Auth. Bật 1 lần: [USAGE-MONITORING.md](USAGE-MONITORING.md). |
 
 ### Hồ sơ sự kiện (`profile`) — ghi thế nào
 - **Tạo sự kiện**: luôn ghi `profile` tường minh, mặc định = `NEW_EVENT_PROFILE` trong `fe/js/config/config.js` (hiện `{ variant: "tnt", lang: "vi", homeUrl: "" }`).

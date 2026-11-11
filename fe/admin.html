@@ -88,6 +88,8 @@
     <!-- ── TRANG: Tổng quan ── -->
     <section id="tabDash" class="tab-panel active" aria-label="Tổng quan">
       <div id="dashGrid" class="dash"><div class="loading-row"><span class="spinner"></span>Đang tải…</div></div>
+      <!-- Mức dùng Firestore (js/admin/usage-panel.js): khung RIÊNG ngoài #dashGrid ⇒ dashboard vẽ lại không xoá trạng thái kết nối -->
+      <div id="usageMount" class="usage-mount"></div>
     </section>
 
     <!-- ── TRANG: Sự kiện ── -->
@@ -3901,6 +3903,22 @@
     if (HomeEditor.isDirty() && !window.confirm("Trang thông tin còn thay đổi chưa lưu. Bỏ thay đổi để chuyển sự kiện?")) { sel.value = cur; return; }
     open(sel.value);
   });
+})();
+</script>
+<!-- Thẻ "Mức dùng Firestore" (tab Tổng quan): số thật cả project từ Cloud Monitoring — documentation/USAGE-MONITORING.md -->
+<script src="js/admin/usage-config.js"></script>
+<script src="js/admin/usage-core.js"></script>
+<script src="js/admin/usage-panel.js"></script>
+<script>
+(function () {
+  "use strict";
+  var box = document.getElementById("usageMount");
+  if (!box || !window.UsagePanel) return;
+  var pid = (typeof FIREBASE_CONFIG !== "undefined" && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId) || "";
+  UsagePanel.mount(box, { projectId: pid, config: window.ADMIN_USAGE_CONFIG || {} });
+  // Nút "Tải lại" chung của trang làm mới cả thẻ nếu token Google còn hạn (không bao giờ tự bật popup)
+  var rb = document.getElementById("btnRefresh");
+  if (rb) rb.addEventListener("click", function () { UsagePanel.refresh({ silent: true }); });
 })();
 </script>
 </body>

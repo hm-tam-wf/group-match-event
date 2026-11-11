@@ -46,6 +46,22 @@ gỡ; không ai tự thêm mình; UID gốc không gỡ được). Cần DEPLOY 
   thay cho "đăng ký lại được". Gotcha test: `modalText` = innerText ⇒ KHÔNG chứa `<details>` đang đóng và h4 bị UPPERCASE —
   đọc `.pd-tech` bằng textContent, so tiêu đề mục qua textContent của h4.
 
+## Thẻ "Mức dùng Firestore" (2026-11-11) — documentation/USAGE-MONITORING.md, quyết định [[0003-usage-monitoring-browser-oauth]]
+- Tab Tổng quan, khung RIÊNG `#usageMount` ngoài `#dashGrid` (renderDashboard thay innerHTML cả lưới ⇒ đặt trong lưới sẽ mất
+  trạng thái kết nối). `js/admin/usage-core.js` (UMD, logic thuần, unit test) · `usage-panel.js` (DOM + GIS) · `usage-config.js`
+  (`window.ADMIN_USAGE_CONFIG`: `oauthClientId` + ghi đè DEFAULTS: giá, quota, historyDays, checkBilling, loginHint).
+- Số thật: Cloud Monitoring `firestore.googleapis.com/document/{read,write,delete}_count`, ALIGN_SUM + REDUCE_SUM. Hôm nay = 1
+  bucket [00:00 Pacific, now); lịch sử = bucket 3600s rồi gom theo ngày Pacific (00:00 PT luôn là đầu giờ UTC ⇒ bucket không vắt
+  qua ngày; đúng cả ngày 23h/25h). Gói: Cloud Billing `billingInfo.billingEnabled` (true = Blaze). Chi phí kiểu Blaze = Σ ngày
+  phần vượt quota × giá cấu hình (mặc định mức trần $0.06/$0.18/$0.02 — CHƯA xác minh cho asia-southeast1).
+- Đăng nhập: GIS token model (`google.accounts.oauth2.initTokenClient`, `prompt: ""`), scope monitoring.read + cloud-billing.readonly;
+  không đụng Firebase Auth; token chỉ trong bộ nhớ, `fetch` lấy lúc gọi (test cài fetch giả sau khi mount). Script GIS chỉ tải khi
+  có ý định (pointerover/focus/touchstart nút) ⇒ suite admin / admin-e2e không gọi mạng. Nút "Tải lại" chung gọi
+  `UsagePanel.refresh({silent:true})` — không bao giờ bật popup (popup phải mở trong cú bấm).
+- Gotcha: service account Admin SDK (`serviceAccountKey.json`) KHÔNG có quyền Monitoring (403 PERMISSION_DENIED, không phải
+  SERVICE_DISABLED ⇒ Monitoring API nhiều khả năng đã bật). Validator dataviz báo lightness-band FAIL cho màu admin — chỉ áp
+  cho palette categorical, ở đây là emphasis + status (CVD/contrast PASS) ⇒ giữ token admin.
+
 ## Export
 - `export.js` — Node.js script local, dùng `firebase-admin` SDK
 - Output: CSV với full PII từ `signups` collection

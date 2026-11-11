@@ -834,3 +834,104 @@ button.is-loading::before{content:"";width:14px;height:14px;border-radius:50%;bo
   .insight{min-height:0;justify-content:flex-start}
   .insight .chip-tag{position:static!important;align-self:flex-start}   /* bỏ min-height ⇒ chip absolute sẽ đè chữ */
 }
+
+/* ── Thẻ "Mức dùng Firestore" (tab Tổng quan · js/admin/usage-panel.js) — số thật cả project từ Cloud Monitoring ──────────
+   Thanh quota: màu theo mức (nhấn → vàng → đỏ) LUÔN kèm chữ + icon; nền thanh = cùng tông nhạt. Biểu đồ 1 series (lượt đọc):
+   cột hôm nay màu nhấn, ngày trước cùng tông 60% (≈#5961A6, đạt 3:1 trên nền thẻ); lưới hairline liền, vạch gạch = quota ngày;
+   giá trị có cả tooltip, focus phím (roving) và bảng số liệu ⇒ không khoá sau tooltip. Chỉ dùng token màu của admin. */
+.usage-mount{margin-top:14px}
+.usage-mount:empty{display:none}
+.us-card{--us-past:rgba(139,151,255,.6);display:flex;flex-direction:column;gap:18px}
+.us-head{margin-bottom:0}
+.us-title{display:flex;flex-direction:column;gap:3px;min-width:0}
+.us-head-r{display:flex;align-items:center;gap:8px}
+.us-head .icon-btn.is-spinning svg{animation:spin .8s linear infinite}
+.us-plan[data-plan="spark"]{color:var(--ok);background:var(--ok-soft);box-shadow:inset 0 0 0 1px rgba(61,214,169,.3)}
+.us-plan[data-plan="blaze"]{color:#B4BCFF;background:var(--accent-soft);box-shadow:inset 0 0 0 1px rgba(139,151,255,.35)}
+.us-plan[data-plan="unknown"]{color:var(--mut)}
+.us-card a.us-a{color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-weight:500}
+.us-card a.us-a:hover{text-decoration:underline;text-underline-offset:2px}
+.us-card a.us-a svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.us-body[aria-busy="true"] .us-grid,.us-body[aria-busy="true"] .us-foot{opacity:.55;transition:opacity var(--d-base)}
+.us-empty{display:flex;gap:14px;align-items:flex-start;max-width:760px}
+.us-empty-tx{min-width:0}
+.us-empty-tx p{margin:0 0 8px;font-size:13.5px;line-height:1.55}
+.us-empty-tx p.hint{font-size:12.5px}
+.us-ic{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.us-ic svg,.us-alert > svg,.us-st svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.us-ic svg{width:20px;height:20px}
+.us-empty.is-err .us-ic{background:var(--danger-soft);color:var(--bad)}
+.us-card .us-actions{margin:12px 0 0}
+.us-card .us-note{margin:0;font-size:12.5px;line-height:1.5;color:var(--warn)}
+.us-alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-bottom:14px;border-radius:12px;background:var(--danger-soft);
+  box-shadow:inset 0 0 0 1px rgba(255,92,122,.3);font-size:13px;line-height:1.5}
+.us-alert > svg{width:16px;height:16px;flex:0 0 auto;margin-top:2px;color:var(--bad)}
+.us-alert p{margin:0}
+.us-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:28px}
+.us-sub{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;margin-bottom:14px}
+.us-sub h4{margin:0;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+.us-sub .hint{font-size:12px}
+.us-meters{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:18px}
+.us-m-row,.us-m-foot{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.us-m-k{font-size:13px;font-weight:600}
+.us-m-v{font-size:12.5px;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.us-m-v b{color:var(--ink);font-size:15px;font-weight:600}
+.us-m-bar{height:8px;border-radius:99px;background:var(--accent-soft);overflow:hidden;margin:8px 0 6px}
+.us-m-bar > span{display:block;height:100%;max-width:100%;border-radius:inherit;background:var(--accent)}
+.us-m[data-level="warn"] .us-m-bar{background:var(--warn-soft)}
+.us-m[data-level="warn"] .us-m-bar > span{background:var(--warn)}
+.us-m[data-level="danger"] .us-m-bar,.us-m[data-level="over"] .us-m-bar{background:var(--danger-soft)}
+.us-m[data-level="danger"] .us-m-bar > span,.us-m[data-level="over"] .us-m-bar > span{background:var(--bad)}
+.us-m-foot{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
+.us-st{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--ink)}
+.us-st svg{width:14px;height:14px}
+.us-m[data-level="warn"] .us-st svg{color:var(--warn)}
+.us-m[data-level="danger"] .us-st svg,.us-m[data-level="over"] .us-st svg{color:var(--bad)}
+.us-sk-bar{height:8px!important;margin:9px 0 7px}
+/* biểu đồ: trục y bên trái 38px, 20px trên cho nhãn số ở đỉnh cột, 26px dưới cho nhãn ngày (khung chứa cả trục ⇒ không cuộn lồng) */
+.us-chart{position:relative;height:214px;margin-left:38px}
+.us-plot{position:absolute;inset:20px 0 26px 0}
+.us-gl{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--line)}
+.us-gl > span{position:absolute;right:calc(100% + 8px);top:-7px;font-size:11px;line-height:14px;color:var(--mut-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.us-ql{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--mut)}
+.us-cols{position:absolute;inset:0;display:flex}
+.us-col{position:relative;flex:1 1 0;min-width:0;border-radius:8px;outline:none}
+.us-col-bar{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(24px,62%);border-radius:4px 4px 0 0;background:var(--us-past);transition:filter var(--d-fast)}
+.us-col.is-today .us-col-bar{background:var(--accent)}
+.us-col:hover .us-col-bar,.us-col.is-hover .us-col-bar,.us-col:focus-visible .us-col-bar{filter:brightness(1.22)}
+.us-col:focus-visible{box-shadow:var(--ring)}
+.us-col-v,.us-col-x{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;line-height:14px;white-space:nowrap;pointer-events:none}
+.us-col-v{color:var(--ink);font-variant-numeric:tabular-nums}
+.us-col-x{top:calc(100% + 7px);color:var(--mut)}
+.us-col.is-today .us-col-x{color:var(--ink);font-weight:600}
+.us-tip{position:absolute;z-index:6;pointer-events:none;transform:translate(-50%,calc(-100% - 8px));display:flex;flex-direction:column;gap:2px;padding:8px 10px;
+  border-radius:10px;background:var(--card-3);border:1px solid var(--line-2);box-shadow:var(--sh-lg);font-size:12px;line-height:1.35;white-space:nowrap}
+.us-tip[hidden]{display:none}
+.us-tip b{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.us-tip span{color:var(--mut)}
+.us-chart-note{margin:6px 0 0}
+.us-table{margin-top:16px}
+.us-table summary{list-style:none;cursor:pointer;width:max-content;min-height:24px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut);border-radius:6px}
+.us-table summary::-webkit-details-marker{display:none}
+.us-table summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform var(--d-fast)}
+.us-table[open] summary::before{transform:rotate(45deg)}
+.us-table summary:hover{color:var(--ink)}
+.us-table summary:focus-visible{outline:none;box-shadow:var(--ring)}
+.us-table .table-wrap{margin-top:10px;max-height:none}
+.us-table .reg-table th,.us-table .reg-table td{padding:8px 12px}
+.us-table .us-n{text-align:right}
+.us-foot{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.us-cost{margin:0;font-size:13px;line-height:1.55}
+.us-warn{color:var(--warn);font-weight:600}
+.us-meta{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.us-card .us-link{background:none;box-shadow:none;border:0;border-radius:4px;padding:2px 0;min-height:24px;color:var(--accent);font:inherit;font-weight:500;
+  text-decoration:underline;text-underline-offset:2px}
+.us-card .us-link:hover{color:var(--ink)}
+.us-sk-cols{display:flex;align-items:flex-end;justify-content:space-around;gap:10px;height:168px;padding:20px 0 26px 38px}
+.us-sk-cols > .skel{flex:1;max-width:24px;border-radius:4px 4px 0 0}
+@media (max-width:1023.98px){.us-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+@media (max-width:640px){.us-chart{height:196px}.us-head-r{margin-left:auto}}
+/* màn hẹp: nhãn ngày xen kẽ tính TỪ cột hôm nay (cột kề "Hôm nay" luôn ẩn nhãn) ⇒ không chồng chữ; đủ ngày vẫn có ở tooltip + bảng */
+@media (max-width:480px){.us-col:nth-last-child(2n) .us-col-x{visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.us-col-bar,.us-body[aria-busy="true"] .us-grid{transition:none}.us-head .icon-btn.is-spinning svg{animation:none}}
+@media (forced-colors:active){.us-col-bar,.us-m-bar > span{background:CanvasText}.us-col.is-today .us-col-bar{background:Highlight}}

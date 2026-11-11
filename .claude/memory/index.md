@@ -10,7 +10,7 @@
 ## Modules
 - [[api-layer]] — 3 backends (firebase/sheet/demo), apiState/apiClaim/apiSubscribe
 - [[ui-pipeline]] — script loading order (sacred!), render pipeline, animation
-- [[admin-panel]] — Firebase Auth + admin theo dữ liệu (`admins/{uid}`, UID gốc cứng); UI dashboard tối (sidebar, 6 trang, drawer form 2 pane); Nhận diện, nạp Nhân sự+Phòng, thao tác từng người, kiểm tra trước khi mở, site admin riêng (chưa deploy)
+- [[admin-panel]] — Firebase Auth + admin theo dữ liệu (`admins/{uid}`, UID gốc cứng); UI dashboard tối (sidebar, 6 trang, drawer form 2 pane); Nhận diện, nạp Nhân sự+Phòng, thao tác từng người, kiểm tra trước khi mở, site admin riêng (đã deploy), thẻ Mức dùng Firestore (Cloud Monitoring qua OAuth trình duyệt)
 - [[firestore-schema]] — collections, security rules, capacity sync gotcha
 - [[allowlist]] — danh sách MSNV được phép join: import Excel/CSV, toggle/sự kiện, cổng chặn client (mirror dedup); cột Giới tính → phân phòng Nam/Nữ
 - [[home-template]] — trang home dùng chung `home.html?e=` đọc `meta/home` (thay travel.html tĩnh), editor tab "Trang thông tin" trong admin, seed TNT + home-import.js
@@ -25,6 +25,7 @@
 - [[0000-template]] — template cho mỗi quyết định kiến trúc
 - [[0001-gender-rooms-from-allowlist]] — phân phòng Nam/Nữ: giới lấy từ Danh sách cho phép (không tự chọn), khoá ở client, không đổi rules
 - [[0002-cross-device-lookup]] — 1 người = 1 phòng trên mọi thiết bị: `dedup_keys` mang `icon`, so tên bất đối xứng (k1 + `m~fold` cho tên có dấu; hộp xác nhận gõ thiếu dấu), remote view, go-live order
+- [[0003-usage-monitoring-browser-oauth]] — số liệu Firestore thật trong admin: token OAuth chỉ đọc bằng Google Identity Services ngay trong trình duyệt (không Blaze / Cloud Function / service account)
 
 ---
 
